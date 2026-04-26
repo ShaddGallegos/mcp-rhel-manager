@@ -1,0 +1,55 @@
+---
+# Remediation tasks for Lenovo ThinkPad, IdeaPad, and P and W-Series nodes (populated by architect_genesis.sh)
+- name: Install required diagnostic and remediation packages
+  become: true
+  dnf:
+    name:
+      - smartmontools
+      - lm_sensors
+      - pciutils
+      - sof-firmware
+      - audit
+      - audit-libs
+      - auditd
+      - firewalld
+      - fail2ban
+      - iproute
+    state: present
+    update_cache: yes
+
+- name: Ensure auditd is enabled and started
+  become: true
+  service:
+    name: auditd
+    state: started
+    enabled: yes
+
+- name: Ensure firewalld is enabled and started
+  become: true
+  service:
+    name: firewalld
+    state: started
+    enabled: yes
+
+- name: Ensure fail2ban is enabled and started (if available)
+  become: true
+  service:
+    name: fail2ban
+    state: started
+    enabled: yes
+  ignore_errors: yes
+
+- name: Deploy systemd drop-in for mcp-bridge to order after ollama
+  become: true
+  copy:
+    dest: /etc/systemd/system/mcp-bridge.service.d/override.conf
+    content: |
+      [Unit]
+      After=ollama.service
+      [Service]
+      Restart=on-failure
+
+- name: Reload systemd daemon
+  become: true
+  command: systemctl daemon-reload
+  changed_when: false

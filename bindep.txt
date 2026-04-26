@@ -1,0 +1,10 @@
+podman
+python3-venv | python3-virtualenv
+python3-devel | python3-dev
+gcc
+make
+libffi-devel | libffi-dev
+openssl-devel | libssl-dev
+which
+curl
+jq

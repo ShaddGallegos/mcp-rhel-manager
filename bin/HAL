@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Lightweight wrapper to run the HAL CLI as a system command `HAL`
+# Behavior:
+# - If /opt/mcp-rhel-manager/venv/bin/python exists, use that Python and the installed hal.py
+# - Otherwise, use python3 to run hal.py from the repository layout relative to this script
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+if [[ -x "/opt/mcp-rhel-manager/venv/bin/python" && -f "/opt/mcp-rhel-manager/hal.py" ]]; then
+  exec "/opt/mcp-rhel-manager/venv/bin/python" "/opt/mcp-rhel-manager/hal.py" "$@"
+fi
+
+if [[ -x "$REPO_ROOT/venv/bin/python" && -f "$REPO_ROOT/hal.py" ]]; then
+  exec "$REPO_ROOT/venv/bin/python" "$REPO_ROOT/hal.py" "$@"
+fi
+
+if command -v python3 >/dev/null 2>&1 && [[ -f "$REPO_ROOT/hal.py" ]]; then
+  exec python3 "$REPO_ROOT/hal.py" "$@"
+fi
+
+echo "Could not find HAL installation. Expected /opt/mcp-rhel-manager or repository layout with hal.py."
+exit 2

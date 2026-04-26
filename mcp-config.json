@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "architect": {
+      "command": "/home/sgallego/mcp-rhel-manager/venv/bin/python",
+      "args": ["/home/sgallego/mcp-rhel-manager/server.py"]
+    }
+  }
+}

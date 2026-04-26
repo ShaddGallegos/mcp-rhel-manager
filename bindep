@@ -1,0 +1,21 @@
+# bindep file for mcp-rhel-manager: OS-level package dependencies
+# Format: package-name [platform]
+
+# Basic build/runtime deps
+python3-devel
+gcc
+make
+redhat-rpm-config
+libffi-devel
+openssl-devel
+git
+
+# Tools used by scripts
+podman
+jq
+smartmontools
+lm_sensors
+pciutils
+
+# Optional: for kernel module builds
+dkms

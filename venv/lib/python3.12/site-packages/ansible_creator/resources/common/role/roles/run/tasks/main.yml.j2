@@ -1,0 +1,6 @@
+---
+# tasks file for {{ namespace }}.{{ collection_name }}.{{ role_name }}
+
+- name: Display the value of {{ role_name }}_my_variable
+  ansible.builtin.debug:
+    msg: "The value of {{ role_name }}_my_variable is {% raw %}{{ {% endraw %}{{ role_name }}_my_variable{% raw %} }}{% endraw %}"
