@@ -358,6 +358,28 @@ if id -u "$AI_USER" >/dev/null 2>&1; then
   sudo chown -R "$AI_USER":"$AI_USER" "$MCP_SYS_HOME" || true
 fi
 
+# Deploy redact_training.py from the installed /opt tree into system AI home (owned by mcp-ai)
+if [ -f "$OPT_DIR/mcp-ai/redact_training.py" ]; then
+  sudo mkdir -p "$MCP_SYS_HOME"
+  sudo cp -f "$OPT_DIR/mcp-ai/redact_training.py" "$MCP_SYS_HOME/redact_training.py" || true
+  sudo chown mcp-ai:mcp-ai "$MCP_SYS_HOME/redact_training.py" || true
+  sudo chmod 0750 "$MCP_SYS_HOME/redact_training.py" || true
+fi
+
+# Ensure a system-level AI config exists (includes conversational toggle used by HAL)
+sudo mkdir -p "$MCP_SYS_HOME/.mcp-ai"
+sudo tee "$MCP_SYS_HOME/.mcp-ai/config.json" > /dev/null <<CFG
+{
+  "ai_user": "${AI_USER}",
+  "auto_remediate": true,
+  "allow_auto_fix": true,
+  "max_retries": 2,
+  "conversational": true
+}
+CFG
+sudo chown -R mcp-ai:mcp-ai "$MCP_SYS_HOME/.mcp-ai" || true
+sudo chmod 0640 "$MCP_SYS_HOME/.mcp-ai/config.json" || true
+
 # Install system indexer script to system AI home so mcp-ai can run it
 if [ -f "$OPT_DIR/mcp-ai/indexer.py" ]; then
   sudo mkdir -p "$MCP_SYS_HOME/training"
@@ -469,6 +491,17 @@ fi
 RUN
 sudo chmod 0755 /usr/local/bin/mcp-ai-runner || true
 
+# Record runner checksum for audit/integrity
+if [ -f "$RUNNER_PATH" ]; then
+  sudo mkdir -p "$MCP_SYS_HOME/.mcp-ai" || true
+  RUNNER_SHA=$(sha256sum "$RUNNER_PATH" 2>/dev/null | awk '{print $1}') || true
+  if [ -n "$RUNNER_SHA" ]; then
+    echo "$RUNNER_SHA  $RUNNER_PATH" | sudo tee "$MCP_SYS_HOME/runner.sha256" >/dev/null || true
+    sudo chown root:root "$MCP_SYS_HOME/runner.sha256" || true
+    sudo chmod 0644 "$MCP_SYS_HOME/runner.sha256" || true
+  fi
+fi
+
 # post-install hardening, SELinux contexts, auto-trigger and redaction
 echo "Installed /opt deployment and system services. Applying hardening and auto-trigger..."
 
@@ -518,10 +551,25 @@ COMBINED="$(ls -1t /var/lib/mcp/training/supplemental-combined-*.jsonl 2>/dev/nu
 if [ -n "$COMBINED" ]; then
   REDACTED="/var/lib/mcp/training/$(basename "$COMBINED" .jsonl)-redacted-$(date -u +%Y%m%dT%H%M%SZ).jsonl"
   echo "Redacting combined training file: $COMBINED -> $REDACTED"
-  if [ -x "/opt/mcp-rhel-manager/venv/bin/python" ]; then
-    sudo -u mcp-ai /opt/mcp-rhel-manager/venv/bin/python /opt/mcp-rhel-manager/mcp-ai/redact_training.py --infile "$COMBINED" --outfile "$REDACTED" || true
+  # Prefer the system-local redact script if present; fall back to /opt copy
+  if [ -x "$MCP_SYS_HOME/redact_training.py" ]; then
+    RT="$MCP_SYS_HOME/redact_training.py"
+  elif [ -f "$OPT_DIR/mcp-ai/redact_training.py" ]; then
+    RT="$OPT_DIR/mcp-ai/redact_training.py"
   else
-    sudo -u mcp-ai python3 /opt/mcp-rhel-manager/mcp-ai/redact_training.py --infile "$COMBINED" --outfile "$REDACTED" || true
+    RT=""
+  fi
+
+  if [ -n "$RT" ]; then
+    if [ -x "$OPT_DIR/venv/bin/python" ]; then
+      sudo -u mcp-ai "$OPT_DIR/venv/bin/python" "$RT" --infile "$COMBINED" --outfile "$REDACTED" || true
+    elif [ -x "/opt/mcp-rhel-manager/venv/bin/python" ]; then
+      sudo -u mcp-ai /opt/mcp-rhel-manager/venv/bin/python "$RT" --infile "$COMBINED" --outfile "$REDACTED" || true
+    else
+      sudo -u mcp-ai python3 "$RT" --infile "$COMBINED" --outfile "$REDACTED" || true
+    fi
+  else
+    echo "No redact script available (checked $MCP_SYS_HOME and $OPT_DIR); skipping redaction"
   fi
 fi
 
