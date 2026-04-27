@@ -359,9 +359,15 @@ if id -u "$AI_USER" >/dev/null 2>&1; then
 fi
 
 # Deploy redact_training.py from the installed /opt tree into system AI home (owned by mcp-ai)
-if [ -f "$OPT_DIR/mcp-ai/redact_training.py" ]; then
+# Fallback to the repo copy in $BASE_DIR if /opt does not contain the script.
+if [ -f "$OPT_DIR/mcp-ai/redact_training.py" ] || [ -f "$BASE_DIR/mcp-ai/redact_training.py" ]; then
   sudo mkdir -p "$MCP_SYS_HOME"
-  sudo cp -f "$OPT_DIR/mcp-ai/redact_training.py" "$MCP_SYS_HOME/redact_training.py" || true
+  if [ -f "$OPT_DIR/mcp-ai/redact_training.py" ]; then
+    SRC="$OPT_DIR/mcp-ai/redact_training.py"
+  else
+    SRC="$BASE_DIR/mcp-ai/redact_training.py"
+  fi
+  sudo cp -f "$SRC" "$MCP_SYS_HOME/redact_training.py" || true
   sudo chown mcp-ai:mcp-ai "$MCP_SYS_HOME/redact_training.py" || true
   sudo chmod 0750 "$MCP_SYS_HOME/redact_training.py" || true
 fi
@@ -381,9 +387,15 @@ sudo chown -R mcp-ai:mcp-ai "$MCP_SYS_HOME/.mcp-ai" || true
 sudo chmod 0640 "$MCP_SYS_HOME/.mcp-ai/config.json" || true
 
 # Install system indexer script to system AI home so mcp-ai can run it
-if [ -f "$OPT_DIR/mcp-ai/indexer.py" ]; then
+# Fallback to the repository copy in $BASE_DIR if /opt does not contain the script
+if [ -f "$OPT_DIR/mcp-ai/indexer.py" ] || [ -f "$BASE_DIR/mcp-ai/indexer.py" ]; then
   sudo mkdir -p "$MCP_SYS_HOME/training"
-  sudo cp -f "$OPT_DIR/mcp-ai/indexer.py" "$MCP_SYS_HOME/indexer.py" || true
+  if [ -f "$OPT_DIR/mcp-ai/indexer.py" ]; then
+    IDX_SRC="$OPT_DIR/mcp-ai/indexer.py"
+  else
+    IDX_SRC="$BASE_DIR/mcp-ai/indexer.py"
+  fi
+  sudo cp -f "$IDX_SRC" "$MCP_SYS_HOME/indexer.py" || true
   sudo chown mcp-ai:mcp-ai "$MCP_SYS_HOME/indexer.py" || true
   sudo chmod 750 "$MCP_SYS_HOME/indexer.py" || true
 fi
