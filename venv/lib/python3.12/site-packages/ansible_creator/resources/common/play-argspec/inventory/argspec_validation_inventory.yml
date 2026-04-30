@@ -1,9 +1,0 @@
----
-all:
-  vars:
-    ping_data: Pong
-    stat:
-      description: Custom stat data
-      returned: always
-      type: raw
-      sample: Hello, World!
