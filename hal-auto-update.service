@@ -1,0 +1,22 @@
+[Unit]
+Description=HAL Auto-Update Service (DNF, Flatpak, SELinux, Firewall)
+Documentation=file:///home/sgallego/GIT/mcp-rhel-manager/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/home/sgallego/GIT/mcp-rhel-manager/hal-auto-update.sh
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hal-auto-update
+
+# Security hardening
+PrivateTmp=no
+NoNewPrivileges=no
+ProtectSystem=no
+ProtectHome=no
+
+# Retry logic
+RemainAfterExit=no

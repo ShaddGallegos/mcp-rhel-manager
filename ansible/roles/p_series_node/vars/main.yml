@@ -1,6 +1,6 @@
 ---
 installed_packages:
-  - Updating Subscription Management repositories.
+  - Not root, Subscription Management repositories not updated
   - CGSI-gSOAP
   - CharLS
   - ImageMagick
@@ -386,6 +386,7 @@ installed_packages:
   - cryptopp
   - cryptopp-devel
   - cryptsetup
+  - cryptsetup-devel
   - cryptsetup-libs
   - cuda-13-2
   - cuda-cccl-13-2
@@ -401,7 +402,6 @@ installed_packages:
   - cuda-documentation-13-2
   - cuda-driver-devel-13-1
   - cuda-driver-devel-13-2
-  - cuda-drivers
   - cuda-gdb-13-2
   - cuda-libraries-13-2
   - cuda-libraries-devel-13-2
@@ -449,6 +449,7 @@ installed_packages:
   - daala-libs
   - davix-devel
   - davix-libs
+  - dblatex
   - dbus
   - dbus-broker
   - dbus-common
@@ -533,6 +534,7 @@ installed_packages:
   - default-fonts-xh
   - default-fonts-yi
   - default-fonts-zu
+  - dejagnu
   - dejavu-lgc-sans-fonts
   - dejavu-lgc-sans-mono-fonts
   - dejavu-lgc-serif-fonts
@@ -565,6 +567,7 @@ installed_packages:
   - docbook-style-dsssl
   - docbook-style-xsl
   - docbook-utils
+  - docbook5-style-xsl
   - dolphin
   - dolphin-libs
   - dolphin-plugins
@@ -603,6 +606,7 @@ installed_packages:
   - efivar-libs
   - egl-gbm
   - egl-utils
+  - egl-wayland
   - egl-wayland2
   - egl-x11
   - elfutils
@@ -634,6 +638,7 @@ installed_packages:
   - exiv2-libs
   - expat
   - expat-devel
+  - expect
   - extra-cmake-modules
   - f42-backgrounds-base
   - f42-backgrounds-kde
@@ -3168,6 +3173,7 @@ installed_packages:
   - iproute-tc
   - ipset
   - ipset-libs
+  - iptables-devel
   - iptables-libs
   - iptables-nft
   - iputils
@@ -3438,9 +3444,12 @@ installed_packages:
   - kjournald-libs
   - kmenuedit
   - kmod
+  - kmod-devel
   - kmod-libs
   - kmod-nvidia-6.12.0-124.el10_1
   - kmod-nvidia-latest-dkms
+  - kmod-v4l2loopback
+  - kmod-v4l2loopback-6.12.0-109.el10
   - kmodtool
   - kolourpaint
   - kolourpaint-libs
@@ -3692,6 +3701,7 @@ installed_packages:
   - libblockdev-utils
   - libbluray
   - libbpf
+  - libbpf-devel
   - libbrotli
   - libbs2b
   - libbtrfs
@@ -3799,6 +3809,7 @@ installed_packages:
   - libfakekey-devel
   - libfastjson
   - libfdisk
+  - libfdisk-devel
   - libfdt
   - libfdt-devel
   - libffi
@@ -3925,6 +3936,8 @@ installed_packages:
   - libmbim-utils
   - libmd
   - libmicrodns
+  - libmicrohttpd
+  - libmicrohttpd-devel
   - libmng
   - libmnl
   - libmodplug
@@ -3932,6 +3945,7 @@ installed_packages:
   - libmount
   - libmount-devel
   - libmpc
+  - libmpc-devel
   - libmpcdec
   - libmpeg2
   - libmspack
@@ -3965,7 +3979,6 @@ installed_packages:
   - libnvidia-cfg
   - libnvidia-container-tools
   - libnvidia-container1
-  - libnvidia-fbc
   - libnvidia-gpucomp
   - libnvidia-ml
   - libnvjitlink-13-2
@@ -4307,6 +4320,7 @@ installed_packages:
   - lvm2
   - lvm2-libs
   - lynx
+  - lz4
   - lz4-devel
   - lz4-libs
   - lzip
@@ -4507,8 +4521,6 @@ installed_packages:
   - nvidia-container-toolkit-base
   - nvidia-driver
   - nvidia-driver-assistant
-  - nvidia-driver-cuda
-  - nvidia-driver-cuda-libs
   - nvidia-driver-libs
   - nvidia-gpu-firmware
   - nvidia-imex
@@ -5318,6 +5330,7 @@ installed_packages:
   - python3-pyatspi
   - python3-pycares
   - python3-pycparser
+  - python3-pyelftools
   - python3-pygithub
   - python3-pygments
   - python3-pynacl
@@ -5423,6 +5436,7 @@ installed_packages:
   - python3-zope-testrunner
   - python3-zopfli
   - python3-zstandard
+  - python3-zstd
   - python3.13
   - python3.13-devel
   - python3.13-libs
@@ -7159,8 +7173,12 @@ installed_packages:
   - rust-winnow-devel
   - rust-writeable-devel
   - rust-wyz-devel
+  - rust-x11rb+randr-devel
+  - rust-x11rb+render-devel
   - rust-x11rb+xcursor-devel
   - rust-x11rb-devel
+  - rust-x11rb-protocol+randr-devel
+  - rust-x11rb-protocol+render-devel
   - rust-x11rb-protocol+std-devel
   - rust-x11rb-protocol-devel
   - rust-xcursor+default-devel
@@ -7267,6 +7285,7 @@ installed_packages:
   - shadow-utils-subid-devel
   - shake-common
   - shared-mime-info
+  - sharutils
   - shiboken6
   - shim-x64
   - signon
@@ -7397,6 +7416,7 @@ installed_packages:
   - tesseract-langpack-eng
   - tesseract-tessdata-doc
   - texinfo
+  - texinfo-tex
   - texlive-ae
   - texlive-algorithms
   - texlive-alphalph
@@ -7405,12 +7425,14 @@ installed_packages:
   - texlive-amsmath
   - texlive-anyfontsize
   - texlive-anysize
+  - texlive-appendix
   - texlive-atbegshi
   - texlive-attachfile
   - texlive-attachfile2
   - texlive-atveryend
   - texlive-auxhook
   - texlive-avantgar
+  - texlive-awesomebox
   - texlive-babel
   - texlive-babel-english
   - texlive-babelbib
@@ -7419,7 +7441,9 @@ installed_packages:
   - texlive-bera
   - texlive-beton
   - texlive-bibtex
+  - texlive-bibtopic
   - texlive-bidi
+  - texlive-bigfoot
   - texlive-bigintcalc
   - texlive-bitset
   - texlive-bookman
@@ -7430,6 +7454,7 @@ installed_packages:
   - texlive-caption
   - texlive-carlisle
   - texlive-catchfile
+  - texlive-changebar
   - texlive-changepage
   - texlive-charter
   - texlive-chktex
@@ -7443,6 +7468,7 @@ installed_packages:
   - texlive-collection-fontsrecommended
   - texlive-collection-latex
   - texlive-collection-latexrecommended
+  - texlive-collection-xetex
   - texlive-colorprofiles
   - texlive-colortbl
   - texlive-count1to
@@ -7451,12 +7477,16 @@ installed_packages:
   - texlive-csquotes
   - texlive-ctable
   - texlive-currfile
+  - texlive-dehyph
   - texlive-dvipdfmx
   - texlive-dvipng
   - texlive-dvips
   - texlive-ec
+  - texlive-eepic
   - texlive-enctex
   - texlive-enumitem
+  - texlive-epsf
+  - texlive-epstopdf
   - texlive-epstopdf-pkg
   - texlive-eso-pic
   - texlive-etex
@@ -7479,6 +7509,7 @@ installed_packages:
   - texlive-finstrut
   - texlive-firstaid
   - texlive-fix2col
+  - texlive-fixlatvian
   - texlive-float
   - texlive-fontawesome
   - texlive-fontaxes
@@ -7534,6 +7565,7 @@ installed_packages:
   - texlive-latexbug
   - texlive-latexconfig
   - texlive-letltxmacro
+  - texlive-lettrine
   - texlive-lib
   - texlive-lineno
   - texlive-listings
@@ -7574,18 +7606,22 @@ installed_packages:
   - texlive-mparhack
   - texlive-mptopdf
   - texlive-multido
+  - texlive-multirow
   - texlive-multitoc
   - texlive-natbib
+  - texlive-ncctools
   - texlive-ncntrsbk
   - texlive-newfloat
   - texlive-newunicodechar
   - texlive-notoccite
   - texlive-ntgclass
   - texlive-oberdiek
+  - texlive-overpic
   - texlive-palatino
   - texlive-paralist
   - texlive-parallel
   - texlive-parskip
+  - texlive-passivetex
   - texlive-pdfcol
   - texlive-pdfcolfoot
   - texlive-pdfcolmk
@@ -7596,6 +7632,7 @@ installed_packages:
   - texlive-pdftex
   - texlive-pdftexcmds
   - texlive-pgf
+  - texlive-philokalia
   - texlive-placeins
   - texlive-plain
   - texlive-polyglossia
@@ -7618,6 +7655,7 @@ installed_packages:
   - texlive-pstricks
   - texlive-pstricks-add
   - texlive-ptex-fonts
+  - texlive-ptext
   - texlive-pxfonts
   - texlive-ragged2e
   - texlive-rcs
@@ -7633,9 +7671,13 @@ installed_packages:
   - texlive-sepnum
   - texlive-setspace
   - texlive-showexpl
+  - texlive-stmaryrd
   - texlive-stringenc
   - texlive-subfig
+  - texlive-subfigure
+  - texlive-svn-prov
   - texlive-symbol
+  - texlive-t2
   - texlive-tex
   - texlive-tex-gyre
   - texlive-tex-gyre-math
@@ -7644,6 +7686,7 @@ installed_packages:
   - texlive-texlive-en
   - texlive-texlive-msg-translations
   - texlive-texlive-scripts
+  - texlive-texlive-scripts-extra
   - texlive-texlive.infra
   - texlive-textcase
   - texlive-threeparttable
@@ -7656,26 +7699,38 @@ installed_packages:
   - texlive-txfonts
   - texlive-typehtml
   - texlive-ucharcat
+  - texlive-ucharclasses
   - texlive-ucs
+  - texlive-ulem
   - texlive-underscore
   - texlive-unicode-data
   - texlive-unicode-math
   - texlive-uniquecounter
+  - texlive-unisugar
   - texlive-uptex-fonts
   - texlive-url
   - texlive-utopia
   - texlive-varwidth
+  - texlive-was
   - texlive-wasy
   - texlive-wasy-type1
   - texlive-wasysym
   - texlive-xcolor
+  - texlive-xecolor
+  - texlive-xecyr
+  - texlive-xeindex
+  - texlive-xesearch
   - texlive-xetex
+  - texlive-xetex-itrans
+  - texlive-xetex-pstricks
   - texlive-xetexconfig
   - texlive-xetexfontinfo
   - texlive-xfrac
   - texlive-xifthen
   - texlive-xkeyval
   - texlive-xltxtra
+  - texlive-xmltex
+  - texlive-xstring
   - texlive-xunicode
   - texlive-zapfchan
   - texlive-zapfding
@@ -7925,6 +7980,8 @@ installed_packages:
   - xorg-x11-fonts-misc
   - xorg-x11-proto-devel
   - xorg-x11-server-Xwayland
+  - xorg-x11-util-macros
+  - xorg-x11-xtrans-devel
   - xorriso
   - xprop
   - xrdb

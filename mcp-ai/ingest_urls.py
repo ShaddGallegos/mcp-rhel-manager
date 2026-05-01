@@ -16,7 +16,7 @@ import time
 import json
 import hashlib
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urljoin, urldefrag, urlparse
 
 try:
@@ -95,14 +95,22 @@ def find_links(html, base_url):
 
 
 def save_page(url, depth, status, text, html_len):
-    ts = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+    ts = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     h = hashlib.sha256(url.encode('utf-8')).hexdigest()[:12]
-    fname = os.path.join(TRAIN_DIR, f'url-{ts}-{h}.json')
+    fname = os.path.join(TRAIN_DIR, f'url-{h}.json')
+    parsed = urlparse(url)
     entry = {
+        'type': 'supplemental_document',
         'timestamp': ts,
+        'source': url,
+        'source_url': url,
+        'source_name': url,
+        'source_host': parsed.netloc,
+        'parser': 'html' if html_len else 'text',
         'url': url,
         'depth': depth,
         'status': status,
+        'content_length': len(text) if text else 0,
         'text_length': len(text) if text else 0,
         'html_length': html_len,
     }
@@ -113,13 +121,32 @@ def save_page(url, depth, status, text, html_len):
     return fname
 
 
-def crawl(start_urls, max_depth=3, max_pages=500, timeout=10):
+def _is_allowed_url(url, allow_prefixes=None, allowed_hosts=None):
+    if not url:
+        return False
+
+    parsed = urlparse(url)
+    if parsed.scheme not in ('http', 'https'):
+        return False
+
+    if allowed_hosts and parsed.netloc not in allowed_hosts:
+        return False
+
+    if allow_prefixes and not any(url.startswith(prefix) for prefix in allow_prefixes):
+        return False
+
+    return True
+
+
+def crawl(start_urls, max_depth=3, max_pages=500, timeout=10, allow_prefixes=None, same_host_only=False):
     visited = set()
     results = []
     queue = []
+    allowed_hosts = {urlparse(normalize_url(u)).netloc for u in start_urls} if same_host_only else None
     for u in start_urls:
         nu = normalize_url(u)
-        queue.append((nu, 0))
+        if _is_allowed_url(nu, allow_prefixes=allow_prefixes, allowed_hosts=allowed_hosts):
+            queue.append((nu, 0))
 
     while queue and len(visited) < max_pages:
         url, depth = queue.pop(0)
@@ -151,6 +178,8 @@ def crawl(start_urls, max_depth=3, max_pages=500, timeout=10):
             # enqueue links
             if depth < max_depth:
                 for l in links:
+                    if not _is_allowed_url(l, allow_prefixes=allow_prefixes, allowed_hosts=allowed_hosts):
+                        continue
                     if l not in visited and len(visited) + len(queue) < max_pages:
                         queue.append((l, depth + 1))
 
@@ -169,6 +198,8 @@ def main():
     ap.add_argument('--depth', type=int, default=3, help='Crawl depth (default 3)')
     ap.add_argument('--max-pages', type=int, default=500, help='Maximum pages to fetch')
     ap.add_argument('--timeout', type=int, default=10, help='Per-request timeout seconds')
+    ap.add_argument('--allow-prefix', action='append', default=[], help='Only crawl URLs under these absolute URL prefixes')
+    ap.add_argument('--same-host-only', action='store_true', help='Restrict crawls to the same host(s) as the starting URLs')
     args = ap.parse_args()
 
     urls = []
@@ -188,7 +219,14 @@ def main():
         sys.exit(2)
 
     start = time.time()
-    saved = crawl(urls, max_depth=args.depth, max_pages=args.max_pages, timeout=args.timeout)
+    saved = crawl(
+        urls,
+        max_depth=args.depth,
+        max_pages=args.max_pages,
+        timeout=args.timeout,
+        allow_prefixes=args.allow_prefix or None,
+        same_host_only=args.same_host_only,
+    )
     took = time.time() - start
     print('\nIngest complete: fetched %d pages, wrote %d files in %.1fs' % (len(saved), len(saved), took))
     for f in saved:

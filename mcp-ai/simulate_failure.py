@@ -5,7 +5,7 @@ This helps test the remediator without needing a live LLM by creating a matching
 """
 import os, json, argparse
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 HOME = os.path.expanduser('~')
 AI_HOME = os.path.join(HOME, '.mcp-ai')
@@ -17,7 +17,7 @@ os.makedirs(FIXES_DIR, exist_ok=True)
 
 
 def make_entry(name='kaso.prod.spg'):
-    ts = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+    ts = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     raw = os.path.join(TRAIN_DIR, f'raw-{name}-{ts}.log')
     entry_path = os.path.join(TRAIN_DIR, f'entry-{name}-{ts}.jsonl')
     # sample raw log

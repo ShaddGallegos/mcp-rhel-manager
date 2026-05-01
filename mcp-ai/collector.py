@@ -12,7 +12,7 @@ import json
 import socket
 import argparse
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 
 HOME = os.path.expanduser('~')
 AI_HOME = os.path.join(HOME, '.mcp-ai')
@@ -34,7 +34,7 @@ def run_cmd(cmd, timeout=60):
 
 def collect_once():
     ensure_dirs()
-    ts = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+    ts = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     host = socket.gethostname()
     raw_path = os.path.join(RAW_DIR, f'{host}-{ts}.log')
 

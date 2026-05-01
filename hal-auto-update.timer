@@ -1,0 +1,19 @@
+[Unit]
+Description=HAL Auto-Update Timer (Daily at 7 AM)
+Documentation=file:///home/sgallego/GIT/mcp-rhel-manager/README.md
+Requires=hal-auto-update.service
+
+[Timer]
+# Run daily at 7:00 AM
+OnCalendar=daily
+OnCalendar=*-*-* 07:00:00
+
+# If system is off at 7 AM, run when it comes back online (within 15 minutes)
+Persistent=true
+AccuracySec=1s
+
+# Randomize start by 0-5 minutes to avoid thundering herd
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

@@ -149,7 +149,7 @@ def main():
         'type':'system_index',
         'meta': {
             'hostname': get_hostname(),
-            'timestamp': datetime.datetime.utcnow().isoformat()+'Z',
+            'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat()+'Z',
             'os_release': read_os_release(),
             'uname': platform_uname()
         },
@@ -173,7 +173,7 @@ def main():
     # compute a stable sha for dedupe
     record['_sha256'] = compute_sha256(record)
 
-    fname = os.path.join(outdir, f"{args.prefix}-{datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}.jsonl")
+    fname = os.path.join(outdir, f"{args.prefix}-{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.jsonl")
     tmp = fname + '.tmp'
     try:
         with open(tmp,'w') as fh:

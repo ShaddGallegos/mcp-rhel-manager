@@ -8,12 +8,12 @@
 set -e
 
 # --- Configuration & Paths ---
-BASE_DIR="/home/sgallego/mcp-rhel-manager"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ANSIBLE_DIR="$BASE_DIR/ansible/roles/p_series_node"
-SEED_DIR="/home/sgallego/.local/share/mcp-seed"
+SEED_DIR="$HOME/.local/share/mcp-seed"
 VENV_DIR="$BASE_DIR/venv"
 BRIDGE_VENV="$BASE_DIR/venv-bridge"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$BASE_DIR"
 
 # Require user to choose installation mode: venv (recommended) or globally
 INSTALL_MODE=""
@@ -304,16 +304,23 @@ echo "Ensuring HAL CLI is executable and available in /usr/local/bin"
 if [ -f "$BASE_DIR/hal.py" ]; then
   chmod +x "$BASE_DIR/hal.py" || true
 fi
-if [ -f "$BASE_DIR/HAL" ]; then
-  chmod +x "$BASE_DIR/HAL" || true
+HAL_WRAPPER_SRC=""
+if [ -f "$BASE_DIR/bin/HAL" ]; then
+  HAL_WRAPPER_SRC="$BASE_DIR/bin/HAL"
+elif [ -f "$BASE_DIR/HAL" ]; then
+  HAL_WRAPPER_SRC="$BASE_DIR/HAL"
+fi
+
+if [ -n "$HAL_WRAPPER_SRC" ]; then
+  chmod +x "$HAL_WRAPPER_SRC" || true
   if sudo test -d /usr/local/bin >/dev/null 2>&1; then
-    sudo ln -sf "$BASE_DIR/HAL" /usr/local/bin/HAL || sudo cp -f "$BASE_DIR/HAL" /usr/local/bin/HAL || true
+    sudo ln -sf "$HAL_WRAPPER_SRC" /usr/local/bin/HAL || sudo cp -f "$HAL_WRAPPER_SRC" /usr/local/bin/HAL || true
     sudo chmod 755 /usr/local/bin/HAL || true
     # also create a lowercase alias 'hal' for convenience
-    sudo ln -sf "$BASE_DIR/HAL" /usr/local/bin/hal || sudo cp -f "$BASE_DIR/HAL" /usr/local/bin/hal || true
+    sudo ln -sf "$HAL_WRAPPER_SRC" /usr/local/bin/hal || sudo cp -f "$HAL_WRAPPER_SRC" /usr/local/bin/hal || true
     sudo chmod 755 /usr/local/bin/hal || true
   else
-    echo "/usr/local/bin not present; HAL wrapper available at $BASE_DIR/HAL"
+    echo "/usr/local/bin not present; HAL wrapper available at $HAL_WRAPPER_SRC"
   fi
 fi
 
@@ -588,18 +595,23 @@ fi
 
 # --- 4. Systemd & Sentinel Agent ---
 echo "Configuring Background Sentinel..."
+if [ "$INSTALL_MODE" = "venv" ]; then
+  MCP_PY="$VENV_DIR/bin/python"
+else
+  MCP_PY="/usr/bin/python3"
+fi
 sudo tee "$BASE_DIR/mcp-config.json" > /dev/null << EOF
 {
   "mcpServers": {
     "architect": {
-      "command": "$VENV_DIR/bin/python",
+      "command": "$MCP_PY",
       "args": ["$BASE_DIR/server.py"]
     }
   }
 }
 EOF
 
-sudo tee "$BASE_DIR/auto-fixer.sh" > /dev/null << 'EOF'
+sudo tee "$BASE_DIR/auto-fixer.sh" > /dev/null << EOF
 #!/bin/bash
 while true; do
   curl -s -X POST http://localhost:1776/api/chat -H "Content-Type: application/json" -d '{
@@ -611,7 +623,7 @@ while true; do
       },
       {"role": "user", "content": "Execute maintenance."}
     ]
-  }' >> /home/sgallego/mcp-rhel-manager/evolution.log
+  }' >> "$BASE_DIR/evolution.log"
   sleep 3600
 done
 EOF
@@ -654,7 +666,7 @@ EOF
 sudo firewall-cmd --set-log-denied=all
 systemctl --user daemon-reload
 systemctl --user enable --now mcp-bridge.service mcp-sentinel.service
-sudo loginctl enable-linger sgallego
+sudo loginctl enable-linger "${CURRENT_USER}"
 
 echo "=============================================================================="
 echo "GENESIS COMPLETE. The Architect is now living on this system."

@@ -40,7 +40,7 @@ LOGFILE = os.path.join(AI_HOME, 'runner.log')
 
 
 def log(msg):
-    ts = datetime.datetime.utcnow().isoformat() + 'Z'
+    ts = datetime.datetime.now(datetime.timezone.utc).isoformat() + 'Z'
     with open(LOGFILE, 'a') as fh:
         fh.write(f"{ts} {msg}\n")
 
@@ -95,7 +95,7 @@ if __name__ == '__main__':
             results.append({'cmd': c, 'rc': -1, 'out': '', 'err': str(e)})
             log(f"ERROR {c} {e}")
 
-    outfn = os.path.join(AI_HOME, f'runner-results-{datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")}.json')
+    outfn = os.path.join(AI_HOME, f'runner-results-{datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")}.json')
     with open(outfn, 'w', encoding='utf-8') as ofh:
         json.dump(results, ofh, indent=2)
     print(outfn)

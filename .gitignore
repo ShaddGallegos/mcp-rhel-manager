@@ -1,0 +1,14 @@
+# Local HAL/MCP AI training and sensitive data
+.mcp-ai/
+.hal-training/
+mcp-ai/local-training/
+
+# Encrypted or key material for local training datasets
+*.enc
+*.halkey
+*.trainingkey
+
+# Local Python virtual environments
+.venv/
+venv/
+venv-bridge/

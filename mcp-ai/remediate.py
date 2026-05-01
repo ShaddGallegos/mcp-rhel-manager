@@ -51,7 +51,8 @@ def save_attempts(data):
 
 def find_latest_entry():
     p = Path(TRAIN_DIR)
-    files = sorted(p.glob('entry-*.jsonl'))
+    # Support both legacy collector entries and HAL interaction entries.
+    files = sorted(list(p.glob('entry-*.jsonl')) + list(p.glob('hal-*.jsonl')))
     return str(files[-1]) if files else None
 
 def load_entry(path):
@@ -61,11 +62,50 @@ def load_entry(path):
 def build_prompt(entry):
     raw_path = entry.get('raw_log')
     raw_text = ''
+    if raw_path:
+        try:
+            with open(raw_path, 'r', encoding='utf-8') as fh:
+                raw_text = fh.read()
+        except Exception:
+            raw_text = f'<unable to read {raw_path}>'
+    else:
+        # HAL writes inline payloads under ai_response_raw instead of raw_log files.
+        inline = entry.get('ai_response_raw') or entry.get('response') or entry.get('content')
+        if isinstance(inline, str) and inline.strip():
+            raw_text = inline
+        else:
+            raw_text = json.dumps(entry, ensure_ascii=False)
+
+    # If HAL supplied a full diagnostics JSON blob, compact it to key findings.
+    compact_text = None
     try:
-        with open(raw_path, 'r', encoding='utf-8') as fh:
-            raw_text = fh.read()
+        parsed = json.loads(raw_text)
+        if isinstance(parsed, dict) and ('hardware' in parsed or 'security' in parsed):
+            lines = []
+            lines.append('DIAGNOSTIC_FINDINGS')
+            for section in ('hardware', 'security'):
+                issues = parsed.get(section) or []
+                if not isinstance(issues, list):
+                    continue
+                lines.append(f'[{section.upper()}] count={len(issues)}')
+                for idx, item in enumerate(issues[:20], start=1):
+                    if not isinstance(item, dict):
+                        continue
+                    title = str(item.get('title', '')).strip()
+                    severity = str(item.get('severity', '')).strip()
+                    error_text = str(item.get('error_text', '')).replace('\n', ' ').strip()
+                    rem = item.get('remediations') or []
+                    rem_text = '; '.join(str(r).strip() for r in rem[:3]) if isinstance(rem, list) else str(rem)
+                    if len(error_text) > 260:
+                        error_text = error_text[:260] + '...'
+                    lines.append(f'{idx}. [{severity}] {title}')
+                    if error_text:
+                        lines.append(f'   evidence: {error_text}')
+                    if rem_text:
+                        lines.append(f'   suggested: {rem_text}')
+            compact_text = '\n'.join(lines)
     except Exception:
-        raw_text = f'<unable to read {raw_path}>'
+        compact_text = None
 
     system = (
         'You are a system remediation assistant. Analyze the provided system logs and ' 
@@ -73,17 +113,28 @@ def build_prompt(entry):
         'explanation (string), confidence (0.0-1.0). Do not return additional prose.'
     )
 
-    user = f"METADATA: {json.dumps({'host': entry.get('host'), 'timestamp': entry.get('timestamp'), 'problem_count': entry.get('problem_count')})}\nLOGS:\n{raw_text[:20000]}"
+    max_chars = 8000
+    try:
+        max_chars = int(os.environ.get('MCP_AI_LOG_CHARS', '8000'))
+    except Exception:
+        pass
+    prompt_logs = compact_text if compact_text else raw_text
+    user = f"METADATA: {json.dumps({'host': entry.get('host'), 'timestamp': entry.get('timestamp'), 'problem_count': entry.get('problem_count'), 'request': entry.get('request')})}\nLOGS:\n{prompt_logs[:max_chars]}"
     return system, user
 
 def call_llm(system, user, timeout=60, model=None, max_tokens=None):
     model = model or os.environ.get('MCP_AI_MODEL', 'qwen2.5-coder:7b')
+    try:
+        timeout = int(os.environ.get('MCP_AI_TIMEOUT_SEC', str(timeout)))
+    except Exception:
+        timeout = 60
     payload_obj = {
         'model': model,
         'messages': [
             {'role': 'system', 'content': system},
             {'role': 'user', 'content': user}
-        ]
+        ],
+        'stream': False
     }
     if max_tokens:
         try:
@@ -96,7 +147,7 @@ def call_llm(system, user, timeout=60, model=None, max_tokens=None):
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             text = resp.read().decode('utf-8')
             return text
-    except urllib.error.URLError as e:
+    except (urllib.error.URLError, TimeoutError) as e:
         print('LLM call failed:', e, file=sys.stderr)
         return None
 
@@ -260,8 +311,8 @@ def mark_attempt(entry_path, solution_id, status, details=None):
 
 
 def datetime_now_iso():
-    from datetime import datetime
-    return datetime.utcnow().isoformat() + 'Z'
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).isoformat() + 'Z'
 
 def main():
     ap = argparse.ArgumentParser()

@@ -16,6 +16,8 @@ import hashlib
 import re
 from datetime import datetime, timezone
 
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
 
 def redact(text: str) -> str:
     if not isinstance(text, str):
@@ -97,10 +99,10 @@ def main(argv: list[str] | None = None) -> int:
     default_patterns = [
         "~/.mcp-ai/fixes/*",
         "~/.mcp-ai/fixes/**/*.json",
-        "/home/sgallego/mcp-rhel-manager/mcp-ai/*.py",
-        "/home/sgallego/mcp-rhel-manager/hal.py",
-        "/home/sgallego/mcp-rhel-manager/*.py",
-        "/home/sgallego/mcp-rhel-manager/*.sh",
+        os.path.join(_REPO_ROOT, "mcp-ai/*.py"),
+        os.path.join(_REPO_ROOT, "hal.py"),
+        os.path.join(_REPO_ROOT, "*.py"),
+        os.path.join(_REPO_ROOT, "*.sh"),
     ]
     patterns = args.patterns or default_patterns
     files = collect_files(patterns)

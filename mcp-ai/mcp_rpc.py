@@ -4,9 +4,11 @@
 Usage: mcp_rpc.py <module> <function>
 Prints a JSON object: {'rc':int, 'out': str, 'err': str}
 """
-import sys, json
+import sys, json, os
+_script_dir = os.path.dirname(os.path.realpath(__file__))
+_repo_root = os.path.dirname(_script_dir)
 sys.path.insert(0, '/opt/mcp-rhel-manager')
-sys.path.insert(0, '/home/sgallego/mcp-rhel-manager')
+sys.path.insert(0, _repo_root)
 
 if len(sys.argv) < 3:
     print(json.dumps({'rc': -1, 'out': '', 'err': 'usage: mcp_rpc.py <module> <function>'}))

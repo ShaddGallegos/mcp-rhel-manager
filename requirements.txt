@@ -14,7 +14,7 @@
 # Prefer installing `ansible-core` and optional runtime helpers. The full metapackage is
 # commented out to avoid pip resolution failures; uncomment if you intentionally want it.
 # ansible>=2.14.0,<3.0.0
-ansible-core>=2.14.0,<2.16.0
+ansible-core>=2.16.0,<2.18.0
 ansible-lint>=5.0.0,<6.0.0
 # ansible-dev-tools moved to newer release numbering; pin a modern compatible range
 ansible-dev-tools>=24.2.0,<27.0.0
@@ -84,6 +84,9 @@ tenacity
 rich
 pillow
 pandas
+openpyxl
+pypdf
+python-docx
 packaging
 cachetools
 pyopenssl

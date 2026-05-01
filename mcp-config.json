@@ -1,8 +1,44 @@
 {
   "mcpServers": {
     "architect": {
-      "command": "/home/sgallego/mcp-rhel-manager/venv/bin/python",
-      "args": ["/home/sgallego/mcp-rhel-manager/server.py"]
+      "command": "/home/sgallego/GIT/mcp-rhel-manager/.venv/bin/python",
+      "args": [
+        "/home/sgallego/GIT/mcp-rhel-manager/server.py"
+      ],
+      "settings": {
+        "configVersion": 2,
+        "environment": "prod",
+        "defaultCommandTimeoutSec": 60,
+        "auditLogPath": "/home/sgallego/.mcp-ai/reports/mcp-server-audit.jsonl",
+        "redactSecretsInAudit": true,
+        "audit": {
+          "maxAuditFileMB": 25,
+          "maxAuditFiles": 8
+        },
+        "limits": {
+          "maxConcurrentCommands": 4,
+          "rateLimitPerMinute": 120
+        },
+        "security": {
+          "requireApprovalForHighRisk": true,
+          "approvalEnvVar": "MCP_APPROVE_HIGH_RISK",
+          "highRiskTools": [
+            "system_evolution",
+            "predict_failure_and_evacuate"
+          ],
+          "disabledTools": []
+        },
+        "health": {
+          "minAvailableMemoryMB": 1024,
+          "minRootFreeGB": 5,
+          "bridgeHost": "127.0.0.1",
+          "bridgePort": 1776,
+          "ollamaHost": "127.0.0.1",
+          "ollamaPort": 11434,
+          "bridgeServiceName": "mcp-bridge.service",
+          "ollamaServiceName": "ollama.service"
+        }
+      }
     }
   }
 }

@@ -41,7 +41,7 @@ def approve(plan_path, approver=None):
     payload = {
         'plan': plan_path,
         'approver': approver,
-        'ts': datetime.utcnow().isoformat() + 'Z'
+        'ts': datetime.now(datetime.timezone.utc).isoformat() + 'Z'
     }
     with open(out, 'w', encoding='utf-8') as fh:
         json.dump(payload, fh, indent=2)

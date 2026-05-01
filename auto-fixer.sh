@@ -1,4 +1,5 @@
 #!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 while true; do
   curl -s -X POST http://localhost:1776/api/chat -H "Content-Type: application/json" -d '{
     "model": "qwen2.5-coder:7b",
@@ -9,6 +10,6 @@ while true; do
       },
       {"role": "user", "content": "Execute maintenance."}
     ]
-  }' >> /home/sgallego/mcp-rhel-manager/evolution.log
+  }' >> "${SCRIPT_DIR}/evolution.log"
   sleep 3600
 done
