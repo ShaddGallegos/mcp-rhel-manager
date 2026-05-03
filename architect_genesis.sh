@@ -1,42 +1,44 @@
 #!/bin/bash
+#!/usr/bin/env bash
 # ==============================================================================
-# LENOVO ARCHITECT: GENESIS SCRIPT
-# Role: Self-Creating, Self-Healing, Evolving AI Infrastructure
-# Supports: RHEL 10 / Fedora / P-Series Mobile Workstations
+# architect_genesis.sh — COMPATIBILITY SHIM
+# This script has been merged into install_system.sh (unified installer).
+# This shim forwards all arguments for backward compatibility.
+#
+# Old usage:  ./architect_genesis.sh --venv | --globally
+# New usage:  ./install_system.sh --apply [--venv] [--start] [--yes]
+#
+# Argument mapping:
+#   --venv     → install_system.sh --apply --venv
+#   --globally → install_system.sh --apply          (system install is the default)
+#   --help     → install_system.sh --help
 # ==============================================================================
-
 set -e
 
-# --- Configuration & Paths ---
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ANSIBLE_DIR="$BASE_DIR/ansible/roles/p_series_node"
-SEED_DIR="$HOME/.local/share/mcp-seed"
-VENV_DIR="$BASE_DIR/venv"
-BRIDGE_VENV="$BASE_DIR/venv-bridge"
-SCRIPT_DIR="$BASE_DIR"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INSTALLER="$SCRIPT_DIR/install_system.sh"
 
-# Require user to choose installation mode: venv (recommended) or globally
-INSTALL_MODE=""
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --venv)
-      INSTALL_MODE="venv"; shift;;
-    --globally|--global)
-      INSTALL_MODE="global"; shift;;
-    -h|--help)
-      echo "Usage: $0 --venv|--globally"; exit 0;;
-    *)
-      echo "Unknown option: $1"; echo "Usage: $0 --venv|--globally"; exit 1;;
-  esac
-done
-
-if [ -z "$INSTALL_MODE" ]; then
-  echo "You must choose either --venv or --globally."
-  echo "Usage: $0 --venv|--globally"
+if [[ ! -f "$INSTALLER" ]]; then
+  echo "ERROR: install_system.sh not found at $INSTALLER" >&2
   exit 1
 fi
 
-echo "Starting Genesis Sequence (install mode: $INSTALL_MODE)..."
+ARGS=("--apply")
+for arg in "$@"; do
+  case "$arg" in
+    --globally|--global)
+      ;;   # system install is the default in install_system.sh; drop this flag
+    -h|--help)
+      exec "$INSTALLER" --help ;;
+    *)
+      ARGS+=("$arg") ;;
+  esac
+done
+
+echo "architect_genesis.sh: this script has been merged into install_system.sh."
+echo "Forwarding: install_system.sh ${ARGS[*]}"
+echo ""
+exec "$INSTALLER" "${ARGS[@]}"
 
 # --- 1. Environmental Sanitization ---
 systemctl --user stop mcp-sentinel.service mcp-bridge.service 2>/dev/null || true
@@ -49,6 +51,15 @@ if [ "$INSTALL_MODE" = "venv" ]; then
   python3 -m venv "$VENV_DIR"
   "$VENV_DIR/bin/pip" install --upgrade pip
   "$VENV_DIR/bin/pip" install mcp[cli] fastmcp psutil
+  # Restore filelock in venv in case a system-wide aider-chat install downgraded it
+  "$VENV_DIR/bin/pip" install --upgrade "filelock>=3.24.2" 2>/dev/null || true
+  echo ""
+  echo "NOTE: aider-chat is optional — install it separately to avoid filelock pinning conflicts:"
+  echo "  In venv:      $VENV_DIR/bin/pip install --upgrade aider-chat"
+  echo "  System-wide (recommended one-liner):"
+  echo "    pip3 install --upgrade aider-chat virtualenv filelock transformers huggingface-hub tox tox-ansible ansible-dev-tools"
+  echo "  Reason: aider-chat pins filelock==3.20.3 which conflicts with virtualenv>=3.24.2 and tox."
+  echo "  The one-liner upgrades all affected packages together to resolve the conflict."
 
   python3 -m venv "$BRIDGE_VENV"
   "$BRIDGE_VENV/bin/pip" install --upgrade pip
@@ -56,6 +67,14 @@ if [ "$INSTALL_MODE" = "venv" ]; then
 else
   echo "Installing packages globally using sudo pip3 (this will modify system python packages)"
   sudo pip3 install --upgrade --ignore-installed mcp[cli] fastmcp psutil ollama-mcp-bridge
+  # Restore filelock after potential aider-chat system install downgrade
+  sudo pip3 install --upgrade "filelock>=3.24.2" 2>/dev/null || true
+  echo ""
+  echo "NOTE: aider-chat is optional — install separately and restore filelock:"
+  echo "  System-wide (recommended one-liner):"
+  echo "    sudo pip3 install --upgrade aider-chat virtualenv filelock transformers huggingface-hub tox tox-ansible ansible-dev-tools"
+  echo "  Reason: aider-chat pins filelock==3.20.3 which conflicts with virtualenv>=3.24.2 and tox."
+  echo "  The one-liner upgrades all affected packages together to resolve the conflict."
 fi
 
 echo "Installing OS packages required for diagnostics and remediation..."
@@ -239,6 +258,13 @@ echo "AI collector service installed and timer enabled. Logs under $AI_RAW; trai
 
 # --- 3.6 AI system user, sudo, and container access ---
 CURRENT_USER="${SUDO_USER:-$(whoami)}"
+CURRENT_USER_HOME="$(getent passwd "${CURRENT_USER}" | awk -F: '{print $6}' 2>/dev/null || true)"
+if [ -z "${CURRENT_USER_HOME}" ]; then
+  CURRENT_USER_HOME="$(eval echo "~${CURRENT_USER}" 2>/dev/null || true)"
+fi
+if [ -z "${CURRENT_USER_HOME}" ]; then
+  CURRENT_USER_HOME="/home/${CURRENT_USER}"
+fi
 AI_USER="mcp-ai"
 echo "Creating AI system user and configuring passwordless sudo (AI user: ${AI_USER})"
 
@@ -270,6 +296,8 @@ sudo tee "${SUDO_FILE}" >/dev/null <<EOF
 # mcp-ai: allow AI group and current user to execute only the mcp-ai-runner wrapper as root
 %${AI_USER} ALL=(ALL) NOPASSWD: ${RUNNER_PATH}
 ${CURRENT_USER} ALL=(ALL) NOPASSWD: ${RUNNER_PATH}
+# Ensure sudo can find user-local HAL wrapper commands
+Defaults secure_path +=:${CURRENT_USER_HOME}/.local/bin
 EOF
 sudo chmod 0440 "${SUDO_FILE}" || true
 
@@ -340,9 +368,12 @@ if [ "$INSTALL_MODE" = "venv" ]; then
   # Install project and mcp-ai requirements if present
   if [ -f "$OPT_DIR/requirements.txt" ]; then
     sudo "$OPT_DIR/venv/bin/pip" install -r "$OPT_DIR/requirements.txt" || true
+    # Restore filelock if aider-chat system install downgraded it
+    sudo "$OPT_DIR/venv/bin/pip" install --upgrade "filelock>=3.24.2" 2>/dev/null || true
   fi
   if [ -d "$OPT_DIR/mcp-ai" ] && [ -f "$OPT_DIR/mcp-ai/requirements.txt" ]; then
     sudo "$OPT_DIR/venv/bin/pip" install -r "$OPT_DIR/mcp-ai/requirements.txt" || true
+    sudo "$OPT_DIR/venv/bin/pip" install --upgrade "filelock>=3.24.2" 2>/dev/null || true
   fi
   # Ensure minimal runtime deps for dashboard/bridge
   sudo "$OPT_DIR/venv/bin/pip" install fastmcp mcp[cli] psutil ollama-mcp-bridge flask || true

@@ -1,10 +1,13 @@
 # HAL Auto-Update & Daily Maintenance Setup
 
+> **aider-chat (optional):** Install separately — `pip3 install --upgrade aider-chat`. aider-chat hard-pins `filelock==3.20.3`, which conflicts with `virtualenv` (requires `filelock>=3.24.2`) and `tox`. After a system-wide install, restore the required version: `pip3 install --upgrade "filelock>=3.24.2"`. The project venv is isolated and unaffected.
+
 This guide sets up automated daily system maintenance tasks to run at 7 AM via systemd timers.
 
 ## What Gets Automated
 
 ### Daily Tasks (7:00 AM)
+
 - **DNF Upgrade**: `dnf upgrade -y` - Updates all system packages
 - **Flatpak Updates**: `flatpak update -y` - Updates flatpak applications
 - **SELinux Repairs**: Runs `restorecon` on home directories, checks for denials
@@ -12,7 +15,9 @@ This guide sets up automated daily system maintenance tasks to run at 7 AM via s
 - **No Reboot Required**: All updates installed without requiring system restart
 
 ### Auto-Healing (Also runs on-demand)
+
 HAL now includes 9 auto-healing domains in its comprehensive health check (mode 3):
+
 1. SSH key permissions (600/700)
 2. .mcp-ai permissions & cache cleanup
 3. Venv executable permissions
@@ -26,6 +31,7 @@ HAL now includes 9 auto-healing domains in its comprehensive health check (mode 
 ## Installation
 
 ### Prerequisites
+
 - RHEL 10 system with sudo access
 - systemd (usually pre-installed)
 - DNF (package manager)
@@ -38,6 +44,7 @@ sudo ./install-auto-update.sh
 ```
 
 This script will:
+
 - Copy the service/timer files to `/etc/systemd/system/`
 - Copy the update script to `/usr/local/bin/hal-auto-update.sh`
 - Reload systemd configuration
@@ -116,6 +123,7 @@ OnCalendar=*-*-* 07:00:00
 ```
 
 Then reload systemd:
+
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl restart hal-auto-update.timer
@@ -141,28 +149,33 @@ sudo systemctl start hal-auto-update.timer
 ## What Each Update Task Does
 
 ### DNF Upgrade
+
 - Updates all installed packages to latest versions
 - Handles kernel updates (no reboot required at install time)
 - Logs all package changes to syslog and local log file
 
 ### Flatpak Update
+
 - Updates all installed flatpak applications
 - Only runs if flatpak is installed
 - Skipped silently if flatpak is not present
 
 ### SELinux Repairs
+
 - Runs `restorecon` on `/home`, `/opt`, `/srv` directories
 - Checks for SELinux denials using `ausearch`
 - Reports denials in logs for manual review with `audit2allow`
 - Only runs if SELinux tools are available
 
 ### Firewall Updates
+
 - Verifies firewalld service is running
 - Reloads firewall configuration (applies pending rules)
 - Validates all zones are healthy
 - Only runs if firewalld is installed
 
 ### Error Handling
+
 - All tasks have built-in error handling
 - Failures in one task don't prevent others from running
 - All errors are logged with timestamps
@@ -171,6 +184,7 @@ sudo systemctl start hal-auto-update.timer
 ## Log File Format
 
 Each day's log includes:
+
 ```
 [2026-04-29 07:00:15] === HAL Auto-Update Started ===
 [2026-04-29 07:00:15] System: kaso
@@ -187,6 +201,7 @@ Each day's log includes:
 ## Troubleshooting
 
 ### Timer Not Running
+
 ```bash
 # Check if timer is enabled
 systemctl is-enabled hal-auto-update.timer
@@ -199,6 +214,7 @@ journalctl -u hal-auto-update.timer -n 20
 ```
 
 ### Updates Not Completing
+
 ```bash
 # Check service logs
 journalctl -u hal-auto-update.service -n 50
@@ -211,6 +227,7 @@ sudo /usr/local/bin/hal-auto-update.sh
 ```
 
 ### Permission Denied Errors
+
 - Ensure the install script was run with `sudo`
 - Check that `/usr/local/bin/hal-auto-update.sh` is executable: `ls -l /usr/local/bin/hal-auto-update.sh`
 - Systemd services run as root, so they should have full permissions
@@ -218,6 +235,7 @@ sudo /usr/local/bin/hal-auto-update.sh
 ## Integration with HAL Health Checks
 
 When you run HAL with a system health check (mode 3 - full auto-remediation), it now performs:
+
 - All 9 auto-healing checks
 - Reports all fixes applied
 - Provides aggregated summary

@@ -49,6 +49,24 @@
       [Service]
       Restart=on-failure
 
+- name: Install Python project requirements into venv
+  become: true
+  pip:
+    requirements: /opt/mcp-rhel-manager/requirements.txt
+    virtualenv: /opt/mcp-rhel-manager/venv
+    virtualenv_command: python3 -m venv
+  ignore_errors: yes
+
+- name: Restore filelock after potential aider-chat system-wide install downgrade
+  # aider-chat hard-pins filelock==3.20.3 which conflicts with virtualenv>=3.24.2 and tox>=3.25.
+  # This task ensures the venv has the correct filelock version regardless of system pip state.
+  become: true
+  pip:
+    name: "filelock>=3.24.2"
+    virtualenv: /opt/mcp-rhel-manager/venv
+    state: latest
+  ignore_errors: yes
+
 - name: Reload systemd daemon
   become: true
   command: systemctl daemon-reload

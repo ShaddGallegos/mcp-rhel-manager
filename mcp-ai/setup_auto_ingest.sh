@@ -77,6 +77,11 @@ rm /tmp/crontab_new.txt
 
 echo "✓ Cron job installed successfully"
 echo ""
+echo "Note: project uses .venv (isolated from system pip)."
+echo "aider-chat is optional — install separately:"
+echo "  pip3 install --upgrade aider-chat && pip3 install --upgrade 'filelock>=3.24.2'"
+echo "  (aider-chat pins filelock==3.20.3; the 2nd command restores virtualenv/tox compatibility)"
+echo ""
 echo "Verify installation:"
 crontab -l | grep "auto_ingest_training.py"
 

@@ -1,5 +1,7 @@
 # HAL Functionality Reference
 
+> **aider-chat (optional):** Install separately — `pip3 install --upgrade aider-chat`. aider-chat hard-pins `filelock==3.20.3`, which conflicts with `virtualenv` (requires `filelock>=3.24.2`) and `tox`. After a system-wide install, restore the required version: `pip3 install --upgrade "filelock>=3.24.2"`. The project venv is isolated and unaffected.
+
 **HAL** (Holistic Architecture Liaison) is an intelligent AI-powered CLI and MCP server for system management, diagnostics, and remediation on RHEL systems. This document outlines all available functionality.
 
 ---

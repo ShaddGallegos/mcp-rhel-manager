@@ -11,6 +11,8 @@ VENV="$PROJECT_ROOT/.venv"
 if [[ ! -f "$VENV/bin/python3" ]]; then
     echo "✗ Virtual environment not found at $VENV"
     echo "  Run: cd $PROJECT_ROOT && python3 -m venv .venv && pip install -r requirements.txt"
+    echo "  Note: filelock>=3.24.2 is restored automatically by the install scripts."
+    echo "  aider-chat (optional): pip3 install --upgrade aider-chat && pip3 install --upgrade 'filelock>=3.24.2'"
     exit 1
 fi
 

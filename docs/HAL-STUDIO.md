@@ -1,5 +1,7 @@
 # HAL Studio
 
+> **aider-chat (optional):** Install separately — `pip3 install --upgrade aider-chat`. aider-chat hard-pins `filelock==3.20.3`, which conflicts with `virtualenv` (requires `filelock>=3.24.2`) and `tox`. After a system-wide install, restore the required version: `pip3 install --upgrade "filelock>=3.24.2"`. The project venv is isolated and unaffected.
+
 HAL Studio adds stock watching, image tools, and video tools to HAL.
 It now also adds OBS and LibreOffice integration.
 It now also includes AI image generation, TTS vocals, and one-shot OBS scene pipelines.

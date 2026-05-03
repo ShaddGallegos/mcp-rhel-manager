@@ -21,6 +21,7 @@ import shutil
 import zipfile
 import time
 import threading
+import importlib.util
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -84,6 +85,7 @@ _SPINNER_DEPTH = 0
 VOICE_ENABLED = False
 VOICE_RATE = 170
 VOICE_NAME = None
+_HAL_NOTIFY_MOD = None
 
 
 def _run_with_spinner(label: str, func, *args, **kwargs):
@@ -284,6 +286,87 @@ def _intel_cache_file(account: str) -> str:
     return os.path.join(CACHE_DIR, f'{_slugify(account)}.json')
 
 
+def _account_name_match(candidate: str, account_query: str) -> bool:
+    """Fuzzy account-name matcher for cache and enrichment invalidation."""
+    cand = (candidate or '').strip().lower()
+    query = (account_query or '').strip().lower()
+    if not cand or not query:
+        return False
+
+    if cand == query or cand.startswith(query) or query.startswith(cand):
+        return True
+    if cand in query or query in cand:
+        return True
+
+    tokens = [t for t in re.findall(r'\b[a-z0-9]+\b', query) if len(t) > 2]
+    if not tokens:
+        return False
+    hits = sum(1 for t in tokens if t in cand)
+    return hits >= max(1, len(tokens) // 2)
+
+
+def _latest_account_data_epoch(account: str) -> float:
+    """Return newest source-data mtime for records related to an account."""
+    if not account or not os.path.exists(TRAIN_DIR):
+        return 0.0
+
+    newest = 0.0
+    try:
+        for fp in Path(TRAIN_DIR).glob('*.json'):
+            try:
+                rec = json.loads(fp.read_text(encoding='utf-8'))
+            except Exception:
+                continue
+
+            rec_type = str(rec.get('type', '') or '')
+            candidate = ''
+            if rec_type == 'business_intel_account':
+                candidate = str(rec.get('account_name', '') or '')
+            elif rec_type == 'supplemental_section':
+                candidate = str(rec.get('account_name', '') or '')
+            elif rec_type == 'supplemental_document' and str(rec.get('subtype', '')) == 'company_public_enrichment':
+                candidate = str(rec.get('company', '') or '')
+
+            if not candidate or not _account_name_match(candidate, account):
+                continue
+
+            try:
+                newest = max(newest, fp.stat().st_mtime)
+            except Exception:
+                continue
+    except Exception:
+        return 0.0
+    return newest
+
+
+def _invalidate_intel_cache(account: str) -> bool:
+    """Remove one account intel cache file if present."""
+    path = _intel_cache_file(account)
+    if not path or not os.path.exists(path):
+        return False
+    try:
+        os.remove(path)
+        return True
+    except Exception:
+        return False
+
+
+def _invalidate_all_intel_cache() -> int:
+    """Remove all cached intel reports and return removed file count."""
+    ensure_dirs()
+    removed = 0
+    try:
+        for fp in Path(CACHE_DIR).glob('*.json'):
+            try:
+                fp.unlink(missing_ok=True)
+                removed += 1
+            except Exception:
+                continue
+    except Exception:
+        return removed
+    return removed
+
+
 def _cleanup_intel_cache(max_age_days: int = 3) -> None:
     ensure_dirs()
     cutoff = time.time() - max(1, max_age_days) * 86400
@@ -298,7 +381,7 @@ def _cleanup_intel_cache(max_age_days: int = 3) -> None:
         pass
 
 
-def _load_intel_cache(account: str, max_age_days: int = 3, require_same_day: bool = True) -> str | None:
+def _load_intel_cache_entry(account: str, max_age_days: int = 3, require_same_day: bool = True) -> dict | None:
     path = _intel_cache_file(account)
     if not os.path.exists(path):
         return None
@@ -323,7 +406,27 @@ def _load_intel_cache(account: str, max_age_days: int = 3, require_same_day: boo
         return None
     if require_same_day and dt.astimezone(timezone.utc).date() != datetime.now(timezone.utc).date():
         return None
-    return report
+
+    latest_source_epoch = _latest_account_data_epoch(account)
+    try:
+        cache_source_epoch = float(data.get('source_epoch') or 0.0)
+    except Exception:
+        cache_source_epoch = 0.0
+    effective_cache_epoch = cache_source_epoch or dt.timestamp()
+    if latest_source_epoch and (latest_source_epoch > (effective_cache_epoch + 2.0)):
+        return None
+
+    return {
+        'report': report,
+        'timestamp': ts,
+        'age_hours': age_days * 24.0,
+        'source_epoch': effective_cache_epoch,
+    }
+
+
+def _load_intel_cache(account: str, max_age_days: int = 3, require_same_day: bool = True) -> str | None:
+    entry = _load_intel_cache_entry(account, max_age_days=max_age_days, require_same_day=require_same_day)
+    return str(entry.get('report', '')) if entry else None
 
 
 def _save_intel_cache(account: str, report: str) -> None:
@@ -332,6 +435,7 @@ def _save_intel_cache(account: str, report: str) -> None:
     payload = {
         'account': account,
         'timestamp': datetime.now(timezone.utc).isoformat(),
+        'source_epoch': _latest_account_data_epoch(account),
         'report': report,
     }
     try:
@@ -446,6 +550,48 @@ def load_config():
 CONFIG = load_config()
 # conversational mode can be toggled via env HAL_CONVERSATIONAL or config 'conversational'
 CONVERSATIONAL = os.environ.get('HAL_CONVERSATIONAL', str(CONFIG.get('conversational', 'true'))).lower() in ('1','true','yes','y')
+
+
+def _call_local_ollama(prompt: str, model: str = 'qwen2.5-coder:7b', timeout: int = 30) -> str | None:
+    """Use local Ollama (port 11434) for offline LLM processing instead of bridge."""
+    if not requests:
+        return None
+    
+    try:
+        ollama_url = f"http://localhost:11434/api/generate"
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "stream": False,
+            "temperature": 0.7,
+        }
+        resp = requests.post(ollama_url, json=payload, timeout=timeout)
+        if resp.status_code == 200:
+            data = resp.json()
+            return (data.get('response') or '').strip()
+    except Exception:
+        pass
+    return None
+
+
+def _enhance_offline_response(query: str, raw_results: str) -> str | None:
+    """Use local Ollama to enhance raw offline knowledge base results with LLM processing."""
+    if not raw_results or not raw_results.strip():
+        return None
+    
+    # Create a prompt to have Ollama summarize/enhance the offline results
+    prompt = f"""You are HAL, a helpful assistant. A user asked: "{query}"
+
+Here is relevant information from our local knowledge base:
+
+{raw_results}
+
+Please provide a clear, concise summary that directly answers the user's question based on this information. 
+Focus on the most relevant details and present them in a helpful way.
+If the information is insufficient, say so clearly."""
+    
+    enhanced = _call_local_ollama(prompt)
+    return enhanced if enhanced else None
 
 
 def ensure_dirs():
@@ -2935,9 +3081,12 @@ def _generate_intel_report_live(account_query: str, allow_public_enrich: bool = 
     cache_daily = os.environ.get('HAL_INTEL_CACHE_DAILY', '1').lower() not in ('0', 'false', 'no', 'n')
 
     _cleanup_intel_cache(max_age_days=cache_ttl_days)
-    cached = _load_intel_cache(account, max_age_days=cache_ttl_days, require_same_day=cache_daily)
-    if cached:
-        return cached + '\n\nNote: Served from daily intel cache.'
+    cached_entry = _load_intel_cache_entry(account, max_age_days=cache_ttl_days, require_same_day=cache_daily)
+    if cached_entry:
+        cached = str(cached_entry.get('report', '') or '')
+        age_hours = float(cached_entry.get('age_hours') or 0.0)
+        generated = str(cached_entry.get('timestamp', 'unknown') or 'unknown')
+        return cached + f'\n\nNote: Served from daily intel cache (age: {age_hours:.1f}h, generated: {generated}).'
 
     enrich_on_query = allow_public_enrich and os.environ.get('HAL_ENRICH_ON_COMPANY_QUERY', '1').lower() not in ('0', 'false', 'no', 'n')
     enrich_note = None
@@ -2954,6 +3103,28 @@ def _generate_intel_report_live(account_query: str, allow_public_enrich: bool = 
     if report:
         _save_intel_cache(account, report)
     return report
+
+
+def _extract_signals_from_report(report_md: str) -> list[str]:
+    """Extract detected integration signals from a markdown report."""
+    if not report_md:
+        return []
+    lines = report_md.split('\n')
+    signals = []
+    in_signals_section = False
+    for line in lines:
+        if '## DETECTED INTEGRATION SIGNALS' in line:
+            in_signals_section = True
+            continue
+        if in_signals_section:
+            if line.startswith('##'):
+                # Hit another section
+                break
+            # Extract signal from numbered list: "1. Signal Name" or "1. [Signal Name](url)"
+            match = re.match(r'^\d+\.\s+(?:\[)?([^\]\(]+)', line.strip())
+            if match:
+                signals.append(match.group(1).strip())
+    return signals
 
 
 def _query_prefers_business_intel(query: str) -> bool:
@@ -3009,7 +3180,31 @@ def _is_stock_price_query(query: str) -> bool:
     if not query:
         return False
     q = query.lower()
-    return bool(re.search(r'\b(stock\s+price|share\s+price|ticker|price\s+for)\b', q))
+    explicit = bool(re.search(r'\b(stock\s+price|share\s+price|ticker|price\s+for)\b', q))
+    trend = bool(re.search(r'\b(stock|share|ticker)\b', q)) and bool(re.search(r'\b(last|past|over|month|months|trend|performance|history|historical|quote|price)\b', q))
+    return explicit or trend
+
+
+def _is_redhat_insights_query(query: str) -> bool:
+    """Detect Red Hat Insights status/health queries."""
+    if not query:
+        return False
+    q = query.lower()
+    return bool(re.search(r'\b(red\s*hat\s+insights|insights\s+status|insights\s+health|insights\s+inventory|insights-client)\b', q))
+
+
+def _extract_ticker_candidate(text: str) -> str | None:
+    """Best-effort extraction of a ticker symbol from user text."""
+    if not text:
+        return None
+    candidates = re.findall(r'\b[A-Z]{1,5}(?:\.[A-Z]{1,2})?\b', text)
+    if candidates:
+        return candidates[0]
+
+    m = re.search(r'\b(?:ticker\s*(?:is|=|:)\s*|stock\s+for\s+)([a-z]{1,5}(?:\.[a-z]{1,2})?)\b', text, re.IGNORECASE)
+    if m:
+        return m.group(1).upper()
+    return None
 
 
 def _is_server_update_strategy_query(query: str) -> bool:
@@ -4819,16 +5014,157 @@ def generate_subscription_csv_report() -> tuple[str, str] | tuple[None, None]:
 
 def generate_stock_price_response(account_query: str) -> str | None:
     """Generate a concise stock price response from business intel."""
-    rec = _find_best_business_intel_record(account_query)
-    if not rec:
+    return generate_stock_price_response_with_query(account_query, account_query)
+
+
+def _extract_requested_months(query: str, default: int = 0) -> int:
+    if not query:
+        return default
+    m = re.search(r'\b(?:past|last|over)\s+(\d{1,2})\s+months?\b', query.lower())
+    if m:
+        return max(1, min(24, int(m.group(1))))
+    return default
+
+
+def _fetch_live_stock_quote(symbol: str, timeout: int = 8) -> dict | None:
+    symbol = (symbol or '').strip().upper()
+    if not symbol:
+        return None
+    url = f'https://query1.finance.yahoo.com/v7/finance/quote?symbols={symbol}'
+    try:
+        if requests is not None:
+            r = requests.get(url, timeout=timeout)
+            if r.status_code != 200:
+                return None
+            payload = r.json()
+        else:
+            import urllib.request
+            with urllib.request.urlopen(url, timeout=timeout) as resp:
+                payload = json.loads(resp.read().decode('utf-8', errors='replace'))
+        rows = payload.get('quoteResponse', {}).get('result', [])
+        if not rows:
+            return None
+        row = rows[0]
+        return {
+            'symbol': row.get('symbol', symbol),
+            'name': row.get('shortName') or row.get('longName') or symbol,
+            'price': row.get('regularMarketPrice'),
+            'change': row.get('regularMarketChange'),
+            'change_percent': row.get('regularMarketChangePercent'),
+            'previous_close': row.get('regularMarketPreviousClose'),
+            'currency': row.get('currency') or 'USD',
+            'market_state': row.get('marketState') or 'UNKNOWN',
+        }
+    except Exception:
         return None
 
-    account = (rec.get('account_name') or account_query or 'Unknown Account').strip('"')
-    ticker = str(rec.get('ticker') or '').strip()
+
+def _fetch_stooq_history_summary(symbol: str, months: int = 6, timeout: int = 10) -> dict | None:
+    symbol = (symbol or '').strip().lower()
+    if not symbol:
+        return None
+
+    candidate_symbols = [symbol]
+    if '.' not in symbol:
+        candidate_symbols = [f'{symbol}.us', symbol]
+
+    cutoff = datetime.now(timezone.utc).timestamp() - (max(1, months) * 30 * 86400)
+
+    for candidate in candidate_symbols:
+        url = f'https://stooq.com/q/d/l/?s={candidate}&i=d'
+        try:
+            if requests is not None:
+                r = requests.get(url, timeout=timeout)
+                if r.status_code != 200 or not r.text:
+                    continue
+                raw = r.text
+            else:
+                import urllib.request
+                with urllib.request.urlopen(url, timeout=timeout) as resp:
+                    raw = resp.read().decode('utf-8', errors='replace')
+
+            rows = []
+            reader = csv.DictReader(io.StringIO(raw))
+            for row in reader:
+                date_s = str(row.get('Date', '') or '').strip()
+                close_s = str(row.get('Close', '') or '').strip()
+                if not date_s or not close_s or close_s.lower() in ('n/a', 'nan'):
+                    continue
+                try:
+                    ts = datetime.fromisoformat(date_s).replace(tzinfo=timezone.utc).timestamp()
+                    close_v = float(close_s)
+                except Exception:
+                    continue
+                if ts >= cutoff:
+                    rows.append({'ts': ts, 'close': close_v})
+
+            if len(rows) < 2:
+                continue
+
+            rows.sort(key=lambda x: x['ts'])
+            first = rows[0]['close']
+            last = rows[-1]['close']
+            low = min(rw['close'] for rw in rows)
+            high = max(rw['close'] for rw in rows)
+            pct = ((last - first) / first) * 100.0 if first else 0.0
+            return {
+                'months': months,
+                'first_close': first,
+                'last_close': last,
+                'low': low,
+                'high': high,
+                'change_percent': pct,
+                'samples': len(rows),
+            }
+        except Exception:
+            continue
+    return None
+
+
+def generate_stock_price_response_with_query(account_query: str, user_query: str | None = None) -> str | None:
+    """Generate stock response using live sources first, then local intel snapshot."""
+    rec = _find_best_business_intel_record(account_query)
+    account = ((rec or {}).get('account_name') or account_query or 'Unknown Account').strip('"')
+    ticker = str(((rec or {}).get('ticker') or '')).strip().upper()
+    if not ticker:
+        ticker = (_extract_ticker_candidate(user_query or '') or '').upper()
+
+    requested_months = _extract_requested_months(user_query or '', default=0)
+    live = _fetch_live_stock_quote(ticker) if ticker else None
+    history = _fetch_stooq_history_summary(ticker, months=requested_months) if (ticker and requested_months > 0) else None
+
+    if live:
+        lines = []
+        lines.append(f"Live stock snapshot for {account}:")
+        lines.append(f"- Symbol: {live.get('symbol') or ticker}")
+        lines.append(f"- Price: {live.get('price')} {live.get('currency', 'USD')}")
+        if live.get('change') is not None and live.get('change_percent') is not None:
+            lines.append(f"- Move: {live.get('change')} ({live.get('change_percent'):.2f}%)")
+        if live.get('market_state'):
+            lines.append(f"- Market state: {live.get('market_state')}")
+        lines.append(f"- As of: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
+
+        if history:
+            lines.append('')
+            lines.append(f"{history.get('months')} month performance summary:")
+            lines.append(f"- Range: {history.get('low')} to {history.get('high')}")
+            lines.append(f"- Change: {history.get('change_percent'):.2f}%")
+            lines.append(f"- Samples: {history.get('samples')}")
+        elif requested_months > 0:
+            lines.append('')
+            lines.append(f"Note: Live history for the requested {requested_months} month window is currently unavailable.")
+        return '\n'.join(lines)
+
+    if not rec:
+        unknown_symbol = ticker or (_extract_ticker_candidate(user_query or '') or 'unknown')
+        return (
+            f"I could not retrieve live market data for {unknown_symbol} right now, and no local stock snapshot is available in imported intel.\n"
+            "If you have network restrictions, verify outbound HTTPS access to finance endpoints, or import a business intel snapshot with ticker data."
+        )
+
     price = rec.get('stock_price_snapshot')
     date = str(rec.get('date') or rec.get('timestamp') or '').strip()
 
-    # Best effort parse if stock snapshot is embedded in text.
     if (price is None or str(price).strip() == ''):
         blob = json.dumps(rec)
         m = re.search(r'"stock_price_snapshot"\s*:\s*"?([0-9]+(?:\.[0-9]+)?)"?', blob)
@@ -4850,6 +5186,120 @@ def generate_stock_price_response(account_query: str) -> str | None:
         lines.append(f"- As of: {date}")
     lines.append('')
     lines.append('Note: This is a stored snapshot from your imported business intel, not a live market feed.')
+    return '\n'.join(lines)
+
+
+def _load_hal_notify_module():
+    """Load hal-notify.py lazily so notifications are optional."""
+    global _HAL_NOTIFY_MOD
+    if _HAL_NOTIFY_MOD is not None:
+        return _HAL_NOTIFY_MOD
+
+    mod_path = os.path.join(BASE_DIR, 'hal-notify.py')
+    if not os.path.isfile(mod_path):
+        return None
+    try:
+        spec = importlib.util.spec_from_file_location('hal_notify', mod_path)
+        if spec is None or spec.loader is None:
+            return None
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _HAL_NOTIFY_MOD = mod
+        return _HAL_NOTIFY_MOD
+    except Exception:
+        return None
+
+
+def _send_notification_event(message: str, title: str = 'HAL Alert', severity: str = 'info', notify_type: str = 'all') -> int:
+    mod = _load_hal_notify_module()
+    if mod is None:
+        return 0
+    try:
+        return int(mod.send_notification(message, title=title, severity=severity, notify_type=notify_type) or 0)
+    except Exception:
+        return 0
+
+
+def _send_slack_test_notification() -> str:
+    sent = _send_notification_event(
+        message='HAL Slack integration test notification. This confirms the notification path is active.',
+        title='HAL Slack Test',
+        severity='info',
+        notify_type='slack',
+    )
+    if sent > 0:
+        return f'Slack test notification sent successfully (channels reached: {sent}).'
+    return 'Slack test notification was not sent. Verify ~/.mcp-ai/hal-setup.json has integrations.slack.enabled=true and a valid webhook_url.'
+
+
+def _fetch_redhat_insights_api_summary(timeout: int = 8) -> dict | None:
+    """Fetch minimal Insights inventory summary using RH Insights API token."""
+    token = os.environ.get('RH_INSIGHTS_API_TOKEN', '').strip()
+    if not token or requests is None:
+        return None
+    url = 'https://console.redhat.com/api/inventory/v1/hosts?per_page=5'
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Accept': 'application/json',
+    }
+    try:
+        resp = requests.get(url, headers=headers, timeout=timeout)
+        if resp.status_code != 200:
+            return {'error': f'Insights API HTTP {resp.status_code}'}
+        payload = resp.json()
+        total = payload.get('total')
+        count = len(payload.get('results', []) or [])
+        return {
+            'ok': True,
+            'total_hosts': total,
+            'sample_count': count,
+        }
+    except Exception as exc:
+        return {'error': str(exc)}
+
+
+def generate_redhat_insights_status_response(run_checkin: bool = False) -> str:
+    """Return local/client and optional cloud API status for Red Hat Insights."""
+    lines = []
+    lines.append('Red Hat Insights Status')
+    lines.append('=' * 72)
+
+    insights_client = shutil.which('insights-client')
+    if not insights_client:
+        lines.append('insights-client not found on this host.')
+        lines.append('Install with: sudo dnf install insights-client -y')
+    else:
+        lines.append(f'insights-client binary: {insights_client}')
+        try:
+            proc = subprocess.run([insights_client, '--status'], text=True, capture_output=True, timeout=15)
+            out = (proc.stdout or proc.stderr or '').strip()
+            lines.append('')
+            lines.append('Local client status:')
+            lines.append(out or '(no status output)')
+        except Exception as exc:
+            lines.append(f'Failed to run insights-client --status: {exc}')
+
+        if run_checkin:
+            try:
+                proc = subprocess.run([insights_client, '--checkin'], text=True, capture_output=True, timeout=30)
+                out = (proc.stdout or proc.stderr or '').strip()
+                lines.append('')
+                lines.append('Check-in result:')
+                lines.append(out or '(no check-in output)')
+            except Exception as exc:
+                lines.append(f'Failed to run insights-client --checkin: {exc}')
+
+    api_summary = _fetch_redhat_insights_api_summary()
+    lines.append('')
+    lines.append('Cloud API status:')
+    if api_summary is None:
+        lines.append('- Not queried (set RH_INSIGHTS_API_TOKEN to enable API summary).')
+    elif api_summary.get('ok'):
+        lines.append(f"- Connected. Total hosts visible: {api_summary.get('total_hosts')}")
+        lines.append(f"- Sample hosts returned in query: {api_summary.get('sample_count')}")
+    else:
+        lines.append(f"- API query failed: {api_summary.get('error')}")
+
     return '\n'.join(lines)
 
 
@@ -5449,6 +5899,157 @@ def _select_company_primary_objective(record: dict, fallback_summary: str = '') 
     return ''
 
 
+def _find_objective_from_enrichment(account_name: str) -> str:
+    """Extract a company description/objective from its public enrichment record in training.
+
+    Looks for a supplemental_document/company_public_enrichment record matching
+    account_name and returns the Wikipedia summary (first 2–3 sentences) as the
+    company's primary objective.  Returns empty string if nothing useful is found.
+    """
+    if not account_name or not os.path.exists(TRAIN_DIR):
+        return ''
+
+    account_tokens = [t for t in re.findall(r'\b[a-z0-9]+\b', account_name.lower()) if len(t) > 2]
+    if not account_tokens:
+        return ''
+
+    best_text = ''
+    best_score = 0
+
+    try:
+        for fp in sorted(Path(TRAIN_DIR).glob('*.json'), reverse=True):
+            try:
+                rec = json.loads(fp.read_text(encoding='utf-8'))
+            except Exception:
+                continue
+            if rec.get('type') != 'supplemental_document':
+                continue
+            if rec.get('subtype') != 'company_public_enrichment':
+                continue
+
+            company_field = (rec.get('company') or '').lower()
+            score = sum(1 for t in account_tokens if t in company_field)
+            if score < max(1, len(account_tokens) // 2):
+                continue
+
+            text = rec.get('text') or ''
+            # Extract Wikipedia Summary section
+            m = re.search(r'## Wikipedia Summary\s*\n(.*?)(?:\nSource:|\Z)', text, re.DOTALL)
+            if not m:
+                continue
+            summary = m.group(1).strip()
+            if len(summary) < 30:
+                continue
+
+            if score > best_score:
+                best_score = score
+                best_text = summary
+    except Exception:
+        pass
+
+    if not best_text:
+        return ''
+
+    # Return first 2–3 sentences (up to ~400 chars)
+    sentences = re.split(r'(?<=[.!?])\s+', best_text)
+    result = ''
+    for s in sentences:
+        if len(result) + len(s) > 400:
+            break
+        result = (result + ' ' + s).strip()
+    return result
+
+
+def _load_supplemental_sections(account_name: str, section: str | None = None) -> list[dict]:
+    """Return all supplemental_section records that match account_name (and optionally section)."""
+    if not account_name or not os.path.exists(TRAIN_DIR):
+        return []
+
+    account_tokens = [t for t in re.findall(r'\b[a-z0-9]+\b', account_name.lower()) if len(t) > 2]
+    if not account_tokens:
+        return []
+
+    results = []
+    try:
+        for fp in sorted(Path(TRAIN_DIR).glob('*.json'), reverse=True):
+            try:
+                rec = json.loads(fp.read_text(encoding='utf-8'))
+            except Exception:
+                continue
+            if rec.get('type') != 'supplemental_section':
+                continue
+            rec_account = (rec.get('account_name') or '').lower()
+            score = sum(1 for t in account_tokens if t in rec_account)
+            if score < max(1, len(account_tokens) // 2):
+                continue
+            if section and rec.get('section', '').upper() != section.upper():
+                continue
+            results.append(rec)
+    except Exception:
+        pass
+    return results
+
+
+def _import_section(account: str, section: str, text: str) -> str:
+    """Parse comma-separated items from text, extract any URLs, and write a supplemental_section record."""
+    ensure_dirs()
+    account = account.strip().strip('"\'')
+    section = section.strip()
+
+    # Parse items: split on comma, extract optional (URL) suffix from each item
+    raw_items = [i.strip() for i in text.split(',') if i.strip()]
+    items = []
+    url_map: dict[str, str] = {}
+    url_re = re.compile(r'^(.*?)\s*\(\s*(https?://[^\)]+)\s*\)\s*$')
+    for raw in raw_items:
+        m = url_re.match(raw)
+        if m:
+            name = m.group(1).strip()
+            url = m.group(2).strip()
+            if name:
+                items.append(name)
+                url_map[name] = url
+        else:
+            items.append(raw)
+
+    if not items:
+        return 'No items parsed from --text value.'
+
+    ts = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    import hashlib as _hl
+    uid = _hl.sha256(f'{account}{section}{ts}'.encode()).hexdigest()[:10]
+    fname = f'section-{ts}-{uid}.json'
+    fpath = os.path.join(TRAIN_DIR, fname)
+
+    rec = {
+        'type': 'supplemental_section',
+        'section': section,
+        'account_name': account,
+        'items': items,
+        'url_map': url_map,
+        'timestamp': ts,
+        'source': 'manual-import',
+    }
+    with open(fpath, 'w', encoding='utf-8') as fh:
+        json.dump(rec, fh, ensure_ascii=False, indent=2)
+
+    lines_out = [
+        f'Supplemental section imported for: {account or "(no account)"}',
+        f'Section : {section}',
+        f'Items   : {len(items)}',
+    ]
+    for item in items:
+        url_note = f'  -> {url_map[item]}' if item in url_map else ''
+        lines_out.append(f'  • {item}{url_note}')
+    lines_out.append(f'Saved   : {fpath}')
+
+    # Invalidate intel cache for this account so the next report picks up the new signals
+    if account and _invalidate_intel_cache(account):
+        lines_out.append('Intel cache cleared — next report will include new signals.')
+
+    return '\n'.join(lines_out)
+
+
 def generate_intel_report(account_query: str) -> str | None:
     """Generate a professional account intel report from training data.
 
@@ -5535,6 +6136,36 @@ def generate_intel_report(account_query: str) -> str | None:
         
         lines.append('')
 
+    # Technology Signals & Stack
+    tags = best.get('tags', [])
+    stack_signals = best.get('stack_signals', [])
+    tag_signals = [(_flatten_value(s) or '').strip() for s in (tags or [])]
+    tag_signals = [s for s in tag_signals if s]
+    all_signals = list(dict.fromkeys(tag_signals + [(_flatten_value(s) or '').strip() for s in (stack_signals or [])]))
+    all_signals = [s for s in all_signals if s]
+
+    # Merge manually imported supplemental section signals
+    supp_sections = _load_supplemental_sections(account, section='TECHNOLOGY LANDSCAPE')
+    supp_signals: list[str] = []
+    supp_url_map: dict[str, str] = {}
+    for sec_rec in supp_sections:
+        for item in (sec_rec.get('items') or []):
+            item = item.strip()
+            if item and item not in all_signals:
+                supp_signals.append(item)
+        supp_url_map.update(sec_rec.get('url_map') or {})
+    _seen_lower = {s.lower() for s in all_signals}
+    deduped_supp: list[str] = []
+    for item in supp_signals:
+        if item.lower() not in _seen_lower:
+            deduped_supp.append(item)
+            _seen_lower.add(item.lower())
+    supp_signals = deduped_supp
+    if supp_signals:
+        all_signals = list(dict.fromkeys(all_signals + supp_signals))
+
+    detected_signals = tag_signals + [s for s in supp_signals if s.lower() not in {t.lower() for t in tag_signals}] if supp_signals else (tag_signals if tag_signals else all_signals)
+
     # Executive Summary
     summary = best.get('short_summary', '')
     clean_summary = ''
@@ -5544,16 +6175,37 @@ def generate_intel_report(account_query: str) -> str | None:
         lines.append('─' * 80)
         lines.append('')
         clean_summary = (_flatten_value(summary) or '').strip('"')
+        imported_signal_count = None
+        if detected_signals:
+            count_match = re.search(
+                r'(\d+)\s+detected\s+integration\s+signal\(s\)',
+                clean_summary,
+                flags=re.IGNORECASE,
+            )
+            if count_match:
+                try:
+                    imported_signal_count = int(count_match.group(1))
+                except Exception:
+                    imported_signal_count = None
+            clean_summary = re.sub(
+                r'\d+\s+detected\s+integration\s+signal\(s\)',
+                f'{len(detected_signals)} detected integration signal(s)',
+                clean_summary,
+                flags=re.IGNORECASE,
+            )
         lines.append(clean_summary)
+        if detected_signals:
+            lines.append('')
+            if imported_signal_count is not None and imported_signal_count != len(detected_signals):
+                lines.append(
+                    f'Note: the imported short summary referenced {imported_signal_count} signal(s); '
+                    f'the current structured report detects {len(detected_signals)} signal(s) from the account record.'
+                )
+                lines.append('')
+            lines.append('Signals referenced in this summary: ' + ', '.join(detected_signals[:12]))
+            if len(detected_signals) > 12:
+                lines.append(f'... plus {len(detected_signals) - 12} more listed below.')
         lines.append('')
-
-    # Technology Signals & Stack
-    tags = best.get('tags', [])
-    stack_signals = best.get('stack_signals', [])
-    tag_signals = [(_flatten_value(s) or '').strip() for s in (tags or [])]
-    tag_signals = [s for s in tag_signals if s]
-    all_signals = list(dict.fromkeys(tag_signals + [(_flatten_value(s) or '').strip() for s in (stack_signals or [])]))
-    all_signals = [s for s in all_signals if s]
     
     if all_signals:
         lines.append('─' * 80)
@@ -5570,9 +6222,11 @@ def generate_intel_report(account_query: str) -> str | None:
         lines.append('## DETECTED INTEGRATION SIGNALS')
         lines.append('─' * 80)
         lines.append('')
-        detected_signals = tag_signals if tag_signals else all_signals
         for idx, sig in enumerate(detected_signals, 1):
-            lines.append(f'{idx}. {sig}')
+            if sig in supp_url_map:
+                lines.append(f'{idx}. [{sig}]({supp_url_map[sig]})')
+            else:
+                lines.append(f'{idx}. {sig}')
         lines.append('')
 
     # Red Hat Strategic Focus
@@ -5643,6 +6297,8 @@ def generate_intel_report(account_query: str) -> str | None:
 
     # Use Case & Objectives
     objective = _select_company_primary_objective(best, fallback_summary=clean_summary)
+    if not objective:
+        objective = _find_objective_from_enrichment(account)
     lines.append('─' * 80)
     lines.append('## PRIMARY OBJECTIVE')
     lines.append('─' * 80)
@@ -6551,6 +7207,7 @@ _INTENT_ROUTES = [
     ('stakeholder',          'Account stakeholder/contact lookup',                _is_stakeholder_query,               ['who are the contacts at acme', 'stakeholders for centene']),
     ('subscription-csv',     'Customer subscription CSV export',                  _is_subscription_csv_query,          ['subscription report csv', 'export subscription data']),
     ('stock-price',          'Account stock price lookup from intel',             _is_stock_price_query,               ['what is acme stock price', 'stock for centene']),
+    ('insights-status',      'Red Hat Insights client/API status',                _is_redhat_insights_query,           ['insights status', 'red hat insights health']),
     ('operational-howto',    'Operational how-to runbooks (RHEL/Linux/Ansible)',  _is_operational_howto_query,         ['how do i configure ntp', 'how to add a user in rhel']),
 ]
 
@@ -7118,9 +7775,13 @@ def main():
     ap.add_argument('--export-training-bundle', action='store_true', help='Create a portable zip bundle of ~/.mcp-ai/training with README and deploy helper script')
     ap.add_argument('--bundle-output-dir', metavar='PATH', help='Output directory for --export-training-bundle (default: ~/Downloads or HAL_TRAIN_BUNDLE_DIR)')
     ap.add_argument('--import-business-intel', nargs='+', metavar='PATH', help='Import Business_Tools JSONL intel data into HAL training')
+    ap.add_argument('--import-section', action='store_true', help='Import a named data section into training (use with --section and --section-text, optionally --account)')
+    ap.add_argument('--section', metavar='NAME', help='Section name for --import-section (e.g. "TECHNOLOGY LANDSCAPE")')
+    ap.add_argument('--section-text', dest='section_text', metavar='TEXT', help='Comma-separated content for --import-section')
     ap.add_argument('--intel-report', metavar='ACCOUNT', help='Generate an account intel report from training data')
     ap.add_argument('--intel-report-all', nargs='+', metavar='ACCOUNT', help='Generate intel reports for multiple accounts (quote names with spaces)')
     ap.add_argument('--intel-report-file', metavar='PATH', help='Generate intel reports for account names in file (one account per line)')
+    ap.add_argument('--signals-only', action='store_true', help='Show only detected integration signals for each account (works with --intel-report-all and --intel-report-file)')
     ap.add_argument('--auto-ingest', action='store_true', help='Auto-ingest new intelligence data from watch directories')
     ap.add_argument('--ingest-status', action='store_true', help='Show auto-ingest import history and status')
     ap.add_argument('--ingest-reset', action='store_true', help='Reset import tracker (re-import everything on next auto-ingest)')
@@ -7130,6 +7791,10 @@ def main():
     ap.add_argument('--suggestions', action='store_true', help='Show smart suggestions for next queries')
     ap.add_argument('--cache-clear', action='store_true', help='Clear all cached responses')
     ap.add_argument('--cache-stats', action='store_true', help='Show cache statistics and contents')
+    ap.add_argument('--notify', action='store_true', help='Send configured notifications for generated account intel reports')
+    ap.add_argument('--notify-slack-test', action='store_true', help='Send a test Slack notification using configured integration')
+    ap.add_argument('--insights-status', action='store_true', help='Show Red Hat Insights local/client and API status')
+    ap.add_argument('--insights-checkin', action='store_true', help='Run Red Hat Insights check-in after status query')
     ap.add_argument('--inventory', action='store_true', help='Run system inventory detection and first-run setup')
     ap.add_argument('--metrics', action='store_true', help='Display trending metrics dashboard')
     ap.add_argument('--predict', action='store_true', help='Show predictive alerts for next 7 days')
@@ -7157,6 +7822,51 @@ def main():
     ap.add_argument('--bundle-encrypt', action='store_true', help='Encrypt the training bundle zip with a passphrase (use with --export-training-bundle)')
     ap.add_argument('--playbook-run', metavar='FILE', help='Run a generated or existing playbook with ansible-playbook --check')
     ap.add_argument('--setup-training-maintenance', action='store_true', help='Install scheduled training maintenance cron jobs (daily dry-run + weekly apply)')
+    # ── HAL Brain (hal-brain.py) ─────────────────────────────────────────────
+    ap.add_argument('--brain-status', action='store_true', help='Full brain status: adaptive routing table, model usage, recent routes')
+    ap.add_argument('--brain-route', metavar='QUERY', help='Route a query through the intelligent task classifier and best available model')
+    ap.add_argument('--brain-learn', action='store_true', help='Run benchmark tasks to update model performance DB (feeds adaptive routing)')
+    ap.add_argument('--ensemble', metavar='PROMPT', help='Multi-model ensemble: run in parallel, synthesize consensus answer')
+    ap.add_argument('--ensemble-models', metavar='MODELS', help='Comma/space-separated model list for --ensemble (default: auto-selected)')
+    ap.add_argument('--task-plan', metavar='GOAL', help='Decompose complex goal into ordered subtasks with optimal resource assignments')
+    ap.add_argument('--resource-status', action='store_true', help='Show all resources: Ollama models, Python packages, MCP servers')
+    ap.add_argument('--resource-cleanup', nargs='?', const=30, type=int, metavar='DAYS', help='Show/remove models unused for N days (default 30)')
+    ap.add_argument('--resource-install', metavar='RESOURCE', help='Pull an Ollama model or install a Python package')
+    ap.add_argument('--auto-pull', action='store_true', help='Pull recommended models if any are missing')
+    ap.add_argument('--find-install', metavar='CAPABILITY', help='AI finds and installs the best package for a described capability')
+    ap.add_argument('--mcp-server-status', action='store_true', help='List registered MCP servers with health status')
+    ap.add_argument('--mcp-server-start', metavar='NAME', help='Start a named MCP server')
+    ap.add_argument('--mcp-server-stop', metavar='NAME', help='Stop a named MCP server')
+    # ── HAL Tools (hal-tools.py) ──────────────────────────────────────────────
+    ap.add_argument('--model-list', action='store_true', help='List all available Ollama models with sizes')
+    ap.add_argument('--model-pull', metavar='MODEL', help='Pull an Ollama model (e.g. mistral:7b)')
+    ap.add_argument('--model-delete', metavar='MODEL', help='Delete an Ollama model')
+    ap.add_argument('--model-info', metavar='MODEL', help='Show detailed info about an Ollama model')
+    ap.add_argument('--model-compare', metavar='MODELS', help='Compare 2+ models on the same prompt (comma/space separated)')
+    ap.add_argument('--benchmark', nargs='?', const='', metavar='MODEL', help='Benchmark Ollama model inference speed')
+    ap.add_argument('--hf-search', metavar='KEYWORD', help='Search HuggingFace Hub for models by keyword')
+    ap.add_argument('--web-search', metavar='QUERY', help='Web search with AI synthesis (DuckDuckGo + LLM)')
+    ap.add_argument('--summarize', metavar='URL_OR_FILE', help='Summarize a URL, file, or text')
+    ap.add_argument('--code-review', metavar='FILE', help='AI code review of a file')
+    ap.add_argument('--explain-error', action='store_true', help='Explain error/log output (reads --file or stdin)')
+    ap.add_argument('--diff-explain', nargs=2, metavar=('FILE1', 'FILE2'), help='AI-explained diff between two files')
+    ap.add_argument('--generate-readme', metavar='PATH', help='Generate README.md for a project directory')
+    ap.add_argument('--pipe-analyze', action='store_true', help='Analyze piped stdin input with AI (cat log | hal --pipe-analyze)')
+    ap.add_argument('--quiz', metavar='TOPIC', help='Interactive multiple-choice quiz on any topic')
+    ap.add_argument('--news', nargs='?', const='AI and Linux', metavar='TOPIC', help='Fetch and summarize tech/AI news')
+    ap.add_argument('--word-of-day', action='store_true', help='Tech/AI/DevOps word of the day with explanation')
+    ap.add_argument('--fact', action='store_true', help='Random tech/AI/Linux fact with AI expansion')
+    ap.add_argument('--motivate', action='store_true', help='Motivational message for sysadmins/DevOps')
+    ap.add_argument('--personas', action='store_true', help='List available HAL assistant personas')
+    ap.add_argument('--set-persona', metavar='NAME', help='Set active HAL persona (friendly/expert/hacker/teacher/concise/creative/security/devops)')
+    ap.add_argument('--mcp-list', action='store_true', help='List published MCP contexts')
+    ap.add_argument('--mcp-read', metavar='NAME', help='Read a named MCP context')
+    ap.add_argument('--mcp-publish', nargs=2, metavar=('NAME', 'JSON'), help='Publish a JSON payload as a named MCP context')
+    ap.add_argument('--mcp-delete', metavar='NAME', help='Delete a named MCP context')
+    ap.add_argument('--sys-monitor', action='store_true', help='Real-time ASCII system resource monitor (CPU/RAM/Disk/GPU)')
+    ap.add_argument('--watch-log', metavar='FILE', help='Watch a log file and flag anomalies with AI analysis')
+    ap.add_argument('--todo', nargs='+', metavar='ACTION', help='AI TODO manager: add|list|done|delete|clear|prioritize [text] [id]')
+    ap.add_argument('--chat-export', nargs='?', const='markdown', metavar='FORMAT', help='Export conversation history to markdown or html')
     args = ap.parse_args()
 
     global VOICE_ENABLED, VOICE_RATE, VOICE_NAME
@@ -7370,7 +8080,31 @@ def main():
             sys.exit(2)
         cmd = ['/usr/bin/env', 'python3', ing, *args.import_business_intel]
         proc = subprocess.run(cmd)
+        if proc.returncode == 0:
+            removed = _invalidate_all_intel_cache()
+            print(f'Intel cache invalidated after import ({removed} file(s) removed).')
         sys.exit(proc.returncode)
+
+    if args.notify_slack_test:
+        print(_send_slack_test_notification())
+        sys.exit(0)
+
+    if args.insights_status or args.insights_checkin:
+        print(generate_redhat_insights_status_response(run_checkin=bool(args.insights_checkin)))
+        sys.exit(0)
+
+    if args.import_section:
+        account_arg = args.account or ''
+        section_arg = (args.section or '').strip()
+        text_arg = (args.section_text or '').strip()
+        if not section_arg:
+            print('--import-section requires --section NAME', file=sys.stderr)
+            sys.exit(2)
+        if not text_arg:
+            print('--import-section requires --section-text CONTENT', file=sys.stderr)
+            sys.exit(2)
+        print(_import_section(account_arg, section_arg, text_arg))
+        sys.exit(0)
 
     if args.intel_report:
         report = _generate_intel_report_live(args.intel_report, allow_public_enrich=True)
@@ -7379,6 +8113,14 @@ def main():
             user = os.environ.get('USER') or os.environ.get('LOGNAME') or os.getlogin()
             entry_path = write_interaction(user, f'HAL_INTEL_REPORT:{args.intel_report}', report)
             print(f'\nInteraction recorded -> {entry_path}')
+            notify_on_intel = bool(args.notify or os.environ.get('HAL_NOTIFY_ON_INTEL', '0').lower() in ('1', 'true', 'yes', 'y'))
+            if notify_on_intel:
+                signals = _extract_signals_from_report(report)
+                sev = 'warning' if len(signals) >= 5 else 'info'
+                msg = f'Account intel report generated for {args.intel_report}. Detected signals: {len(signals)}.'
+                sent = _send_notification_event(msg, title=f'HAL Intel Report: {args.intel_report}', severity=sev, notify_type='all')
+                if sent > 0:
+                    print(f'Notification sent via {sent} channel(s).')
         else:
             print(f'No intel records found for: {args.intel_report}')
             print('Import account data first with: HAL --import-business-intel /path/to/Training_Data/')
@@ -7422,6 +8164,7 @@ def main():
         print(f'Generating intel reports for {len(ordered_accounts)} account(s)...')
         generated = []
         missing = []
+        notify_on_intel = bool(args.notify or os.environ.get('HAL_NOTIFY_ON_INTEL', '0').lower() in ('1', 'true', 'yes', 'y'))
         for account in ordered_accounts:
             report = _generate_intel_report_live(account, allow_public_enrich=True)
             if not report:
@@ -7432,7 +8175,22 @@ def main():
             with open(out_path, 'w', encoding='utf-8') as fh:
                 fh.write(report)
             generated.append((account, out_path))
-            print(f'✓ {account} -> {out_path}')
+            
+            # Display format based on --signals-only flag
+            if args.signals_only:
+                signals = _extract_signals_from_report(report)
+                if signals:
+                    print(f'{account}: {", ".join(signals)}')
+                else:
+                    print(f'{account}: (no signals detected)')
+            else:
+                print(f'✓ {account} -> {out_path}')
+
+            if notify_on_intel:
+                signals = _extract_signals_from_report(report)
+                sev = 'warning' if len(signals) >= 5 else 'info'
+                msg = f'Account intel report generated for {account}. Detected signals: {len(signals)}.'
+                _send_notification_event(msg, title=f'HAL Intel Report: {account}', severity=sev, notify_type='all')
 
         if missing:
             print('\nCould not generate reports for:')
@@ -7714,6 +8472,60 @@ def main():
             print('Training maintenance setup script not found at', setup, file=sys.stderr)
             sys.exit(2)
         proc = subprocess.run(['/usr/bin/env', 'bash', setup])
+        sys.exit(proc.returncode)
+
+    # ── HAL Brain dispatch ─────────────────────────────────────────────────────
+    # Delegates to hal-brain.py for adaptive routing, resource management,
+    # ensemble inference, MCP server control, and autonomous capabilities.
+    _HAL_BRAIN = os.path.join(BASE_DIR, 'hal-brain.py')
+
+    _HAL_BRAIN_FLAGS = (
+        '--brain-status', '--brain-route', '--brain-learn', '--ensemble',
+        '--task-plan', '--resource-status', '--resource-cleanup', '--resource-install',
+        '--auto-pull', '--find-install', '--mcp-server-status',
+        '--mcp-server-start', '--mcp-server-stop',
+    )
+    _brain_flag_hit = next((f for f in _HAL_BRAIN_FLAGS if f in sys.argv), None)
+    if _brain_flag_hit:
+        if not os.path.exists(_HAL_BRAIN):
+            print('hal-brain.py not found at', _HAL_BRAIN, file=sys.stderr)
+            sys.exit(2)
+        proc = subprocess.run([sys.executable, _HAL_BRAIN] + sys.argv[1:])
+        sys.exit(proc.returncode)
+
+    # ── HAL Tools dispatch ────────────────────────────────────────────────────
+    # Delegates to hal-tools.py for extended AI/LLM/MCP/fun features.
+    _HAL_TOOLS = os.path.join(BASE_DIR, 'hal-tools.py')
+
+    def _run_hal_tools(*extra_args):
+        """Run hal-tools.py with given extra args and sys.exit with its returncode."""
+        if not os.path.exists(_HAL_TOOLS):
+            print('hal-tools.py not found at', _HAL_TOOLS, file=sys.stderr)
+            sys.exit(2)
+        cmd = [sys.executable, _HAL_TOOLS] + list(extra_args)
+        proc = subprocess.run(cmd)
+        sys.exit(proc.returncode)
+
+    # Build hal-tools passthrough arg list from sys.argv so flags reach it cleanly
+    _tools_args = sys.argv[1:]  # all original args minus script name
+
+    _HAL_TOOLS_FLAGS = (
+        '--model-list', '--model-pull', '--model-delete', '--model-info',
+        '--model-compare', '--benchmark', '--hf-search', '--web-search',
+        '--summarize', '--code-review', '--explain-error', '--diff-explain',
+        '--generate-readme', '--pipe-analyze', '--quiz', '--news',
+        '--word-of-day', '--fact', '--motivate', '--personas', '--set-persona',
+        '--mcp-list', '--mcp-read', '--mcp-publish', '--mcp-delete',
+        '--sys-monitor', '--watch-log', '--todo', '--chat-export',
+    )
+
+    # Check if any HAL Tools flag was requested
+    _tools_flag_hit = next((f for f in _HAL_TOOLS_FLAGS if f in sys.argv), None)
+    if _tools_flag_hit:
+        if not os.path.exists(_HAL_TOOLS):
+            print('hal-tools.py not found. Please ensure it exists at', _HAL_TOOLS, file=sys.stderr)
+            sys.exit(2)
+        proc = subprocess.run([sys.executable, _HAL_TOOLS] + _tools_args)
         sys.exit(proc.returncode)
 
     # --playbook-run FILE: run an Ansible playbook with --check
@@ -8122,15 +8934,25 @@ def main():
 
     # Stock price lookups should use deterministic business-intel snapshot responses.
     if _is_stock_price_query(text):
-        stock_account = _detect_account_in_query(text)
+        stock_account = _detect_account_in_query(text) or _extract_ticker_candidate(text) or _extract_company_name_from_query(text)
         if stock_account:
-            stock_resp = generate_stock_price_response(stock_account)
+            stock_resp = generate_stock_price_response_with_query(stock_account, text)
             if stock_resp:
                 print('\nHAL response:\n')
                 print(stock_resp)
                 entry_path = write_interaction(user, text, stock_resp)
                 print('\nInteraction recorded ->', entry_path)
                 sys.exit(0)
+
+    # Red Hat Insights status queries should bypass generic LLM responses.
+    if _is_redhat_insights_query(text):
+        run_checkin = bool(re.search(r'\b(checkin|check-in|register|collect)\b', text.lower()))
+        insights_resp = generate_redhat_insights_status_response(run_checkin=run_checkin)
+        print('\nHAL response:\n')
+        print(insights_resp)
+        entry_path = write_interaction(user, text, insights_resp)
+        print('\nInteraction recorded ->', entry_path)
+        sys.exit(0)
 
     # Server update strategy should bypass generic LLM short replies.
     if _is_server_update_strategy_query(text):
@@ -8841,8 +9663,14 @@ def main():
         training_results = search_training_data(text)
         if training_results:
             print('\nHAL response (offline — from knowledge base):\n')
-            print(training_results)
-            entry_path = write_interaction(user, text, training_results)
+            # Try to enhance offline results with local Ollama
+            enhanced = _enhance_offline_response(text, training_results)
+            if enhanced:
+                print(enhanced)
+                entry_path = write_interaction(user, text, enhanced)
+            else:
+                print(training_results)
+                entry_path = write_interaction(user, text, training_results)
             print('\nInteraction recorded ->', entry_path)
             if args.remediate:
                 invoke_remediator(entry_path, args.exec)

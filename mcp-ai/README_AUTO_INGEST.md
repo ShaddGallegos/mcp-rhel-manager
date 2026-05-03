@@ -2,11 +2,14 @@
 
 # HAL Auto-Ingest Training Data
 
+> **aider-chat (optional):** Install separately — `pip3 install --upgrade aider-chat`. aider-chat hard-pins `filelock==3.20.3`, which conflicts with `virtualenv` (requires `filelock>=3.24.2`) and `tox`. After a system-wide install, restore the required version: `pip3 install --upgrade "filelock>=3.24.2"`. The project venv is isolated and unaffected.
+
 Automatically import new business intelligence and documents into HAL training without manual commands.
 
 ## Overview
 
 The `auto_ingest_training.py` script monitors watch directories and automatically imports:
+
 - **Business Intelligence**: New/updated JSONL files from `~/GIT/Business_Tools/Training_Data/`
 - **Documents**: CSV, Excel, PDF, Word docs, etc. from `~/Downloads/` and `~/Documents/`
 
@@ -15,6 +18,7 @@ Import history is tracked to avoid re-importing unchanged files.
 ## Quick Start
 
 ### Manual Trigger
+
 ```bash
 # Run auto-ingest once
 HAL --auto-ingest
@@ -35,6 +39,7 @@ crontab -e
 ```
 
 Then add this line:
+
 ```cron
 0 2 * * * cd /home/sgallego/GIT/mcp-rhel-manager && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
 ```
@@ -52,6 +57,7 @@ cat ~/.mcp-ai/auto_ingest.log
 ## Features
 
 ### Smart Deduplication
+
 - Tracks file content hash and modification time
 - Skips unchanged files
 - Re-imports only when file is modified
@@ -59,6 +65,7 @@ cat ~/.mcp-ai/auto_ingest.log
 ### Watch Directories
 
 Automatically scanned for new files:
+
 - `~/GIT/Business_Tools/Training_Data/` — Business intelligence JSONL
 - `~/Downloads/` — Documents and spreadsheets
 - `~/Documents/` — Personal documents
@@ -66,6 +73,7 @@ Automatically scanned for new files:
 Supported formats: xlsx, xls, csv, tsv, json, jsonl, txt, md, pdf, docx, doc, log, yml, yaml, xml, html, htm
 
 ### Document Age Filter
+
 - Only imports documents modified in last 7 days
 - Limits to 5 documents per run (prevent overwhelming)
 - Business_Tools JSONL always imported
@@ -75,6 +83,7 @@ Supported formats: xlsx, xls, csv, tsv, json, jsonl, txt, md, pdf, docx, doc, lo
 Tracker file: `~/.mcp-ai/training/.import_tracker.json`
 
 Contains:
+
 - File paths
 - Content hashes
 - Modification times
@@ -100,16 +109,19 @@ python3 mcp-ai/auto_ingest_training.py --track-reset
 ## Cron Examples
 
 ### Daily at 2 AM
+
 ```cron
 0 2 * * * cd /home/sgallego/GIT/mcp-rhel-manager && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
 ```
 
 ### Every 6 hours
+
 ```cron
 0 */6 * * * cd /home/sgallego/GIT/mcp-rhel-manager && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
 ```
 
 ### Every hour
+
 ```cron
 0 * * * * cd /home/sgallego/GIT/mcp-rhel-manager && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
 ```
@@ -117,12 +129,14 @@ python3 mcp-ai/auto_ingest_training.py --track-reset
 ## Integration with HAL Chat
 
 After setting up auto-ingest, HAL will:
+
 - Have access to latest business intelligence immediately
 - Search across all imported documents automatically
 - Generate updated intel reports with latest data
 - Include newly imported training data in responses
 
 Example:
+
 ```bash
 $ HAL 'what are the latest activities at centene'
 # Returns: Latest intel from most recent ingestion
@@ -134,6 +148,7 @@ $ HAL --intel-report davita
 ## Troubleshooting
 
 ### Import Log Grows Large
+
 ```bash
 # Rotate or truncate
 > ~/.mcp-ai/auto_ingest.log
@@ -143,6 +158,7 @@ grep "Auto-Ingest started" ~/.mcp-ai/auto_ingest.log | tail -1
 ```
 
 ### Some Files Not Being Imported
+
 ```bash
 # Check tracker for skip reasons
 python3 mcp-ai/auto_ingest_training.py --show-tracker | grep filename
@@ -152,6 +168,7 @@ HAL --ingest-reset
 ```
 
 ### Cron Job Not Running
+
 ```bash
 # Check crontab was added
 crontab -l
@@ -167,9 +184,11 @@ cd /home/sgallego/GIT/mcp-rhel-manager && source .venv/bin/activate && python3 m
 ## Configuration
 
 Environment variables (optional):
+
 - `HAL_TRAIN_DIR` — Override training data directory (default: `~/.mcp-ai/training`)
 
 To use:
+
 ```bash
 export HAL_TRAIN_DIR=/custom/path
 HAL --auto-ingest
@@ -197,4 +216,3 @@ HAL --auto-ingest
 2. ✓ Verify first run with `HAL --auto-ingest`
 3. ✓ Check log: `tail -f ~/.mcp-ai/auto_ingest.log`
 4. ✓ Use HAL as normal — will always have latest data
-

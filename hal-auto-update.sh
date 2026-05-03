@@ -34,6 +34,8 @@ touch "$LOCK_FILE"
 
 log_msg "=== HAL Auto-Update Started ==="
 log_msg "System: $(hostname)"
+log_msg "Note: Python venv deps are isolated. If aider-chat was installed system-wide,"
+log_msg "      restore filelock with: pip3 install --upgrade 'filelock>=3.24.2'"
 
 # ========== DNF Upgrade ==========
 log_msg "Starting DNF system upgrade..."

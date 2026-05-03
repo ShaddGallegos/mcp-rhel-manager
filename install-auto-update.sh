@@ -9,6 +9,8 @@ SERVICE_NAME="hal-auto-update"
 
 echo "=== HAL Auto-Update Installation ==="
 echo "This will install daily auto-update tasks at 7 AM"
+echo "Note: Python venv dependencies are isolated. aider-chat is optional — if installed"
+echo "      system-wide, restore filelock with: pip3 install --upgrade 'filelock>=3.24.2'"
 echo ""
 
 if [ "$EUID" -ne 0 ]; then 

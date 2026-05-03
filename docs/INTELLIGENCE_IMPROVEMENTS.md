@@ -1,5 +1,7 @@
 # HAL Intelligence Gathering Improvements
 
+> **aider-chat (optional):** Install separately — `pip3 install --upgrade aider-chat`. aider-chat hard-pins `filelock==3.20.3`, which conflicts with `virtualenv` (requires `filelock>=3.24.2`) and `tox`. After a system-wide install, restore the required version: `pip3 install --upgrade "filelock>=3.24.2"`. The project venv is isolated and unaffected.
+
 ## Summary of Enhancements
 
 Implemented automated, scheduled intelligence data ingestion to eliminate manual import steps and keep training data fresh and current.
@@ -10,7 +12,8 @@ Implemented automated, scheduled intelligence data ingestion to eliminate manual
 
 ### 1. **Auto-Ingest Script** (`mcp-ai/auto_ingest_training.py`)
 
-#### Features:
+#### Features
+
 - **Watches directories** for new/updated intelligence files
 - **Tracks imports** to avoid re-importing unchanged files
 - **Smart deduplication** using file content hashes
@@ -19,7 +22,8 @@ Implemented automated, scheduled intelligence data ingestion to eliminate manual
 - **Selective import** — only reimports when files are modified
 - **Cron-friendly** — designed for scheduled execution
 
-#### Supported Document Formats:
+#### Supported Document Formats
+
 ```
 Text: .txt, .md, .rst, .log, .ini, .cfg, .conf, .yaml, .yml, .json, .jsonl, .xml, .html, .htm
 Delimited: .csv, .tsv
@@ -32,12 +36,14 @@ Documents: .pdf, .docx, .doc
 Tracker file: `~/.mcp-ai/training/.import_tracker.json`
 
 Records for each imported file:
+
 - SHA256 content hash
 - Modification timestamp
 - Import timestamp
 - File path
 
 Benefits:
+
 - Prevents duplicate imports
 - Detects file modifications
 - Tracks ingestion history
@@ -67,6 +73,7 @@ bash mcp-ai/setup_auto_ingest.sh
 ```
 
 Options:
+
 - Daily at 2 AM (recommended)
 - Every 6 hours
 - Every hour
@@ -75,6 +82,7 @@ Options:
 ### 5. **Documentation** (`mcp-ai/README_AUTO_INGEST.md`)
 
 Comprehensive guide covering:
+
 - Quick start examples
 - Cron setup instructions
 - Advanced usage
@@ -87,29 +95,34 @@ Comprehensive guide covering:
 ## Usage Examples
 
 ### Manual One-Time Import
+
 ```bash
 cd /home/sgallego/GIT/mcp-rhel-manager
 HAL --auto-ingest
 ```
 
 ### Check Import Status
+
 ```bash
 HAL --ingest-status
 ```
 
 Output shows:
+
 - All imported files
 - Last import time
 - File hashes
 - Total tracked files
 
 ### Set Up Automated Daily Ingestion
+
 ```bash
 bash mcp-ai/setup_auto_ingest.sh
 # Select option 1 for daily at 2 AM
 ```
 
 Or manually add to crontab:
+
 ```bash
 crontab -e
 # Add:
@@ -117,11 +130,13 @@ crontab -e
 ```
 
 ### View Ingestion Logs
+
 ```bash
 tail -f ~/.mcp-ai/auto_ingest.log
 ```
 
 ### Reset and Re-Import Everything
+
 ```bash
 HAL --ingest-reset
 # Next run of auto-ingest will re-import all files
@@ -132,12 +147,14 @@ HAL --ingest-reset
 ## Workflow Integration
 
 ### Before (Manual)
+
 1. User downloads/updates Business_Tools data or documents
 2. User manually runs: `HAL --import-business-intel /path` or `HAL --import-docs /path`
 3. Training data is updated
 4. User queries HAL, gets latest data
 
 ### After (Automated)
+
 1. System automatically scans watch directories periodically
 2. New/updated files are detected via hash comparison
 3. Files are automatically imported into training
@@ -149,23 +166,27 @@ HAL --ingest-reset
 ## Technical Details
 
 ### Import Deduplication
+
 - **Method**: SHA256 file content hash + modification time
 - **Result**: Only changed files are re-imported
 - **Performance**: ~50ms per file to check
 
 ### Document Age Filtering
+
 - Only imports documents modified within last 7 days
 - Prevents overwhelming system with old files
 - Limits to 5 documents per run
 - Business_Tools JSONL always imported (no age limit)
 
 ### Error Handling
+
 - Graceful failure on parse errors
 - Continues with remaining files
 - Logs all errors to cron log
 - Returns proper exit codes
 
 ### Storage
+
 - Tracker: < 1MB JSON file
 - Log file: ~100KB per month
 - No impact on existing training data location
@@ -231,6 +252,7 @@ If interested, future improvements could include:
 ## Files Created/Modified
 
 ### New Files
+
 - `mcp-ai/auto_ingest_training.py` — Main auto-ingest engine
 - `mcp-ai/setup_auto_ingest.sh` — Cron setup helper
 - `mcp-ai/README_AUTO_INGEST.md` — Complete documentation
@@ -238,6 +260,7 @@ If interested, future improvements could include:
 - `~/.mcp-ai/auto_ingest.log` — Ingestion logs (auto-created)
 
 ### Modified Files
+
 - `hal.py` — Added `--auto-ingest`, `--ingest-status`, `--ingest-reset` commands
 - `requirements.txt` — No changes needed (uses existing packages)
 
@@ -286,4 +309,3 @@ bash mcp-ai/setup_auto_ingest.sh
 # Option 3: Check current status
 HAL --ingest-status
 ```
-

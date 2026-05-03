@@ -1,5 +1,7 @@
 # mcp-rhel-manager / HAL
 
+> **aider-chat (optional):** Install separately — `pip3 install --upgrade aider-chat`. aider-chat hard-pins `filelock==3.20.3`, which conflicts with `virtualenv` (requires `filelock>=3.24.2`) and `tox`. After a system-wide install, restore the required version: `pip3 install --upgrade "filelock>=3.24.2"`. The project venv is isolated and unaffected.
+
 A self-evolving, self-healing management framework for RHEL 10 / Fedora workstations.  
 HAL is the primary CLI — an AI-powered assistant that combines a local LLM (via Ollama) with intelligent training data management, live company intelligence, and Red Hat product expertise.
 
@@ -107,6 +109,7 @@ Invoke as `HAL "..."` or `hal "..."`.
 | `HAL --max-enrich-companies N`      | Limit discovery count (default: 10)                         |
 
 Intel reports include:
+
 - Account ownership, territory, and team
 - Technology stack and integration signals (**DETECTED INTEGRATION SIGNALS** section)
 - Red Hat strategic focus areas
@@ -164,6 +167,7 @@ HAL --playbook-run /path/to/playbook.yml       # dry-run with ansible-playbook -
 - Circuit breaker clears automatically when the bridge recovers
 
 If the bridge is down, HAL will:
+
 1. Attempt auto-start via `mcp-ai/start-bridge.sh`
 2. Fall back to local training data search
 
@@ -249,6 +253,7 @@ Use `HAL --encrypt-training` for at-rest protection (PBKDF2, 390 000 iterations,
 ## Changelog
 
 ### 2026-05-01
+
 - **Bridge reliability**: `/health` endpoint now reports Ollama liveness; circuit breaker clears on recovery; bridge auto-start attempted when down.
 - **Daily intel cache**: Company intel cached to `~/.mcp-ai/cache/intel/`; refreshed once per day; files pruned after 3 days.
 - **Intel report improvements**:
@@ -258,8 +263,10 @@ Use `HAL --encrypt-training` for at-rest protection (PBKDF2, 390 000 iterations,
 - **Bridge check**: `--bridge-check` now uses `/health` endpoint and shows correct startup guidance.
 
 ### 2026-04-26
+
 - Added system indexer (`mcp-ai/indexer.py`) with daily timer.
 
 ### 2026-04-25
+
 - Added diagnostics, remediation features, and genesis script venv support.
 - Added `HAL-FUNCTIONALITY.md` capability inventory.

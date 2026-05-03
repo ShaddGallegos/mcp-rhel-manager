@@ -308,7 +308,7 @@ def _stock_menu() -> int:
 
         if choice == "1":
             symbol = input("Ticker symbol (example: AAPL): ").strip()
-            rc = _quote(symbol, json_output=False)
+            rc = _quote(symbol, json_output=False, ai=False)
             if rc != 0:
                 print(f"Command failed (exit {rc})")
         elif choice == "2":
@@ -320,7 +320,7 @@ def _stock_menu() -> int:
 
             above = float(above_s) if above_s else None
             below = float(below_s) if below_s else None
-            rc = _watch(symbol, above, below, int(interval_s), int(checks_s), once=False, json_output=False)
+            rc = _watch(symbol, above, below, int(interval_s), int(checks_s), once=False, json_output=False, ai=False)
             if rc != 0:
                 print(f"Command failed (exit {rc})")
         elif choice == "3":

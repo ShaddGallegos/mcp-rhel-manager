@@ -1,5 +1,7 @@
 # HAL Bridge Implementation — Complete Integration
 
+> **aider-chat (optional):** Install separately — `pip3 install --upgrade aider-chat`. aider-chat hard-pins `filelock==3.20.3`, which conflicts with `virtualenv` (requires `filelock>=3.24.2`) and `tox`. After a system-wide install, restore the required version: `pip3 install --upgrade "filelock>=3.24.2"`. The project venv is isolated and unaffected.
+
 **Date:** April 28, 2026  
 **Status:** ✓ Complete & Tested
 
@@ -10,6 +12,7 @@ The MCP Bridge is a lightweight HTTP proxy that connects HAL to your local Ollam
 ## What Was Implemented
 
 ### 1. Bridge Service (`mcp-ai/bridge.py`)
+
 - **Purpose:** Proxies HTTP requests from HAL to Ollama
 - **Architecture:** Simple, single-threaded HTTP server using Python stdlib
 - **Key Features:**
@@ -21,6 +24,7 @@ The MCP Bridge is a lightweight HTTP proxy that connects HAL to your local Ollam
   - Verbose logging mode for debugging
 
 ### 2. Bridge Launcher (`mcp-ai/start-bridge.sh`)
+
 - **Purpose:** Easy one-command bridge startup
 - **Features:**
   - Validates Ollama is running before starting bridge
@@ -29,6 +33,7 @@ The MCP Bridge is a lightweight HTTP proxy that connects HAL to your local Ollam
   - Simple bash script, no dependencies
 
 ### 3. Documentation (`mcp-ai/README_BRIDGE.md`)
+
 - **Comprehensive guide covering:**
   - Quick start (3 steps to working bridge)
   - Architecture diagram
@@ -40,6 +45,7 @@ The MCP Bridge is a lightweight HTTP proxy that connects HAL to your local Ollam
   - Development guidance
 
 ### 4. HAL Integration
+
 - **Updated Quick-Start Help:** Now includes bridge startup as first step
 - **New Help Topic:** `HAL help bridge` with full setup instructions
 - **Bridge Diagnostics:** `HAL --bridge-check` command (previously added)
@@ -47,6 +53,7 @@ The MCP Bridge is a lightweight HTTP proxy that connects HAL to your local Ollam
 - **Graceful Fallback:** If bridge unavailable, HAL searches training data
 
 ### 5. Updated Documentation
+
 - **README.md:** Added bridge section with quick start
 - **hal.py:** 12 comprehensive help topics including new "bridge" topic
 
@@ -82,18 +89,21 @@ HAL
 ### Key Implementation Details
 
 **Buffering Strategy:**
+
 - Bridge buffers entire response before sending
 - Prevents connection aborts on streaming responses
 - Sets proper `Content-Length` header
 - Handles large responses efficiently
 
 **Error Handling:**
+
 - Connection refused (Ollama offline): HTTP 503 with helpful message
 - Invalid JSON: HTTP 400 with explanation
 - Server errors: HTTP 500 with details
 - All errors logged at ERROR level
 
 **Performance:**
+
 - Bridge adds <10ms latency
 - Ollama response time: 5-120 seconds (depends on model)
 - Recommended: Run bridge and Ollama on same machine
@@ -101,6 +111,7 @@ HAL
 ## Testing Results
 
 ### ✓ Bridge Startup
+
 ```
 $ bash mcp-ai/start-bridge.sh
 2026-04-28 11:12:48,123 - INFO - MCP Bridge listening on http://localhost:1776
@@ -108,12 +119,14 @@ $ bash mcp-ai/start-bridge.sh
 ```
 
 ### ✓ Health Check
+
 ```
 $ curl -s http://localhost:1776/health | jq .
 {"status": "ok"}
 ```
 
 ### ✓ HAL Query Through Bridge
+
 ```
 $ HAL "what is ansible?"
 HAL request: what is ansible?
@@ -127,6 +140,7 @@ Interaction recorded -> /home/sgallego/.mcp-ai/training/hal-kaso.prod.spg-202604
 ```
 
 ### ✓ Diagnostics Command
+
 ```
 $ HAL --bridge-check
 ================================================================================
@@ -154,6 +168,7 @@ Model Selection:
 ```
 
 ### ✓ Help System
+
 ```
 $ HAL help bridge
 ================================================================================
@@ -174,6 +189,7 @@ Quick Setup:
 ## User Experience
 
 ### Before (Bridge Not Available)
+
 ```
 $ HAL "what is ansible?"
 ERR: HTTPConnectionPool(host='localhost', port=1776): Max retries exceeded
@@ -184,6 +200,7 @@ Found in your training data:
 ```
 
 ### After (Bridge Available)
+
 ```
 $ HAL "what is ansible?"
 Ansible is an open-source automation and IT orchestration platform...
@@ -195,6 +212,7 @@ Interaction recorded in training data
 ## Deployment Options
 
 ### Option 1: Manual (Development)
+
 ```bash
 # Terminal 1
 ollama serve
@@ -207,6 +225,7 @@ HAL "your question"
 ```
 
 ### Option 2: systemd (Production)
+
 ```bash
 sudo cp mcp-ai/bridge.service /etc/systemd/system/hal-bridge.service
 sudo systemctl enable --now hal-bridge
@@ -214,6 +233,7 @@ HAL "your question"
 ```
 
 ### Option 3: Screen/tmux (Background)
+
 ```bash
 screen -d -m -S hal-bridge bash mcp-ai/start-bridge.sh
 HAL "your question"
@@ -223,17 +243,20 @@ screen -ls  # Verify running
 ## Files Modified/Created
 
 ### New Files
+
 - ✓ `mcp-ai/bridge.py` (149 lines) — Bridge service
 - ✓ `mcp-ai/start-bridge.sh` (32 lines) — Launcher script
 - ✓ `mcp-ai/README_BRIDGE.md` (350 lines) — Complete documentation
 
 ### Modified Files
+
 - ✓ `hal.py` — Added bridge help topic, updated quick-start
 - ✓ `README.md` — Added bridge section and quick start instructions
 
 ## Integration Points
 
 ### HAL ↔ Bridge
+
 1. HAL calls `get_available_models()` to check models
 2. HAL calls `get_best_available_model()` to select model
 3. HAL calls `call_bridge(text, timeout=60)` to send queries
@@ -241,6 +264,7 @@ screen -ls  # Verify running
 5. HAL falls back to training data search on exception
 
 ### Bridge ↔ Ollama
+
 1. Bridge receives HTTP POST to `/api/chat`
 2. Bridge validates JSON request
 3. Bridge forwards to `http://localhost:11434/api/chat`
@@ -248,6 +272,7 @@ screen -ls  # Verify running
 5. Bridge buffers and returns to HAL
 
 ### User Commands
+
 - `HAL --bridge-check` — Diagnose bridge/model status
 - `HAL help bridge` — Get bridge setup instructions
 - `HAL "question"` — Use bridge for query
@@ -267,15 +292,18 @@ screen -ls  # Verify running
 ## Performance Metrics
 
 **Startup Time:**
+
 - Bridge initialization: ~1 second
 - First HAL query (warm): ~8 seconds
 - Subsequent queries: ~5-120 seconds (Ollama dependent)
 
 **Memory Usage:**
+
 - Bridge process: ~50 MB
 - Ollama + qwen2.5-coder:7b: ~6 GB RAM
 
 **CPU Usage:**
+
 - Bridge idle: <1%
 - Bridge processing: <5% (mostly I/O wait)
 - Ollama during inference: 100% (all cores utilized)
@@ -283,11 +311,13 @@ screen -ls  # Verify running
 ## Security Notes
 
 Current configuration:
+
 - ✓ Bridge listens on `localhost:1776` (local only)
 - ✓ No authentication required (safe on trusted machines)
 - ✓ No remote access enabled
 
 For remote access (if needed):
+
 - Add HTTP Basic Auth
 - Use HTTPS with self-signed certificates
 - Implement API key validation
@@ -296,6 +326,7 @@ For remote access (if needed):
 ## What's Next
 
 ### Optional Enhancements
+
 - [ ] Add `/api/models` endpoint for model management
 - [ ] Implement request/response caching
 - [ ] Add metrics collection (Prometheus format)
@@ -305,11 +336,13 @@ For remote access (if needed):
 - [ ] Add request signing/authentication
 
 ### Monitoring
+
 - Run `HAL --bridge-check` regularly to verify health
 - Check logs: `tail -f ~/.mcp-ai/auto_ingest.log`
 - Monitor with: `curl http://localhost:1776/health`
 
 ### Integration with CI/CD
+
 - Bridge auto-starts in systemd
 - HAL gracefully handles offline mode
 - All interactions recorded for training
@@ -318,6 +351,7 @@ For remote access (if needed):
 ## Summary
 
 The MCP Bridge implementation provides:
+
 - ✓ Lightweight, reliable connection to Ollama
 - ✓ Automatic model selection and fallback
 - ✓ Comprehensive error handling

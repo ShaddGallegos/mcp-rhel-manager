@@ -1,14 +1,63 @@
-# Local HAL/MCP AI training and sensitive data
+# ── HAL / MCP AI local data ───────────────────────────────────────────────────
+# Training data, cache, and runtime state — never commit
 .mcp-ai/
 .hal-training/
 mcp-ai/local-training/
 
-# Encrypted or key material for local training datasets
+# Encrypted training artifacts and key material
 *.enc
 *.halkey
 *.trainingkey
 
-# Local Python virtual environments
+# ── Python artifacts ──────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-wheel-metadata/
+*.dist-info/
+
+# ── Virtual environments ──────────────────────────────────────────────────────
 .venv/
 venv/
 venv-bridge/
+
+# ── Logs, reports, and runtime output ────────────────────────────────────────
+*.log
+*.log.*
+logs/
+hal-scenes/
+
+# ── Environment and secrets ───────────────────────────────────────────────────
+.env
+.env.*
+*.secret
+*.key
+secrets/
+
+# ── Editor and OS noise ───────────────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+Thumbs.db
+
+# ── Test / coverage artifacts ─────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ── Temporary and generated files ────────────────────────────────────────────
+*.tmp
+*.bak
+*.orig
+*.patch

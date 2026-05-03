@@ -14,10 +14,10 @@
 # Prefer installing `ansible-core` and optional runtime helpers. The full metapackage is
 # commented out to avoid pip resolution failures; uncomment if you intentionally want it.
 # ansible>=2.14.0,<3.0.0
-ansible-core>=2.16.0,<2.18.0
-ansible-lint>=5.0.0,<6.0.0
+ansible-core>=2.20.0,<3.0.0
+ansible-lint>=6.0.0,<28.0.0
 # ansible-dev-tools moved to newer release numbering; pin a modern compatible range
-ansible-dev-tools>=24.2.0,<27.0.0
+ansible-dev-tools>=24.2.0,<28.0.0
 
 # Common Python dependencies for Ansible modules and collections
 requests>=2.28.0
@@ -65,7 +65,11 @@ pycryptodome>=3.15.0
 simplejson>=3.18.0
 
 # Additional user-requested pip packages
-aider-chat
+# aider-chat: install separately to avoid pinned dependency conflicts in this shared environment
+# pip install --upgrade aider-chat
+# pip3 install --upgrade aider-chat
+# pipx install aider-chat
+# aider-chat
 charset-normalizer
 filelock
 virtualenv
@@ -85,10 +89,10 @@ rich
 pillow
 pandas
 openpyxl
-pypdf
-python-docx
+pypdf>=6.0.0
+python-docx>=1.1.0
 packaging
 cachetools
-pyopenssl
+pyopenssl>=25.0.0
 tox-ansible
 google-generativeai

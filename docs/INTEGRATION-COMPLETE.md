@@ -1,5 +1,7 @@
 # HAL Predictive System Integration - Implementation Summary
 
+> **aider-chat (optional):** Install separately — `pip3 install --upgrade aider-chat`. aider-chat hard-pins `filelock==3.20.3`, which conflicts with `virtualenv` (requires `filelock>=3.24.2`) and `tox`. After a system-wide install, restore the required version: `pip3 install --upgrade "filelock>=3.24.2"`. The project venv is isolated and unaffected.
+
 ## Overview
 
 Successfully integrated a complete predictive analytics system into HAL9000, enabling users to monitor system trends, predict threshold breaches, and receive intelligent alerts through multiple channels.

@@ -1,12 +1,14 @@
 # HAL Security & Secrets Management
 
+> **aider-chat (optional):** Install separately — `pip3 install --upgrade aider-chat`. aider-chat hard-pins `filelock==3.20.3`, which conflicts with `virtualenv` (requires `filelock>=3.24.2`) and `tox`. After a system-wide install, restore the required version: `pip3 install --upgrade "filelock>=3.24.2"`. The project venv is isolated and unaffected.
+
 This document describes HAL's comprehensive security features for managing secrets, vault passwords, and detecting unencrypted sensitive information in git repositories.
 
 ## Overview
 
 HAL now includes a complete security framework that:
 
-1. **Manages Vault Password** - Creates and maintains `~/.ansible/conf/.vaultpass.txt` 
+1. **Manages Vault Password** - Creates and maintains `~/.ansible/conf/.vaultpass.txt`
 2. **Scans Git Repos** - Finds unencrypted secrets in tracked files
 3. **Detects Credential Exposure** - Identifies plaintext credentials in git config
 4. **Encrypts Sensitive Files** - Uses ansible-vault to encrypt detected secrets
@@ -31,6 +33,7 @@ python3 hal.py 'system health'
 ```
 
 ### File Location
+
 - **Path**: `~/.ansible/conf/.vaultpass.txt`
 - **Permissions**: 600 (read/write for owner only)
 - **Contents**: 32-character random password (auto-generated if missing)
@@ -43,6 +46,7 @@ python3 hal-security-audit.py check
 ```
 
 Output:
+
 ```
 ✓ Vault password file ready: /home/sgallego/.ansible/conf/.vaultpass.txt
 ```
@@ -57,6 +61,7 @@ python3 hal.py 'system health'
 ```
 
 This will:
+
 - Scan up to 39 git repositories
 - Find files with potential unencrypted secrets
 - Report findings with file paths and issue types
@@ -114,6 +119,7 @@ python3 hal-security-audit.py encrypt /path/to/sensitive/file.yml
 ```
 
 Output:
+
 ```
 ✓ Encrypted: /path/to/sensitive/file.yml
 ```
@@ -125,6 +131,7 @@ python3 hal-security-audit.py decrypt /path/to/sensitive/file.yml
 ```
 
 Output:
+
 ```
 ✓ Decrypted: /path/to/sensitive/file.yml
 ```
@@ -158,17 +165,20 @@ ansible-playbook playbook.yml
 When you run mode 3 (full auto-remediation), HAL checks:
 
 ### 1. Vault Password Management
+
 - Creates `~/.ansible/conf/.vaultpass.txt` if missing
 - Ensures correct file permissions (600)
 - Verifies password has content
 
 ### 2. Git Repository Scanning
+
 - Locates up to 39 git repositories
 - Scans tracked files for secret patterns
 - Reports findings by repo and file
 - Limits checks to prevent performance impact
 
 ### 3. Git Credentials Exposure
+
 - Checks `.gitconfig` for plaintext credentials
 - Detects `.git-credentials` files (should use credential helper)
 - Validates SSH key references
@@ -282,6 +292,7 @@ ansible-vault view --vault-password-file=~/.ansible/conf/.vaultpass.txt file.yml
 ### Too Many False Positives
 
 The scanner uses broad patterns to avoid missing secrets. False positives include:
+
 - Example files (`.example`, `.sample`)
 - Documentation files (`README.md`)
 - Configuration templates

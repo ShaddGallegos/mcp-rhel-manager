@@ -1,3 +1,5 @@
+> **aider-chat (optional):** Install separately — `pip3 install --upgrade aider-chat`. aider-chat hard-pins `filelock==3.20.3`, which conflicts with `virtualenv` (requires `filelock>=3.24.2`) and `tox`. After a system-wide install, restore the required version: `pip3 install --upgrade "filelock>=3.24.2"`. The project venv is isolated and unaffected.
+
 To restore `/etc` from the last backup created by `remediate.py`:
 
 ```bash
@@ -12,11 +14,11 @@ To run the minimal dashboard (optional):
 /opt/mcp-rhel-manager/venv/bin/pip install flask
 FLASK_APP=mcp-ai/dashboard.py /opt/mcp-rhel-manager/venv/bin/flask run --host=0.0.0.0 --port=8080
 ```
- - `rollback.py` — restore most recent `/etc` backup created during remediation (requires sudo).
- - `enable_services.sh` — helper script to enable/start MCP-related systemd units.
- - `tests/run_sim.sh` — end-to-end simulation harness for CI-like validation.
- - `dashboard.py` — minimal Flask-based plan review UI (optional).
 
+- `rollback.py` — restore most recent `/etc` backup created during remediation (requires sudo).
+- `enable_services.sh` — helper script to enable/start MCP-related systemd units.
+- `tests/run_sim.sh` — end-to-end simulation harness for CI-like validation.
+- `dashboard.py` — minimal Flask-based plan review UI (optional).
 
 MCP AI: Collector & Remediator
 =================================
