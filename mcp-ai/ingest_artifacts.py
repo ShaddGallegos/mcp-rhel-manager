@@ -100,7 +100,7 @@ def main(argv: list[str] | None = None) -> int:
         "~/.mcp-ai/fixes/*",
         "~/.mcp-ai/fixes/**/*.json",
         os.path.join(_REPO_ROOT, "mcp-ai/*.py"),
-        os.path.join(_REPO_ROOT, "hal.py"),
+        os.path.join(_REPO_ROOT, "scripts", "hal.py"),
         os.path.join(_REPO_ROOT, "*.py"),
         os.path.join(_REPO_ROOT, "*.sh"),
     ]

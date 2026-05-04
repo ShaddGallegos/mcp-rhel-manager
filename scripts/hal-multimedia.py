@@ -14,8 +14,8 @@ import subprocess
 import sys
 
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-HAL_STUDIO = os.path.join(BASE_DIR, "hal-studio.py")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+HAL_STUDIO = os.path.join(BASE_DIR, "scripts", "hal-studio.py")
 
 MULTIMEDIA_COMMANDS = {
     "menu",

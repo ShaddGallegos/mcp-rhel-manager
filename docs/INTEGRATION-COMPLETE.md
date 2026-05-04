@@ -153,20 +153,20 @@ CPU Usage
 
 ### Modified
 
-- `/home/sgallego/GIT/mcp-rhel-manager/hal.py`
+- `/home/sgallego/GIT/mcp-rhel-manager/scripts/hal.py`
   - Added 4 arguments
   - Added 3 command handlers
   - Fixed import patterns
 
-- `/home/sgallego/GIT/mcp-rhel-manager/hal-metrics.py`
+- `/home/sgallego/GIT/mcp-rhel-manager/scripts/hal-metrics.py`
   - Fixed date filtering bug
   - Fixed file parsing bug
   - Fixed trend key bug
 
 ### Created
 
-- `/home/sgallego/GIT/mcp-rhel-manager/hal-notify.py` (7.9KB)
-- `/home/sgallego/GIT/mcp-rhel-manager/hal-dashboard.py` (6.5KB)
+- `/home/sgallego/GIT/mcp-rhel-manager/scripts/hal-notify.py` (7.9KB)
+- `/home/sgallego/GIT/mcp-rhel-manager/scripts/hal-dashboard.py` (6.5KB)
 - `/home/sgallego/GIT/mcp-rhel-manager/PREDICTIVE-SYSTEM.md`
 
 ### Data Storage Created
@@ -179,18 +179,18 @@ CPU Usage
 
 ```bash
 # First-time setup
-python3 hal.py --inventory
+python3 scripts/hal.py --inventory
 
 # View metrics
-python3 hal.py --metrics
-python3 hal.py --metrics --metric-days 30
+python3 scripts/hal.py --metrics
+python3 scripts/hal.py --metrics --metric-days 30
 
 # Check predictions
-python3 hal.py --predict
+python3 scripts/hal.py --predict
 
 # Standalone dashboard
-python3 hal-dashboard.py --metric cpu
-python3 hal-dashboard.py --days 14
+python3 scripts/hal-dashboard.py --metric cpu
+python3 scripts/hal-dashboard.py --days 14
 ```
 
 ## Performance Characteristics

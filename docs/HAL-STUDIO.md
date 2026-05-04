@@ -10,38 +10,38 @@ It now also includes AI image generation, TTS vocals, and one-shot OBS scene pip
 
 From HAL:
 
-python3 hal.py --studio
+python3 scripts/hal.py --studio
 
 One-shot pipeline from HAL:
 
-python3 hal.py --studio-pipeline "launch teaser with futuristic server room" --studio-image-backend auto
+python3 scripts/hal.py --studio-pipeline "launch teaser with futuristic server room" --studio-image-backend auto
 
 Direct:
 
-python3 hal-studio.py menu
+python3 scripts/hal-studio.py menu
 
 Split scripts:
 
-python3 hal-stocks.py menu
-python3 hal-multimedia.py
+python3 scripts/hal-stocks.py menu
+python3 scripts/hal-multimedia.py
 
 ## Capabilities Check
 
-python3 hal-studio.py capabilities
+python3 scripts/hal-studio.py capabilities
 
 ## Stocks
 
 Quote:
 
-python3 hal-stocks.py quote AAPL
+python3 scripts/hal-stocks.py quote AAPL
 
 Watch with threshold alert:
 
-python3 hal-stocks.py watch AAPL --above 280 --interval 60 --checks 120
+python3 scripts/hal-stocks.py watch AAPL --above 280 --interval 60 --checks 120
 
 Watch downside:
 
-python3 hal-stocks.py watch AAPL --below 250 --interval 60 --checks 120
+python3 scripts/hal-stocks.py watch AAPL --below 250 --interval 60 --checks 120
 
 Notes:
 
@@ -52,27 +52,27 @@ Notes:
 
 Describe image metadata:
 
-python3 hal-studio.py image-describe /path/to/image.png
+python3 scripts/hal-studio.py image-describe /path/to/image.png
 
 Describe image and run OCR:
 
-python3 hal-studio.py image-describe /path/to/image.png --ocr
+python3 scripts/hal-studio.py image-describe /path/to/image.png --ocr
 
 Resize image:
 
-python3 hal-studio.py image-resize in.png out.png --width 1280 --height 720
+python3 scripts/hal-studio.py image-resize in.png out.png --width 1280 --height 720
 
 Generate a simple poster image:
 
-python3 hal-studio.py image-poster --text "Quarterly Ops Review" --output poster.png
+python3 scripts/hal-studio.py image-poster --text "Quarterly Ops Review" --output poster.png
 
 Generate image from prompt text:
 
-python3 hal-studio.py text-image "sunrise over server racks" --output prompt-art.png
+python3 scripts/hal-studio.py text-image "sunrise over server racks" --output prompt-art.png
 
 High-quality AI image generation:
 
-python3 hal-studio.py ai-image "cinematic cyberpunk datacenter at sunrise" --backend auto --output ai-image.png
+python3 scripts/hal-studio.py ai-image "cinematic cyberpunk datacenter at sunrise" --backend auto --output ai-image.png
 
 Notes:
 
@@ -84,17 +84,17 @@ Notes:
 
 Video metadata:
 
-python3 hal-studio.py video-info /path/to/video.mp4
+python3 scripts/hal-studio.py video-info /path/to/video.mp4
 
 Trim a clip:
 
-python3 hal-studio.py video-trim in.mp4 out.mp4 --start 00:01:00 --duration 00:00:30
+python3 scripts/hal-studio.py video-trim in.mp4 out.mp4 --start 00:01:00 --duration 00:00:30
 
 ## Music Tools
 
 Generate WAV music from prompt text:
 
-python3 hal-studio.py text-music "calm focus coding beat" --output prompt-music.wav --seconds 20 --bpm 120
+python3 scripts/hal-studio.py text-music "calm focus coding beat" --output prompt-music.wav --seconds 20 --bpm 120
 
 Notes:
 
@@ -103,11 +103,11 @@ Notes:
 
 Generate vocals from text (TTS):
 
-python3 hal-studio.py text-speech "Welcome to the HAL live demo" --output vocals.wav
+python3 scripts/hal-studio.py text-speech "Welcome to the HAL live demo" --output vocals.wav
 
 Layer vocals over generated music:
 
-python3 hal-studio.py music-vocals scene-music.wav vocals.wav --output final-mix.wav
+python3 scripts/hal-studio.py music-vocals scene-music.wav vocals.wav --output final-mix.wav
 
 Notes:
 
@@ -118,19 +118,19 @@ Notes:
 
 Show OBS status:
 
-python3 hal-studio.py obs-status
+python3 scripts/hal-studio.py obs-status
 
 Launch OBS:
 
-python3 hal-studio.py obs-launch
+python3 scripts/hal-studio.py obs-launch
 
 Launch OBS minimized to tray:
 
-python3 hal-studio.py obs-launch --minimized
+python3 scripts/hal-studio.py obs-launch --minimized
 
 List recent recordings:
 
-python3 hal-studio.py obs-recordings --limit 10
+python3 scripts/hal-studio.py obs-recordings --limit 10
 
 Notes:
 
@@ -141,15 +141,15 @@ Notes:
 
 Show OBSBOT camera status:
 
-python3 hal-studio.py obsbot-status
+python3 scripts/hal-studio.py obsbot-status
 
 List controls:
 
-python3 hal-studio.py obsbot-controls --device /dev/video0
+python3 scripts/hal-studio.py obsbot-controls --device /dev/video0
 
 Set a control:
 
-python3 hal-studio.py obsbot-set zoom_absolute 180 --device /dev/video0
+python3 scripts/hal-studio.py obsbot-set zoom_absolute 180 --device /dev/video0
 
 Notes:
 
@@ -160,7 +160,7 @@ Notes:
 
 Create full OBS-ready scene assets from one prompt:
 
-python3 hal-studio.py pipeline "launch teaser with futuristic server room" --outdir ./hal-scenes --seconds 20 --bpm 120 --image-backend auto
+python3 scripts/hal-studio.py pipeline "launch teaser with futuristic server room" --outdir ./hal-scenes --seconds 20 --bpm 120 --image-backend auto
 
 Pipeline output includes:
 
@@ -175,11 +175,11 @@ Pipeline output includes:
 
 Convert an office file to PDF:
 
-python3 hal-studio.py lo-convert /path/to/file.docx --format pdf --outdir /tmp
+python3 scripts/hal-studio.py lo-convert /path/to/file.docx --format pdf --outdir /tmp
 
 Convert with a different output format:
 
-python3 hal-studio.py lo-convert /path/to/file.odt --format html --outdir /tmp
+python3 scripts/hal-studio.py lo-convert /path/to/file.odt --format html --outdir /tmp
 
 Notes:
 

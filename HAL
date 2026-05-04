@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-exec /usr/bin/env python3 /home/sgallego/mcp-rhel-manager/hal.py "$@"

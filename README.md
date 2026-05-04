@@ -13,9 +13,9 @@ HAL is the primary CLI — an AI-powered assistant that combines a local LLM (vi
 | -------------- | ------------------------------------------------- | --------------------------------------- |
 | **Brain**      | Ollama (`qwen2.5-coder:7b`, `llama4:scout`, etc.) | LLM inference engine                    |
 | **Bridge**     | `mcp-ai/bridge.py` on port 1776                   | Proxies HAL → Ollama; exposes `/health` |
-| **CLI**        | `hal.py` / `bin/HAL`                              | All user-facing commands                |
-| **MCP Server** | `server.py` (FastMCP)                             | System tool access for automation       |
-| **Sentinel**   | `auto-fixer.sh`                                   | Hourly audit loop                       |
+| **CLI**        | `scripts/hal.py` / `bin/HAL`                      | All user-facing commands                |
+| **MCP Server** | `scripts/server.py` (FastMCP)                     | System tool access for automation       |
+| **Sentinel**   | `scripts/auto-fixer.sh`                           | Hourly audit loop                       |
 
 All data stays local — nothing is sent externally.
 
@@ -26,8 +26,8 @@ All data stays local — nothing is sent externally.
 ### 1. Installation
 
 ```bash
-chmod +x architect_genesis.sh
-./architect_genesis.sh
+chmod +x install_system.sh
+./install_system.sh --start --yes
 ```
 
 Re-run with `--venv` to regenerate the virtual environment.

@@ -54,7 +54,7 @@ PERF_DB      = os.path.join(BRAIN_DIR, 'perf-db.json')
 ROUTE_LOG    = os.path.join(BRAIN_DIR, 'route-log.jsonl')
 MCP_REGISTRY = os.path.join(BRAIN_DIR, 'mcp-registry.json')
 RESOURCE_LOG = os.path.join(BRAIN_DIR, 'resource-log.jsonl')
-BASE_DIR     = os.path.dirname(os.path.realpath(__file__))
+BASE_DIR     = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 OLLAMA_BASE  = os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434')
 OLLAMA_CHAT  = os.environ.get('OLLAMA_URL',      'http://localhost:1776/api/chat')
@@ -101,7 +101,7 @@ RECOMMENDED_MODELS = {
 BUILTIN_MCP_SERVERS = {
     'architect': {
         'description': 'Main HAL MCP server (RHEL/Ansible/Satellite diagnostics)',
-        'command': [os.path.join(BASE_DIR, '.venv', 'bin', 'python'), os.path.join(BASE_DIR, 'server.py')],
+        'command': [os.path.join(BASE_DIR, '.venv', 'bin', 'python'), os.path.join(BASE_DIR, 'scripts', 'server.py')],
         'env': {},
         'health_url': None,
     },

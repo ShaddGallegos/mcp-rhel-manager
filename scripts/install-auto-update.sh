@@ -5,6 +5,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 SERVICE_NAME="hal-auto-update"
 
 echo "=== HAL Auto-Update Installation ==="
@@ -26,17 +27,17 @@ fi
 
 # Copy systemd files
 echo "Installing systemd service and timer..."
-if [ ! -f "$SCRIPT_DIR/hal-auto-update.service" ]; then
-    echo "ERROR: hal-auto-update.service not found in $SCRIPT_DIR"
+if [ ! -f "$REPO_ROOT/hal-auto-update.service" ]; then
+    echo "ERROR: hal-auto-update.service not found in $REPO_ROOT"
     exit 1
 fi
-if [ ! -f "$SCRIPT_DIR/hal-auto-update.timer" ]; then
-    echo "ERROR: hal-auto-update.timer not found in $SCRIPT_DIR"
+if [ ! -f "$REPO_ROOT/hal-auto-update.timer" ]; then
+    echo "ERROR: hal-auto-update.timer not found in $REPO_ROOT"
     exit 1
 fi
 
-cp "$SCRIPT_DIR/hal-auto-update.service" /etc/systemd/system/
-cp "$SCRIPT_DIR/hal-auto-update.timer" /etc/systemd/system/
+cp "$REPO_ROOT/hal-auto-update.service" /etc/systemd/system/
+cp "$REPO_ROOT/hal-auto-update.timer" /etc/systemd/system/
 
 chmod 644 /etc/systemd/system/hal-auto-update.service
 chmod 644 /etc/systemd/system/hal-auto-update.timer

@@ -8,8 +8,8 @@ REPO_ROOT="$SCRIPT_DIR"
 
 DAILY_SCHEDULE="30 1 * * *"
 WEEKLY_SCHEDULE="45 2 * * 0"
-DAILY_CMD="cd $REPO_ROOT && source .venv/bin/activate && python3 hal.py --training-maintenance >> ~/.mcp-ai/training_maintenance.log 2>&1"
-WEEKLY_CMD="cd $REPO_ROOT && source .venv/bin/activate && python3 hal.py --training-maintenance-apply >> ~/.mcp-ai/training_maintenance.log 2>&1"
+DAILY_CMD="cd $REPO_ROOT && source .venv/bin/activate && python3 scripts/hal.py --training-maintenance >> ~/.mcp-ai/training_maintenance.log 2>&1"
+WEEKLY_CMD="cd $REPO_ROOT && source .venv/bin/activate && python3 scripts/hal.py --training-maintenance-apply >> ~/.mcp-ai/training_maintenance.log 2>&1"
 
 mkdir -p ~/.mcp-ai
 

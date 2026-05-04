@@ -15,29 +15,29 @@
       - fail2ban
       - iproute
     state: present
-    update_cache: yes
+    update_cache: true
 
 - name: Ensure auditd is enabled and started
   become: true
   service:
     name: auditd
     state: started
-    enabled: yes
+    enabled: true
 
 - name: Ensure firewalld is enabled and started
   become: true
   service:
     name: firewalld
     state: started
-    enabled: yes
+    enabled: true
 
 - name: Ensure fail2ban is enabled and started (if available)
   become: true
   service:
     name: fail2ban
     state: started
-    enabled: yes
-  ignore_errors: yes
+    enabled: true
+  ignore_errors: true
 
 - name: Deploy systemd drop-in for mcp-bridge to order after ollama
   become: true
@@ -55,7 +55,7 @@
     requirements: /opt/mcp-rhel-manager/requirements.txt
     virtualenv: /opt/mcp-rhel-manager/venv
     virtualenv_command: python3 -m venv
-  ignore_errors: yes
+  ignore_errors: true
 
 - name: Restore filelock after potential aider-chat system-wide install downgrade
   # aider-chat hard-pins filelock==3.20.3 which conflicts with virtualenv>=3.24.2 and tox>=3.25.
@@ -65,7 +65,7 @@
     name: "filelock>=3.24.2"
     virtualenv: /opt/mcp-rhel-manager/venv
     state: latest
-  ignore_errors: yes
+  ignore_errors: true
 
 - name: Reload systemd daemon
   become: true

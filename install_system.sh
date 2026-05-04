@@ -25,11 +25,14 @@ VERIFY_MODE=0
 VERIFY_JSON=0
 ROLLBACK_ON_FAIL=1
 VENV_MODE=0
+SELINUX_POLICY="permissive"
+FIREWALLD_POLICY="disabled"
 
 usage(){
   cat <<EOF
 Usage: $(basename "$0") [--apply|--dry-run] [--start] [--verify] [--verify-json] [--yes] [--force]
                           [--venv] [--base-dir PATH] [--user NAME] [--home PATH]
+                          [--selinux {permissive|enforcing|unchanged}] [--firewalld {enabled|disabled|unchanged}]
 
 Options:
   --apply       Run real install/apply mode (default)
@@ -43,6 +46,8 @@ Options:
   --base-dir    Install root (default: /opt/mcp-rhel-manager)
   --user        Service account username (default: mcp)
   --home        Service account home directory (default: /var/lib/mcp)
+  --selinux     SELinux target mode (default: permissive)
+  --firewalld   firewalld target state (default: disabled)
   --no-rollback Disable automatic rollback on failure in --apply mode
 
 Unified installer — replaces architect_genesis.sh (now a compat shim).
@@ -69,6 +74,8 @@ while [[ $# -gt 0 ]]; do
     --base-dir) BASE_DIR="${2:-}"; shift 2 ;;
     --user) MCP_USER="${2:-}"; shift 2 ;;
     --home) MCP_HOME="${2:-}"; shift 2 ;;
+    --selinux) SELINUX_POLICY="${2:-}"; shift 2 ;;
+    --firewalld) FIREWALLD_POLICY="${2:-}"; shift 2 ;;
     --no-rollback) ROLLBACK_ON_FAIL=0; shift ;;
     --help|-h) usage; exit 0 ;;
     *) echo "Unknown argument: $1"; usage; exit 1 ;;
@@ -88,6 +95,8 @@ fail(){
 [[ -n "$BASE_DIR" ]] || fail "--base-dir requires a value"
 [[ -n "$MCP_USER" ]] || fail "--user requires a value"
 [[ -n "$MCP_HOME" ]] || fail "--home requires a value"
+[[ "$SELINUX_POLICY" =~ ^(permissive|enforcing|unchanged)$ ]] || fail "--selinux must be one of: permissive, enforcing, unchanged"
+[[ "$FIREWALLD_POLICY" =~ ^(enabled|disabled|unchanged)$ ]] || fail "--firewalld must be one of: enabled, disabled, unchanged"
 
 if [[ $VENV_MODE -eq 1 ]]; then
   VENV_DIR="$SCRIPT_DIR/venv"
@@ -175,6 +184,7 @@ if [[ $VERIFY_JSON -ne 1 ]]; then
   echo "Base dir: $BASE_DIR  Venv: $VENV_DIR  Mode: $([ $VENV_MODE -eq 1 ] && echo venv || echo system)"
   echo "MCP user: $MCP_USER (home: $MCP_HOME)  AI user: $AI_USER"
   echo "OLLAMA URL: $OLLAMA_URL  Bridge port: $BRIDGE_PORT"
+  echo "SELinux policy target: $SELINUX_POLICY  firewalld target: $FIREWALLD_POLICY"
   echo
 fi
 
@@ -221,9 +231,13 @@ install_prereqs(){
       lm_sensors smartmontools pciutils \
       jq rsync git curl which ripgrep iproute dkms \
       audit audit-libs firewalld fail2ban || true
-    systemctl enable --now auditd 2>/dev/null || true
-    systemctl enable --now firewalld 2>/dev/null || true
-    systemctl enable --now fail2ban 2>/dev/null || true
+    run systemctl enable --now auditd 2>/dev/null || true
+    run systemctl enable --now fail2ban 2>/dev/null || true
+    case "$FIREWALLD_POLICY" in
+      enabled) run systemctl enable --now firewalld 2>/dev/null || true ;;
+      disabled) run systemctl disable --now firewalld 2>/dev/null || true ;;
+      unchanged) : ;;
+    esac
   else
     run apt-get update
     run apt-get install $PKG_INSTALL_OPTS \
@@ -232,6 +246,52 @@ install_prereqs(){
       lm-sensors smartmontools pciutils \
       jq rsync git curl which ripgrep dkms \
       auditd ufw fail2ban || true
+    case "$FIREWALLD_POLICY" in
+      enabled) run systemctl enable --now ufw 2>/dev/null || true ;;
+      disabled) run systemctl disable --now ufw 2>/dev/null || true ;;
+      unchanged) : ;;
+    esac
+  fi
+}
+
+# ===========================================================================
+apply_runtime_baseline(){
+  echo "Applying host baseline policies (SELinux/firewalld)"
+  if [[ $APPLY -ne 1 ]]; then
+    echo "DRY-RUN: would apply SELinux=$SELINUX_POLICY and firewalld=$FIREWALLD_POLICY"
+    return 0
+  fi
+
+  if command -v getenforce >/dev/null 2>&1 && command -v setenforce >/dev/null 2>&1; then
+    case "$SELINUX_POLICY" in
+      permissive)
+        if [[ "$(getenforce 2>/dev/null || true)" == "Enforcing" ]]; then
+          run setenforce 0 2>/dev/null || true
+        fi
+        ;;
+      enforcing)
+        if [[ "$(getenforce 2>/dev/null || true)" == "Permissive" ]]; then
+          run setenforce 1 2>/dev/null || true
+        fi
+        ;;
+      unchanged)
+        :
+        ;;
+    esac
+  fi
+
+  if command -v systemctl >/dev/null 2>&1; then
+    case "$FIREWALLD_POLICY" in
+      enabled)
+        run systemctl enable --now firewalld 2>/dev/null || true
+        ;;
+      disabled)
+        run systemctl disable --now firewalld 2>/dev/null || true
+        ;;
+      unchanged)
+        :
+        ;;
+    esac
   fi
 }
 
@@ -271,8 +331,9 @@ deploy_files(){
   [[ -f "$BASE_DIR/bin/HAL" ]] && run chmod +x "$BASE_DIR/bin/HAL"
   for f in \
     "$BASE_DIR/install_system.sh" \
-    "$BASE_DIR/architect_genesis.sh" \
-    "$BASE_DIR/auto-fixer.sh" \
+    "$BASE_DIR/scripts/architect_genesis.sh" \
+    "$BASE_DIR/scripts/auto-fixer.sh" \
+    "$BASE_DIR/scripts/hal-auto-update.sh" \
     "$BASE_DIR/mcp-ai/start-bridge.sh" \
     "$BASE_DIR/mcp-ai/enable_services.sh" \
     "$BASE_DIR/mcp-ai/setup_auto_ingest.sh"; do
@@ -466,7 +527,7 @@ User=$AI_USER
 Group=$AI_USER
 Environment=HOME=$MCP_HOME
 WorkingDirectory=$BASE_DIR
-ExecStart=/bin/bash -lc 'while true; do $VENV_DIR/bin/python $BASE_DIR/hal-brain.py --brain-status --mcp-server-status >> $MCP_HOME/hal-brain.log 2>&1 || true; sleep 60; done'
+ExecStart=/bin/bash -lc 'while true; do $VENV_DIR/bin/python $BASE_DIR/scripts/hal-brain.py --brain-status --mcp-server-status >> $MCP_HOME/hal-brain.log 2>&1 || true; sleep 60; done'
 Restart=always
 RestartSec=10
 
@@ -587,7 +648,7 @@ write_genesis_config(){
   "mcpServers": {
     "architect": {
       "command": "$mcp_py",
-      "args": ["$BASE_DIR/server.py"]
+      "args": ["$BASE_DIR/scripts/server.py"]
     }
   }
 }
@@ -617,18 +678,18 @@ while true; do
 done
 AFEOF
   if [[ $APPLY -eq 1 ]]; then
-    if [[ $EUID -ne 0 ]]; then sudo install -m 755 -o root -g root "$tmp_af" "$BASE_DIR/auto-fixer.sh"
-    else install -m 755 -o root -g root "$tmp_af" "$BASE_DIR/auto-fixer.sh"; fi
-    rm -f "$tmp_af"; echo "Wrote $BASE_DIR/auto-fixer.sh"
+    if [[ $EUID -ne 0 ]]; then sudo install -m 755 -o root -g root "$tmp_af" "$BASE_DIR/scripts/auto-fixer.sh"
+    else install -m 755 -o root -g root "$tmp_af" "$BASE_DIR/scripts/auto-fixer.sh"; fi
+    rm -f "$tmp_af"; echo "Wrote $BASE_DIR/scripts/auto-fixer.sh"
   else
-    echo "DRY-RUN: would write $BASE_DIR/auto-fixer.sh"; rm -f "$tmp_af"
+    echo "DRY-RUN: would write $BASE_DIR/scripts/auto-fixer.sh"; rm -f "$tmp_af"
   fi
 
   local seed_dir="$INSTALL_HOME/.local/share/mcp-seed"
   if [[ $APPLY -eq 1 ]]; then
     mkdir -p "$seed_dir"
-    if [[ -f "$BASE_DIR/server.py" ]]; then
-      cp -f "$BASE_DIR/server.py" "$seed_dir/server.py.gold" 2>/dev/null || true
+    if [[ -f "$BASE_DIR/scripts/server.py" ]]; then
+      cp -f "$BASE_DIR/scripts/server.py" "$seed_dir/server.py.gold" 2>/dev/null || true
       chattr +i "$seed_dir/server.py.gold" 2>/dev/null || true
       echo "Gold seed locked: $seed_dir/server.py.gold"
     fi
@@ -662,7 +723,7 @@ UNITEOF
 Description=MCP Architect Sentinel (user)
 After=mcp-bridge.service
 [Service]
-ExecStart=$BASE_DIR/auto-fixer.sh
+ExecStart=$BASE_DIR/scripts/auto-fixer.sh
 Restart=always
 [Install]
 WantedBy=default.target
@@ -749,14 +810,16 @@ apply_selinux_hardening(){
   run find "$BASE_DIR" -type f -exec chmod 0644 {} + 2>/dev/null || true
   for f in \
     "$BASE_DIR/install_system.sh" \
-    "$BASE_DIR/architect_genesis.sh" \
-    "$BASE_DIR/auto-fixer.sh" \
+    "$BASE_DIR/scripts/architect_genesis.sh" \
+    "$BASE_DIR/scripts/auto-fixer.sh" \
     "$BASE_DIR/mcp-ai/start-bridge.sh" \
     "$BASE_DIR/mcp-ai/enable_services.sh" \
     "$BASE_DIR/mcp-ai/setup_auto_ingest.sh"; do
     [[ -f "$f" ]] && run chmod 0755 "$f" || true
   done
   run find "$BASE_DIR/mcp-ai" -name "*.py" -exec chmod 0755 {} + 2>/dev/null || true
+  run find "$BASE_DIR/scripts" -name "*.sh" -exec chmod 0755 {} + 2>/dev/null || true
+  run find "$BASE_DIR/scripts" -name "*.py" -exec chmod 0755 {} + 2>/dev/null || true
   run chown -R "$AI_USER:$AI_USER" "$MCP_HOME" 2>/dev/null || true
   run find "$MCP_HOME" -type d -exec chmod 0750 {} + 2>/dev/null || true
   run find "$MCP_HOME" -type f -exec chmod 0640 {} + 2>/dev/null || true
@@ -892,6 +955,7 @@ main(){
   write_genesis_config
   setup_user_services
   post_install
+  apply_runtime_baseline
   install_hal_cli
   apply_selinux_hardening
   check_ollama

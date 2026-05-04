@@ -12,7 +12,7 @@ HAL now includes a complete predictive system with trending metrics, health scor
 
 ```bash
 cd /home/sgallego/GIT/mcp-rhel-manager
-python3 hal.py --inventory
+python3 scripts/hal.py --inventory
 ```
 
 This will:
@@ -26,20 +26,20 @@ This will:
 
 ```bash
 # Display 7-day metrics dashboard
-python3 hal.py --metrics
+python3 scripts/hal.py --metrics
 
 # View 30-day trends
-python3 hal.py --metrics --metric-days 30
+python3 scripts/hal.py --metrics --metric-days 30
 
 # Display specific metric only
-python3 hal-dashboard.py --metric cpu
+python3 scripts/hal-dashboard.py --metric cpu
 ```
 
 ### 3. Check Predictions
 
 ```bash
 # Show predicted threshold breaches for next 7 days
-python3 hal.py --predict
+python3 scripts/hal.py --predict
 ```
 
 ## What's New
@@ -158,8 +158,8 @@ Metrics collection & prediction engine:
 1. Enable metrics collection in first-run setup
 2. Configure notifications (Slack/PagerDuty/Grafana optional)
 3. Wait for metrics to accumulate (24-48 hours for meaningful trends)
-4. Monitor dashboard with `python3 hal.py --metrics`
-5. Check predictions with `python3 hal.py --predict`
+4. Monitor dashboard with `python3 scripts/hal.py --metrics`
+5. Check predictions with `python3 scripts/hal.py --predict`
 
 ## Integration Roadmap
 
@@ -178,13 +178,13 @@ Currently in development:
 - Check: `ls ~/.mcp-ai/metrics/`
 - Ensure: Files have proper date format (`YYYY-MM-DD`)
 - Check: At least 2 samples exist
-- Run: `python3 hal.py --inventory` to create initial setup
+- Run: `python3 scripts/hal.py --inventory` to create initial setup
 
 ### Import errors
 
 - Ensure: Running from `/home/sgallego/GIT/mcp-rhel-manager/` directory
 - Check: All `.py` files are executable (`chmod +x hal*.py`)
-- Try: `python3 -m py_compile hal-metrics.py`
+- Try: `python3 -m py_compile scripts/hal-metrics.py`
 
 ### Predictions always empty
 
@@ -196,17 +196,17 @@ Currently in development:
 
 ```bash
 # System setup
-python3 hal.py --inventory
+python3 scripts/hal.py --inventory
 
 # View trends
-python3 hal.py --metrics
-python3 hal.py --metrics --metric-days 14
-python3 hal-dashboard.py --days 30
-python3 hal-dashboard.py --metric memory
+python3 scripts/hal.py --metrics
+python3 scripts/hal.py --metrics --metric-days 14
+python3 scripts/hal-dashboard.py --days 30
+python3 scripts/hal-dashboard.py --metric memory
 
 # Check predictions
-python3 hal.py --predict
+python3 scripts/hal.py --predict
 
 # Help
-python3 hal.py --help
+python3 scripts/hal.py --help
 ```

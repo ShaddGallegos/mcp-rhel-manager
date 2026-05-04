@@ -20,13 +20,13 @@ Usage
 
 Run once manually as the `mcp-ai` user:
 
-```
+```bash
 sudo -u mcp-ai /opt/mcp-rhel-manager/venv/bin/python /var/lib/mcp/indexer.py --outdir /var/lib/mcp/training
 ```
 
-Or use the provided systemd timer (installed by `architect_genesis.sh`):
+Or use the provided systemd timer (installed by `install_system.sh`):
 
-```
+```bash
 sudo systemctl start mcp-ai-indexer.service
 sudo systemctl enable --now mcp-ai-indexer.timer
 ```
@@ -46,7 +46,7 @@ Security and redaction
 
 Indexer output may contain sensitive local information (logs, paths, package lists). Always run `redact_training.py` before merging or ingesting an index file into training. Example:
 
-```
+```bash
 sudo -u mcp-ai /opt/mcp-rhel-manager/venv/bin/python /opt/mcp-rhel-manager/mcp-ai/redact_training.py \
   --infile /var/lib/mcp/training/system-index-...jsonl \
   --outfile /var/lib/mcp/training/system-index-...-redacted.jsonl

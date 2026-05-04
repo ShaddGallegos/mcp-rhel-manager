@@ -8,7 +8,7 @@ mcp = FastMCP("P-Series-Architect")
 AI_HOME = os.path.join(os.path.expanduser('~'), '.mcp-ai')
 REPORTS_DIR = os.path.join(AI_HOME, 'reports')
 AUDIT_LOG = os.path.join(REPORTS_DIR, 'mcp-server-audit.jsonl')
-BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 
 DEFAULT_SERVER_CONFIG = {

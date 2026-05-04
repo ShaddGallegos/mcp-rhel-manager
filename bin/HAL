@@ -14,12 +14,12 @@ CLI_ARGS=("$@")
 try_repo() {
   local root="$1"
   [[ -n "$root" ]] || return 1
-  [[ -f "$root/hal.py" ]] || return 1
+  [[ -f "$root/scripts/hal.py" ]] || return 1
   if [[ -x "$root/venv/bin/python" ]]; then
-    exec "$root/venv/bin/python" "$root/hal.py" "${CLI_ARGS[@]}"
+    exec "$root/venv/bin/python" "$root/scripts/hal.py" "${CLI_ARGS[@]}"
   fi
   if command -v python3 >/dev/null 2>&1; then
-    exec python3 "$root/hal.py" "${CLI_ARGS[@]}"
+    exec python3 "$root/scripts/hal.py" "${CLI_ARGS[@]}"
   fi
   return 1
 }
@@ -43,8 +43,8 @@ try_repo "$REPO_ROOT" || true
 try_repo "$HOME/GIT/mcp-rhel-manager" || true
 try_repo "$HOME/mcp-rhel-manager" || true
 
-if [[ -x "/opt/mcp-rhel-manager/venv/bin/python" && -f "/opt/mcp-rhel-manager/hal.py" ]]; then
-  exec "/opt/mcp-rhel-manager/venv/bin/python" "/opt/mcp-rhel-manager/hal.py" "$@"
+if [[ -x "/opt/mcp-rhel-manager/venv/bin/python" && -f "/opt/mcp-rhel-manager/scripts/hal.py" ]]; then
+  exec "/opt/mcp-rhel-manager/venv/bin/python" "/opt/mcp-rhel-manager/scripts/hal.py" "$@"
 fi
 
 echo "Could not find HAL installation. Expected /opt/mcp-rhel-manager or repository layout with hal.py."

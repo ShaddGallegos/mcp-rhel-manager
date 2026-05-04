@@ -37,7 +37,7 @@ FIXES_DIR = os.path.join(AI_HOME, 'fixes')
 REPORTS_DIR = os.path.join(AI_HOME, 'reports')
 CACHE_DIR = os.path.join(AI_HOME, 'cache', 'intel')
 OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:1776/api/chat')
-BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 HAL_DISPLAY_NAME = os.environ.get('HAL_DISPLAY_NAME', 'Dave')
 ASSISTANT_NAME = os.environ.get('HAL_ASSISTANT_NAME', 'HAL9000')
 WELL_PHRASE = os.environ.get('HAL_WELL_PHRASE', f'I am well today {HAL_DISPLAY_NAME}, thank you for asking')
@@ -279,6 +279,113 @@ def _start_bridge_background() -> bool:
         if _bridge_health_ok(timeout=1.5):
             return True
         time.sleep(0.5)
+    return False
+
+
+SELF_HEAL_LOG = os.path.join(os.path.expanduser('~'), '.mcp-ai', 'reports', 'bridge-self-heal.log')
+# Restart cooldown: don't churn restarts faster than this interval.
+_LAST_RESTART_AT: float = 0.0
+_RESTART_COOLDOWN_SEC = int(os.environ.get('HAL_BRIDGE_RESTART_COOLDOWN_SEC', '30'))
+
+
+def _log_self_heal(event: str, detail: str = '') -> None:
+    """Append a timestamped self-heal audit entry to bridge-self-heal.log."""
+    try:
+        os.makedirs(os.path.dirname(SELF_HEAL_LOG), exist_ok=True)
+        line = f"{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')} [{event}] {detail}\n"
+        with open(SELF_HEAL_LOG, 'a', encoding='utf-8') as fh:
+            fh.write(line)
+    except Exception:
+        pass
+
+
+def _is_bridge_timeout_error(err: Exception | str) -> bool:
+    msg = str(err).lower()
+    return ('timed out' in msg) or ('timeout' in msg)
+
+
+def _is_bridge_recoverable_error(err: Exception | str) -> bool:
+    msg = str(err).lower()
+    patterns = (
+        'timed out',
+        'timeout',
+        'connection refused',
+        'failed to establish a new connection',
+        'max retries exceeded',
+        'temporary failure',
+        'connection aborted',
+        'connection reset',
+        'remote end closed connection',
+        'name or service not known',
+        'no route to host',
+        '503',
+        '502',
+        'bad gateway',
+        'service unavailable',
+    )
+    return any(p in msg for p in patterns)
+
+
+def _attempt_bridge_restart() -> bool:
+    """Try to restart bridge via user service first, then direct script launch.
+
+    Enforces a cooldown so HAL does not churn restarts on sustained model latency.
+    All attempts and outcomes are written to bridge-self-heal.log.
+    """
+    global _LAST_RESTART_AT
+
+    if _bridge_health_ok(timeout=1.0):
+        return True
+
+    # Enforce restart cooldown to prevent churn under sustained latency.
+    now = time.time()
+    since_last = now - _LAST_RESTART_AT
+    if _LAST_RESTART_AT > 0 and since_last < _RESTART_COOLDOWN_SEC:
+        _log_self_heal('COOLDOWN_SKIP', f'last restart {int(since_last)}s ago; cooldown={_RESTART_COOLDOWN_SEC}s')
+        return False
+
+    _LAST_RESTART_AT = now
+    _log_self_heal('RESTART_ATTEMPT', f'bridge unhealthy; trying systemctl --user restart mcp-bridge.service')
+
+    # Try restarting user-managed service if present.
+    svc_ok = False
+    try:
+        result = subprocess.run(
+            ['systemctl', '--user', 'restart', 'mcp-bridge.service'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=8,
+            check=False,
+        )
+        svc_ok = result.returncode == 0
+        _log_self_heal('SYSTEMCTL_RESTART', f'rc={result.returncode} stderr={result.stderr.decode(errors="replace").strip()[:200]}')
+    except Exception as exc:
+        _log_self_heal('SYSTEMCTL_ERR', str(exc)[:200])
+
+    if not svc_ok:
+        # Stop stale local bridge.py processes to avoid ghost listeners.
+        try:
+            subprocess.run(
+                ['pkill', '-f', 'mcp-ai/bridge.py'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=4,
+                check=False,
+            )
+        except Exception:
+            pass
+
+        # Start bridge in background as a portable fallback.
+        _log_self_heal('SCRIPT_START', 'launching mcp-ai/start-bridge.sh as background fallback')
+        _start_bridge_background()
+
+    for attempt in range(16):
+        if _bridge_health_ok(timeout=1.5):
+            _log_self_heal('RESTART_SUCCESS', f'bridge healthy after {attempt + 1} health-check attempts')
+            return True
+        time.sleep(0.5)
+
+    _log_self_heal('RESTART_FAILED', 'bridge still unhealthy after 8s; entering offline fallback')
     return False
 
 
@@ -552,18 +659,23 @@ CONFIG = load_config()
 CONVERSATIONAL = os.environ.get('HAL_CONVERSATIONAL', str(CONFIG.get('conversational', 'true'))).lower() in ('1','true','yes','y')
 
 
-def _call_local_ollama(prompt: str, model: str = 'qwen2.5-coder:7b', timeout: int = 30) -> str | None:
+def _call_local_ollama(prompt: str, model: str | None = None, timeout: int = 45) -> str | None:
     """Use local Ollama (port 11434) for offline LLM processing instead of bridge."""
     if not requests:
         return None
-    
+
     try:
-        ollama_url = f"http://localhost:11434/api/generate"
+        resolved_model = model
+        if not resolved_model:
+            available = get_available_models()
+            resolved_model = choose_model_for_task(task_profile='general', available=available)
+
+        ollama_url = os.environ.get('HAL_LOCAL_OLLAMA_URL', 'http://localhost:11434/api/generate')
         payload = {
-            "model": model,
+            "model": resolved_model,
             "prompt": prompt,
             "stream": False,
-            "temperature": 0.7,
+            "temperature": 0.5,
         }
         resp = requests.post(ollama_url, json=payload, timeout=timeout)
         if resp.status_code == 200:
@@ -572,6 +684,42 @@ def _call_local_ollama(prompt: str, model: str = 'qwen2.5-coder:7b', timeout: in
     except Exception:
         pass
     return None
+
+
+def _answer_with_local_model(query: str, rag_context: str | None = None) -> str | None:
+    """Direct offline answer path that prefers local Ollama over raw KB snippets."""
+    if not query:
+        return None
+
+    confidence = _estimate_rag_confidence(query, rag_context)
+    context_block = ''
+    include_rag = bool(rag_context) and (confidence == 'high' or _is_operational_howto_query(query) or bool(_preferred_doc_source_patterns(query)))
+    if include_rag:
+        context_block = (
+            '\n\nOptional local knowledge base context (use only if directly relevant):\n'
+            + rag_context
+        )
+
+    prompt = (
+        'You are HAL. Answer the user question directly in plain language. '
+        'If this is a factual question, give the best concise answer and include units where relevant. '
+        'If uncertain, say what is uncertain briefly. Do not output internal metadata or source dumps.\n\n'
+        f'User question: {query}'
+        f'{context_block}'
+    )
+
+    model = choose_model_for_task(text=query, task_profile='general')
+    first = _call_local_ollama(prompt, model=model, timeout=int(os.environ.get('HAL_LOCAL_OLLAMA_TIMEOUT_SEC', '75')))
+    if first:
+        return first
+
+    # Retry once with a minimal prompt if contextual prompt fails or is too slow.
+    minimal_prompt = (
+        'Answer this user question directly in 1-4 sentences. '
+        'If numeric, include the number and units.\n\n'
+        f'Question: {query}'
+    )
+    return _call_local_ollama(minimal_prompt, model=model, timeout=45)
 
 
 def _enhance_offline_response(query: str, raw_results: str) -> str | None:
@@ -804,7 +952,15 @@ def get_best_available_model(preferred_model='qwen2.5-coder:7b'):
     return choose_model_for_task(task_profile='general', available=available)
 
 
-def call_bridge(text, timeout=60, rag_context: str | None = None, task_profile: str | None = None):
+def call_bridge(
+    text,
+    timeout=60,
+    rag_context: str | None = None,
+    task_profile: str | None = None,
+    allow_self_heal: bool = True,
+    timeout_retry_done: bool = False,
+    _answer_source: list | None = None,
+):
     global _BRIDGE_FAIL_COUNT, _BRIDGE_OPEN_UNTIL
 
     # 🚀 PERFORMANCE: Check cache first (avoid network round-trip)
@@ -868,7 +1024,11 @@ def call_bridge(text, timeout=60, rag_context: str | None = None, task_profile: 
             {'role': 'user', 'content': text}
         ]
     }
-    
+
+    auto_self_heal = os.environ.get('HAL_BRIDGE_SELF_HEAL', '1').lower() not in ('0', 'false', 'no', 'n')
+    if _answer_source is None:
+        _answer_source = []
+
     # 🚀 PERFORMANCE: Start timing for diagnostics
     t0 = time.time()
     
@@ -881,8 +1041,40 @@ def call_bridge(text, timeout=60, rag_context: str | None = None, task_profile: 
             result = r.text
             # 🚀 Cache successful response
             _store_cached_response(text, result)
+            if _answer_source is not None:
+                _answer_source.append('bridge')
             return result
         except Exception as e:
+            if auto_self_heal and allow_self_heal and _is_bridge_recoverable_error(e):
+                # Timeout with healthy bridge can mean model latency; retry once with longer timeout.
+                if _is_bridge_timeout_error(e) and _bridge_health_ok(timeout=1.0) and not timeout_retry_done:
+                    retry_timeout = min(max(timeout * 2, timeout + 30), 180)
+                    _log_self_heal('TIMEOUT_RETRY', f'original_timeout={timeout}s retry_timeout={retry_timeout}s err={str(e)[:120]}')
+                    return call_bridge(
+                        text,
+                        timeout=retry_timeout,
+                        rag_context=rag_context,
+                        task_profile=task_profile,
+                        allow_self_heal=True,
+                        timeout_retry_done=True,
+                        _answer_source=_answer_source,
+                    )
+
+                # Otherwise treat as bridge instability and attempt auto-restart once.
+                _log_self_heal('RESTART_TRIGGER', f'recoverable err: {str(e)[:120]}')
+                if _attempt_bridge_restart():
+                    if _answer_source is not None:
+                        _answer_source.append('bridge-after-restart')
+                    return call_bridge(
+                        text,
+                        timeout=timeout,
+                        rag_context=rag_context,
+                        task_profile=task_profile,
+                        allow_self_heal=False,
+                        timeout_retry_done=True,
+                        _answer_source=_answer_source,
+                    )
+
             _BRIDGE_FAIL_COUNT += 1
             if _BRIDGE_FAIL_COUNT >= cb_fail_threshold:
                 _BRIDGE_OPEN_UNTIL = time.time() + cb_cooldown_sec
@@ -900,8 +1092,38 @@ def call_bridge(text, timeout=60, rag_context: str | None = None, task_profile: 
             result = resp.read().decode('utf-8')
             # 🚀 Cache successful response
             _store_cached_response(text, result)
+            if _answer_source is not None:
+                _answer_source.append('bridge')
             return result
     except Exception as e:
+        if auto_self_heal and allow_self_heal and _is_bridge_recoverable_error(e):
+            if _is_bridge_timeout_error(e) and _bridge_health_ok(timeout=1.0) and not timeout_retry_done:
+                retry_timeout = min(max(timeout * 2, timeout + 30), 180)
+                _log_self_heal('TIMEOUT_RETRY', f'original_timeout={timeout}s retry_timeout={retry_timeout}s err={str(e)[:120]}')
+                return call_bridge(
+                    text,
+                    timeout=retry_timeout,
+                    rag_context=rag_context,
+                    task_profile=task_profile,
+                    allow_self_heal=True,
+                    timeout_retry_done=True,
+                    _answer_source=_answer_source,
+                )
+
+            _log_self_heal('RESTART_TRIGGER', f'recoverable err: {str(e)[:120]}')
+            if _attempt_bridge_restart():
+                if _answer_source is not None:
+                    _answer_source.append('bridge-after-restart')
+                return call_bridge(
+                    text,
+                    timeout=timeout,
+                    rag_context=rag_context,
+                    task_profile=task_profile,
+                    allow_self_heal=False,
+                    timeout_retry_done=True,
+                    _answer_source=_answer_source,
+                )
+
         _BRIDGE_FAIL_COUNT += 1
         if _BRIDGE_FAIL_COUNT >= cb_fail_threshold:
             _BRIDGE_OPEN_UNTIL = time.time() + cb_cooldown_sec
@@ -1326,7 +1548,7 @@ def _repair_venv_permissions() -> tuple[list[str], list[str]]:
     repaired = []
     errors = []
 
-    base_dir = os.path.dirname(os.path.realpath(__file__))
+    base_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     venv_bin = os.path.join(base_dir, 'venv-bridge', 'bin')
     
     if os.path.isdir(venv_bin):
@@ -1356,7 +1578,7 @@ def _validate_critical_configs() -> tuple[list[str], list[str]]:
     home = os.path.expanduser('~')
     
     # Check mcp-config.json
-    base_dir = os.path.dirname(os.path.realpath(__file__))
+    base_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     mcp_config = os.path.join(base_dir, 'mcp-config.json')
     if os.path.isfile(mcp_config):
         try:
@@ -5195,7 +5417,7 @@ def _load_hal_notify_module():
     if _HAL_NOTIFY_MOD is not None:
         return _HAL_NOTIFY_MOD
 
-    mod_path = os.path.join(BASE_DIR, 'hal-notify.py')
+    mod_path = os.path.join(BASE_DIR, 'scripts', 'hal-notify.py')
     if not os.path.isfile(mod_path):
         return None
     try:
@@ -8477,7 +8699,7 @@ def main():
     # ── HAL Brain dispatch ─────────────────────────────────────────────────────
     # Delegates to hal-brain.py for adaptive routing, resource management,
     # ensemble inference, MCP server control, and autonomous capabilities.
-    _HAL_BRAIN = os.path.join(BASE_DIR, 'hal-brain.py')
+    _HAL_BRAIN = os.path.join(BASE_DIR, 'scripts', 'hal-brain.py')
 
     _HAL_BRAIN_FLAGS = (
         '--brain-status', '--brain-route', '--brain-learn', '--ensemble',
@@ -8495,7 +8717,7 @@ def main():
 
     # ── HAL Tools dispatch ────────────────────────────────────────────────────
     # Delegates to hal-tools.py for extended AI/LLM/MCP/fun features.
-    _HAL_TOOLS = os.path.join(BASE_DIR, 'hal-tools.py')
+    _HAL_TOOLS = os.path.join(BASE_DIR, 'scripts', 'hal-tools.py')
 
     def _run_hal_tools(*extra_args):
         """Run hal-tools.py with given extra args and sys.exit with its returncode."""
@@ -8541,7 +8763,7 @@ def main():
 
     # --inventory: System inventory detection and setup
     if args.inventory:
-        inv_script = os.path.join(BASE_DIR, 'hal-inventory.py')
+        inv_script = os.path.join(BASE_DIR, 'scripts', 'hal-inventory.py')
         if not os.path.exists(inv_script):
             print(f'Inventory script not found: {inv_script}', file=sys.stderr)
             sys.exit(1)
@@ -8550,7 +8772,7 @@ def main():
 
     # --metrics: Display trending metrics dashboard
     if args.metrics:
-        dashboard_script = os.path.join(BASE_DIR, 'hal-dashboard.py')
+        dashboard_script = os.path.join(BASE_DIR, 'scripts', 'hal-dashboard.py')
         if not os.path.exists(dashboard_script):
             print(f'Dashboard script not found: {dashboard_script}', file=sys.stderr)
             sys.exit(1)
@@ -8562,7 +8784,7 @@ def main():
     if args.predict:
         try:
             from importlib.util import spec_from_file_location, module_from_spec
-            metrics_path = os.path.join(BASE_DIR, 'hal-metrics.py')
+            metrics_path = os.path.join(BASE_DIR, 'scripts', 'hal-metrics.py')
             spec = spec_from_file_location("hal_metrics", metrics_path)
             hal_metrics = module_from_spec(spec)
             spec.loader.exec_module(hal_metrics)
@@ -8599,7 +8821,7 @@ def main():
 
     # --studio: launch stocks, image, and video tools
     if args.studio_pipeline:
-        studio_script = os.path.join(BASE_DIR, 'hal-studio.py')
+        studio_script = os.path.join(BASE_DIR, 'scripts', 'hal-studio.py')
         if not os.path.exists(studio_script):
             print(f'Studio script not found: {studio_script}', file=sys.stderr)
             sys.exit(1)
@@ -8620,7 +8842,7 @@ def main():
 
     # --studio: launch stocks, image, and video tools
     if args.studio:
-        studio_script = os.path.join(BASE_DIR, 'hal-studio.py')
+        studio_script = os.path.join(BASE_DIR, 'scripts', 'hal-studio.py')
         if not os.path.exists(studio_script):
             print(f'Studio script not found: {studio_script}', file=sys.stderr)
             sys.exit(1)
@@ -9534,7 +9756,8 @@ def main():
     # RAG: search training data and inject as context into the LLM prompt
     rag_context = search_training_data_for_rag(text)
 
-    resp = call_bridge(text, rag_context=rag_context)
+    _answer_source: list[str] = []
+    resp = call_bridge(text, rag_context=rag_context, _answer_source=_answer_source)
     assistant_text = extract_assistant_content(resp)
 
     # Global quality gate for operational asks: retry once with a strict prompt,
@@ -9549,7 +9772,7 @@ def main():
             "Provide a practical runbook with exactly these sections: Preconditions, Steps, Validation, Rollback, Next Actions. "
             "Do not answer with a greeting or one-word placeholder."
         )
-        retry_resp = call_bridge(strict_prompt, rag_context=rag_context)
+        retry_resp = call_bridge(strict_prompt, rag_context=rag_context, _answer_source=_answer_source)
         retry_text = extract_assistant_content(retry_resp)
         if retry_text and not _is_low_quality_assistant_text(retry_text):
             resp = retry_resp
@@ -9562,7 +9785,16 @@ def main():
                 assistant_text = doc_summary if doc_summary else _build_generic_operational_runbook(text, rag_context)
             else:
                 assistant_text = _build_generic_operational_runbook(text, rag_context)
+            _answer_source.append('local-runbook-fallback')
             resp = json.dumps({'fallback': 'doc_summary' if (rag_context and _preferred_doc_source_patterns(text)) else 'generic_operational_runbook', 'query': text}, indent=2)
+
+    # For non-operational asks, rescue low-quality bridge fragments with direct local model answer.
+    if (not _is_operational_howto_query(text)) and _is_low_quality_assistant_text(assistant_text or ''):
+        rescued = _answer_with_local_model(text, rag_context=rag_context)
+        if rescued and not _is_low_quality_assistant_text(rescued):
+            assistant_text = rescued
+            _answer_source.append('local-model-rescue')
+            resp = json.dumps({'fallback': 'local_model_rescue', 'query': text}, indent=2)
 
     # Add concise grounding metadata for operational answers.
     if _is_operational_howto_query(text):
@@ -9575,8 +9807,24 @@ def main():
         if assistant_text and 'Grounding:' not in assistant_text:
             assistant_text = assistant_text.rstrip() + '\n' + '\n'.join(grounding)
 
+    # Determine and display response provenance tag.
+    def _source_tag() -> str:
+        if not _answer_source:
+            return 'bridge'
+        last = _answer_source[-1]
+        if last == 'bridge':
+            return 'bridge'
+        if 'restart' in last:
+            return 'bridge (self-healed)'
+        if 'rescue' in last or 'local-model' in last:
+            return 'local model (offline)'
+        if 'runbook' in last or 'fallback' in last:
+            return 'local knowledge base'
+        return last
+
     print('\nHAL response:\n')
     print(assistant_text if assistant_text else resp)
+    print(f'\n[source: {_source_tag()}]')
     speak_if_enabled(assistant_text if assistant_text else str(resp))
 
     # Attempt to detect a tool invocation from the LLM response
@@ -9587,11 +9835,8 @@ def main():
     # and ask the model to produce a human-readable report.
     try:
         keywords_match = bool(re.search(r"\b(problem|problems|fix|fixes|issue|issues|error|errors|fail|failed|disk|remed|remediation)\b", text or '', re.IGNORECASE))
-        # Treat non-trivial questions as requests for a report (e.g. "what needs fixing", "how is security...")
-        question_match = bool(re.search(r"\b(what|how|do|does|is|are|should|could|would|did|where|when|why)\b", text or '', re.IGNORECASE) or ('?' in (text or '')))
-        user_word_count = len((text or '').split())
-        user_asks_question = question_match and user_word_count >= 2
-        user_needs_report = keywords_match or user_asks_question
+        ops_or_health = _is_operational_howto_query(text) or _is_well_query(text)
+        user_needs_report = keywords_match or ops_or_health
     except Exception:
         user_needs_report = False
 
@@ -9636,7 +9881,19 @@ def main():
                     invoke_remediator(entry_path, args.exec)
                 sys.exit(0)
 
-        # 2. If we already have RAG context from the search above, display it cleanly
+        # 2. Generic offline path: still try local Ollama before doc/raw KB fallback.
+        local_answer = _answer_with_local_model(text, rag_context=rag_context)
+        if local_answer:
+            print('\nHAL response (offline — local model):\n')
+            print(local_answer)
+            print('\n[source: local model (offline)]')
+            entry_path = write_interaction(user, text, local_answer)
+            print('\nInteraction recorded ->', entry_path)
+            if args.remediate:
+                invoke_remediator(entry_path, args.exec)
+            sys.exit(0)
+
+        # 3. If we already have RAG context from the search above, display it cleanly
         if rag_context:
             summary = _build_offline_doc_summary(text, rag_context)
             if summary and (_is_operational_howto_query(text) or bool(_preferred_doc_source_patterns(text))):
@@ -9659,7 +9916,7 @@ def main():
                     invoke_remediator(entry_path, args.exec)
                 sys.exit(0)
 
-        # 3. Fall back to keyword-matched training-data search
+        # 4. Fall back to keyword-matched training-data search
         training_results = search_training_data(text)
         if training_results:
             print('\nHAL response (offline — from knowledge base):\n')
@@ -9676,7 +9933,7 @@ def main():
                 invoke_remediator(entry_path, args.exec)
             sys.exit(0)
 
-        # 4. Nothing found in training data at all — give an honest message
+        # 5. Nothing found in training data at all — give an honest message
         print('\nHAL response (offline):\n')
         print('Bridge is offline and I didn\'t find relevant information in your local knowledge base for that query.')
         print('Start the bridge with: bash mcp-ai/start-bridge.sh')

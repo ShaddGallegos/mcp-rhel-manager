@@ -10,8 +10,8 @@
 
 HAL consists of two layers:
 
-1. **CLI Layer** (`hal.py`) — Natural language interface with intent routing and fallback to LLM bridge
-2. **MCP Backend** (`server.py`) — FastMCP server providing specialized tools for system operations
+1. **CLI Layer** (`scripts/hal.py`) — Natural language interface with intent routing and fallback to LLM bridge
+2. **MCP Backend** (`scripts/server.py`) — FastMCP server providing specialized tools for system operations
 
 ---
 
@@ -644,7 +644,7 @@ hal "generate execution environment for postgresql and kubernetes management"
 
 When using `build_execution_environment()` or the `ee-de-builder` intent, HAL creates:
 
-```
+```text
 ee-<name>/
 ├── execution-environment.yml         # Version 3 EE manifest
 ├── requirements.yml                  # Ansible collection specs

@@ -7,7 +7,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 User=root
-ExecStart=/home/sgallego/GIT/mcp-rhel-manager/hal-auto-update.sh
+ExecStart=/home/sgallego/GIT/mcp-rhel-manager/scripts/hal-auto-update.sh
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=hal-auto-update

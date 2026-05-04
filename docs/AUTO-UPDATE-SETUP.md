@@ -40,7 +40,7 @@ HAL now includes 9 auto-healing domains in its comprehensive health check (mode 
 
 ```bash
 cd /home/sgallego/GIT/mcp-rhel-manager
-sudo ./install-auto-update.sh
+sudo ./scripts/install-auto-update.sh
 ```
 
 This script will:
@@ -91,7 +91,7 @@ sudo /usr/local/bin/hal-auto-update.sh
 ```bash
 # Trigger health check with full auto-remediation
 cd /home/sgallego/GIT/mcp-rhel-manager
-python3 hal.py 'system health'
+python3 scripts/hal.py 'system health'
 # When prompted: select "y" for health check, then "3" for full auto-remediation
 ```
 
@@ -99,10 +99,10 @@ python3 hal.py 'system health'
 
 | File                      | Location                               | Purpose                         |
 | ------------------------- | -------------------------------------- | ------------------------------- |
-| `hal-auto-update.sh`      | `/home/sgallego/GIT/mcp-rhel-manager/` | Main update script (runs daily) |
+| `hal-auto-update.sh`      | `scripts/`                             | Main update script (runs daily) |
 | `hal-auto-update.service` | `/etc/systemd/system/` (after install) | systemd service unit            |
 | `hal-auto-update.timer`   | `/etc/systemd/system/` (after install) | systemd timer (7 AM daily)      |
-| `install-auto-update.sh`  | `/home/sgallego/GIT/mcp-rhel-manager/` | Installation script             |
+| `install-auto-update.sh`  | `scripts/`                             | Installation script             |
 
 ## Advanced Configuration
 
@@ -185,7 +185,7 @@ sudo systemctl start hal-auto-update.timer
 
 Each day's log includes:
 
-```
+```text
 [2026-04-29 07:00:15] === HAL Auto-Update Started ===
 [2026-04-29 07:00:15] System: kaso
 [2026-04-29 07:00:16] Starting DNF system upgrade...
@@ -252,7 +252,7 @@ The auto-update timer status is part of these checks, so HAL can alert if it det
 
 ## Next Steps
 
-1. Install the service: `sudo ./install-auto-update.sh`
+1. Install the service: `sudo ./scripts/install-auto-update.sh`
 2. Verify it's running: `systemctl status hal-auto-update.timer`
 3. Check logs the next morning: `cat /var/log/hal-updates/hal-auto-update-*.log`
 4. (Optional) Customize the time by editing `/etc/systemd/system/hal-auto-update.timer`

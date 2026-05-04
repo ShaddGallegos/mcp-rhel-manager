@@ -55,7 +55,7 @@ PERSONA_FILE = os.path.join(TOOLS_DIR, 'persona.json')
 MCP_DIR = os.path.join(AI_HOME, 'mcp-contexts')
 BENCH_DIR = os.path.join(AI_HOME, 'benchmarks')
 HISTORY_DIR = os.path.join(AI_HOME, 'history')
-BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:1776/api/chat')
 OLLAMA_BASE = os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434')
@@ -85,7 +85,7 @@ def _pick_default_model(task_hint: str = '') -> str:
     """Use hal-brain adaptive model selection if available, else fall back to first Ollama model."""
     try:
         # Prefer hal-brain's adaptive selector when available
-        brain_path = os.path.join(BASE_DIR, 'hal-brain.py')
+        brain_path = os.path.join(BASE_DIR, 'scripts', 'hal-brain.py')
         if os.path.exists(brain_path):
             import importlib.util
             spec = importlib.util.spec_from_file_location('hal_brain', brain_path)

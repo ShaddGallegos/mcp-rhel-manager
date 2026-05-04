@@ -21,7 +21,7 @@ HAL now includes a complete security framework that:
 The vault password file is automatically created and managed when you run:
 
 ```bash
-python3 hal.py 'system health'
+python3 scripts/hal.py 'system health'
 # Choose: y for health check, then 3 for full auto-remediation
 ```
 
@@ -29,7 +29,7 @@ python3 hal.py 'system health'
 
 ```bash
 mkdir -p ~/.ansible/conf
-python3 hal.py 'system health'
+python3 scripts/hal.py 'system health'
 ```
 
 ### File Location
@@ -42,7 +42,7 @@ python3 hal.py 'system health'
 
 ```bash
 cd /home/sgallego/GIT/mcp-rhel-manager
-python3 hal-security-audit.py check
+python3 scripts/hal-security-audit.py check
 ```
 
 Output:
@@ -56,7 +56,7 @@ Output:
 ### Using HAL Health Check
 
 ```bash
-python3 hal.py 'system health'
+python3 scripts/hal.py 'system health'
 # Mode 3: Full auto-remediation
 ```
 
@@ -72,19 +72,19 @@ Run the dedicated security audit script:
 
 ```bash
 # Quick check of vault status
-python3 hal-security-audit.py check
+python3 scripts/hal-security-audit.py check
 
 # Audit all git repos for secrets
-python3 hal-security-audit.py audit
+python3 scripts/hal-security-audit.py audit
 
 # Audit specific repo
-python3 hal-security-audit.py audit /path/to/repo
+python3 scripts/hal-security-audit.py audit /path/to/repo
 
 # Scan with custom depth
-python3 hal-security-audit.py audit --depth=2
+python3 scripts/hal-security-audit.py audit --depth=2
 
 # Generate JSON report
-python3 hal-security-audit.py report > security_report.json
+python3 scripts/hal-security-audit.py report > security_report.json
 ```
 
 ## Detected Secret Patterns
@@ -115,7 +115,7 @@ sudo dnf install ansible-core
 ### Encrypt a File
 
 ```bash
-python3 hal-security-audit.py encrypt /path/to/sensitive/file.yml
+python3 scripts/hal-security-audit.py encrypt /path/to/sensitive/file.yml
 ```
 
 Output:
@@ -127,7 +127,7 @@ Output:
 ### Decrypt a File
 
 ```bash
-python3 hal-security-audit.py decrypt /path/to/sensitive/file.yml
+python3 scripts/hal-security-audit.py decrypt /path/to/sensitive/file.yml
 ```
 
 Output:
@@ -141,7 +141,7 @@ Output:
 ```bash
 # Encrypt all YAML files in a directory
 for file in /path/to/dir/*.yml; do
-    python3 hal-security-audit.py encrypt "$file"
+    python3 scripts/hal-security-audit.py encrypt "$file"
 done
 ```
 
@@ -213,17 +213,17 @@ Run security checks weekly:
 
 ```bash
 # Add to crontab
-0 2 * * 0 cd /path/to/mcp-rhel-manager && python3 hal.py 'system health' | grep -i secret
+0 2 * * 0 cd /path/to/mcp-rhel-manager && python3 scripts/hal.py 'system health' | grep -i secret
 ```
 
 ### 2. Encrypt Sensitive Files
 
 ```bash
 # Identify files to encrypt
-python3 hal-security-audit.py audit | grep "\.yml\|\.json\|\.env"
+python3 scripts/hal-security-audit.py audit | grep "\.yml\|\.json\|\.env"
 
 # Encrypt them
-python3 hal-security-audit.py encrypt path/to/file.yml
+python3 scripts/hal-security-audit.py encrypt path/to/file.yml
 ```
 
 ### 3. Use .gitignore
@@ -307,7 +307,7 @@ The scanner uses broad patterns to avoid missing secrets. False positives includ
 ```yaml
 - name: Run HAL Security Audit
   run: |
-    python3 hal-security-audit.py audit --repos=5 > security_report.json
+    python3 scripts/hal-security-audit.py audit --repos=5 > security_report.json
     
 - name: Check for Critical Secrets
   run: |
@@ -322,8 +322,8 @@ The scanner uses broad patterns to avoid missing secrets. False positives includ
 ```yaml
 security_scan:
   script:
-    - python3 hal-security-audit.py audit --repos=5
-    - python3 hal-security-audit.py report
+    - python3 scripts/hal-security-audit.py audit --repos=5
+    - python3 scripts/hal-security-audit.py report
 ```
 
 ## HAL Auto-Healing Integration
@@ -341,7 +341,7 @@ results['git_creds'] = _check_git_credentials_exposure()
 
 | File                             | Purpose                                       |
 | -------------------------------- | --------------------------------------------- |
-| `hal-security-audit.py`          | Standalone security audit tool                |
+| `scripts/hal-security-audit.py`          | Standalone security audit tool                |
 | `~/.ansible/conf/.vaultpass.txt` | Vault password (auto-created)                 |
 | `~/.ansible/ansible.cfg`         | Optional: configure vault password (optional) |
 
@@ -355,4 +355,4 @@ results['git_creds'] = _check_git_credentials_exposure()
 - ✅ Standalone security audit tool for manual scanning
 - ✅ CI/CD integration ready
 
-Run `python3 hal.py 'system health'` with mode 3 to start using these security features!
+Run `python3 scripts/hal.py 'system health'` with mode 3 to start using these security features!
