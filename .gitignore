@@ -1,3 +1,21 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+
+# Virtualenvs
+venv/
+.venv/
+venv-bridge/
+
+# Local ansible config and secrets (local, do not commit)
+.ansible/conf/env.yml
+.ansible/conf/*.yml
+.ansible/conf/.vaultpass.txt
+
+# Editor/temp files
+*.swp
+*.swo
+*.bak
 # ── HAL / MCP AI local data ───────────────────────────────────────────────────
 # Training data, cache, and runtime state — never commit
 .mcp-ai/
