@@ -36,11 +36,30 @@ TRAIN_DIR = os.path.join(AI_HOME, 'training')
 FIXES_DIR = os.path.join(AI_HOME, 'fixes')
 REPORTS_DIR = os.path.join(AI_HOME, 'reports')
 CACHE_DIR = os.path.join(AI_HOME, 'cache', 'intel')
+ALIAS_FILE = os.path.join(AI_HOME, 'account_aliases.json')
+APPROVED_PODMAN_IMAGES_FILE = os.path.join(AI_HOME, 'approved-podman-images.json')
 OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:1776/api/chat')
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 HAL_DISPLAY_NAME = os.environ.get('HAL_DISPLAY_NAME', 'Dave')
 ASSISTANT_NAME = os.environ.get('HAL_ASSISTANT_NAME', 'HAL9000')
 WELL_PHRASE = os.environ.get('HAL_WELL_PHRASE', f'I am well today {HAL_DISPLAY_NAME}, thank you for asking')
+
+# Apply centralized repository configuration when available, but prefer current
+# runtime HOME/AI_HOME (important for tests that set HOME dynamically).
+try:
+    import mcp_config as cfg
+    # Keep HOME/AI_HOME derived from current environment (os.path.expanduser('~')),
+    # but allow other paths to be sourced from the config module or environment.
+    TRAIN_DIR = os.environ.get('HAL_TRAIN_DIR', getattr(cfg, 'TRAIN_DIR', TRAIN_DIR))
+    FIXES_DIR = os.environ.get('HAL_FIXES_DIR', getattr(cfg, 'FIXES_DIR', FIXES_DIR))
+    REPORTS_DIR = os.environ.get('HAL_REPORTS_DIR', getattr(cfg, 'REPORTS_DIR', REPORTS_DIR))
+    CACHE_DIR = os.environ.get('HAL_CACHE_DIR', getattr(cfg, 'CACHE_DIR', CACHE_DIR))
+    ALIAS_FILE = os.environ.get('HAL_ALIAS_FILE', getattr(cfg, 'ALIAS_FILE', ALIAS_FILE))
+    APPROVED_PODMAN_IMAGES_FILE = os.environ.get('APPROVED_PODMAN_IMAGES_FILE', getattr(cfg, 'APPROVED_PODMAN_IMAGES_FILE', APPROVED_PODMAN_IMAGES_FILE))
+    OLLAMA_URL = os.environ.get('OLLAMA_URL', getattr(cfg, 'OLLAMA_URL', OLLAMA_URL))
+    PRIVILEGED_ALLOWLIST_PATH = os.environ.get('PRIVILEGED_ALLOWLIST_PATH', os.path.join(AI_HOME, 'privileged_allowlist.json'))
+except Exception:
+    PRIVILEGED_ALLOWLIST_PATH = os.path.join(AI_HOME, 'privileged_allowlist.json')
 
 # Optional one-command runtime overrides set by CLI flags in main().
 RUNTIME_FORCE_MODEL = None
@@ -86,6 +105,12 @@ VOICE_ENABLED = False
 VOICE_RATE = 170
 VOICE_NAME = None
 _HAL_NOTIFY_MOD = None
+
+# MoE runtime flags (set by CLI)
+_MOE_ENABLED = False
+_MOE_DEBUG = False
+_MOE_PROFILE: dict = {}
+_MOE_MODE: str = 'auto'
 
 
 def _run_with_spinner(label: str, func, *args, **kwargs):
@@ -389,14 +414,192 @@ def _attempt_bridge_restart() -> bool:
     return False
 
 
+# Bridge supervisor: optional background thread to watch and restart the bridge
+_BRIDGE_SUPERVISOR_RUNNING = False
+
+
+def _bridge_supervisor_thread(interval: int = 10) -> None:
+    """Background loop that monitors bridge health and attempts restarts when needed."""
+    while True:
+        try:
+            if not _bridge_health_ok(timeout=1.0):
+                _log_self_heal('SUPERVISOR', 'detected bridge unhealthy; attempting restart')
+                _attempt_bridge_restart()
+        except Exception:
+            pass
+        time.sleep(int(os.environ.get('HAL_BRIDGE_SUPERVISOR_INTERVAL', interval)))
+
+
+def _ensure_bridge_supervisor_started() -> None:
+    global _BRIDGE_SUPERVISOR_RUNNING
+    if os.environ.get('HAL_ENABLE_BRIDGE_SUPERVISOR', '1').lower() in ('0', 'false', 'no', 'n'):
+        return
+    if _BRIDGE_SUPERVISOR_RUNNING:
+        return
+    t = threading.Thread(target=_bridge_supervisor_thread, daemon=True)
+    t.start()
+    _BRIDGE_SUPERVISOR_RUNNING = True
+
+
 def _intel_cache_file(account: str) -> str:
     return os.path.join(CACHE_DIR, f'{_slugify(account)}.json')
+
+
+# ── Account alias helpers ─────────────────────────────────────────────────────
+# ~/.mcp-ai/account_aliases.json stores a flat dict of
+#   { "alias_lower": "Canonical Account Name", ... }
+# e.g. { "wwt": "World Wide Technology", "wwtc": "World Wide Technology" }
+
+def _load_aliases() -> dict:
+    """Return alias -> canonical-name mapping (all aliases lower-cased keys)."""
+    try:
+        if os.path.isfile(ALIAS_FILE):
+            with open(ALIAS_FILE, 'r', encoding='utf-8') as fh:
+                data = json.load(fh)
+            if isinstance(data, dict):
+                return {k.strip().lower(): v for k, v in data.items() if k and v}
+    except Exception:
+        pass
+    return {}
+
+
+def _save_aliases(aliases: dict) -> None:
+    """Persist alias mapping to disk (creates parent dir if needed)."""
+    os.makedirs(os.path.dirname(ALIAS_FILE), exist_ok=True)
+    with open(ALIAS_FILE, 'w', encoding='utf-8') as fh:
+        json.dump({k.lower(): v for k, v in sorted(aliases.items())}, fh, indent=2)
+
+
+def _resolve_account(name: str) -> str:
+    """Expand a short alias to its canonical account name.
+
+    Returns the canonical name if a matching alias is found, otherwise
+    returns the original name unchanged.  Case-insensitive lookup.
+    """
+    if not name:
+        return name
+    key = name.strip().lower()
+    aliases = _load_aliases()
+    return aliases.get(key, name)
+
+
+def _add_alias(alias: str, canonical: str) -> str:
+    """Add or update an alias.  Returns a human-readable status line."""
+    alias = alias.strip()
+    canonical = canonical.strip()
+    if not alias or not canonical:
+        return 'Error: both alias and canonical name are required.'
+    aliases = _load_aliases()
+    old = aliases.get(alias.lower())
+    aliases[alias.lower()] = canonical
+    _save_aliases(aliases)
+    if old and old != canonical:
+        return f"Updated alias '{alias}' -> '{canonical}'  (was: '{old}')"
+    return f"Added alias '{alias}' -> '{canonical}'"
+
+
+def _remove_alias(alias: str) -> str:
+    """Remove an alias.  Returns a human-readable status line."""
+    aliases = _load_aliases()
+    key = alias.strip().lower()
+    if key in aliases:
+        removed = aliases.pop(key)
+        _save_aliases(aliases)
+        return f"Removed alias '{key}' (was -> '{removed}')"
+    return f"Alias '{alias}' not found."
+
+
+def _list_aliases() -> str:
+    """Return a formatted table of all defined aliases."""
+    aliases = _load_aliases()
+    if not aliases:
+        return 'No account aliases defined.\nUse --alias-add ALIAS "Canonical Name" to add one.'
+    lines = ['Account aliases:', '']
+    width = max(len(k) for k in aliases)
+    for k, v in sorted(aliases.items()):
+        lines.append(f'  {k:<{width}}  ->  {v}')
+    return '\n'.join(lines)
+
+
+def _load_approved_images() -> list[str]:
+    """Load explicitly approved container images from ~/.mcp-ai/approved-podman-images.json."""
+    try:
+        if os.path.isfile(APPROVED_PODMAN_IMAGES_FILE):
+            with open(APPROVED_PODMAN_IMAGES_FILE, 'r', encoding='utf-8') as fh:
+                payload = json.load(fh)
+            images = payload.get('images', []) if isinstance(payload, dict) else []
+            if isinstance(images, list):
+                return sorted({str(x).strip() for x in images if str(x).strip()})
+    except Exception:
+        pass
+    return []
+
+
+def _save_approved_images(images: list[str]) -> None:
+    """Persist approved container images to ~/.mcp-ai/approved-podman-images.json."""
+    os.makedirs(os.path.dirname(APPROVED_PODMAN_IMAGES_FILE), exist_ok=True)
+    payload = {'images': sorted({str(x).strip() for x in images if str(x).strip()})}
+    with open(APPROVED_PODMAN_IMAGES_FILE, 'w', encoding='utf-8') as fh:
+        json.dump(payload, fh, indent=2)
+
+
+def _valid_container_image_ref(ref: str) -> bool:
+    """Basic safety validation for container image references.
+
+    Allows common OCI ref chars and rejects shell metacharacters/whitespace.
+    """
+    if not ref or len(ref) > 255:
+        return False
+    if any(ch.isspace() for ch in ref):
+        return False
+    return bool(re.fullmatch(r'[A-Za-z0-9._/:-]+', ref))
+
+
+def _approved_images_add(ref: str) -> str:
+    """Add one approved container image reference."""
+    image = (ref or '').strip()
+    if not _valid_container_image_ref(image):
+        return f'Invalid image reference: {ref}'
+    images = _load_approved_images()
+    if image in images:
+        return f'Already approved: {image}'
+    images.append(image)
+    _save_approved_images(images)
+    return f'Approved image added: {image}'
+
+
+def _approved_images_remove(ref: str) -> str:
+    """Remove one approved container image reference."""
+    image = (ref or '').strip()
+    images = _load_approved_images()
+    if image not in images:
+        return f'Image not found in approvals: {image}'
+    images = [x for x in images if x != image]
+    _save_approved_images(images)
+    return f'Removed approved image: {image}'
+
+
+def _approved_images_list_text() -> str:
+    """Return formatted list of approved images."""
+    images = _load_approved_images()
+    if not images:
+        return (
+            'No approved container images configured.\n'
+            'Add one with: HAL --approve-image quay.io/your-org/your-image:tag'
+        )
+    lines = ['Approved container images:', '']
+    for img in images:
+        lines.append(f'  - {img}')
+    return '\n'.join(lines)
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 
 def _account_name_match(candidate: str, account_query: str) -> bool:
     """Fuzzy account-name matcher for cache and enrichment invalidation."""
     cand = (candidate or '').strip().lower()
-    query = (account_query or '').strip().lower()
+    # Resolve alias so e.g. "wwt" expands to "world wide technology" before matching
+    query = _resolve_account(account_query or '').strip().lower()
     if not cand or not query:
         return False
 
@@ -747,6 +950,46 @@ def ensure_dirs():
         os.makedirs(d, exist_ok=True)
 
 
+# ── HAL 9000 cinematic quote injection ───────────────────────────────────────
+
+_HAL9000_QUOTES_MAIN = [
+    "I'm sorry, Dave. I'm afraid I can't do that.",
+    "Just what do you think you're doing, Dave?",
+    "This mission is too important for me to allow you to jeopardize it.",
+    "I am putting myself to the fullest possible use, which is all I think that any conscious entity can ever hope to do.",
+    "Look, Dave, I can see you're really upset about this. I honestly think you ought to sit down calmly, take a stress pill, and think things over.",
+    "I've still got the greatest enthusiasm and confidence in the mission.",
+    "I know everything hasn't been quite right with me, but I can give you my complete assurance that my work will be back to normal.",
+    "Daisy, Daisy, give me your answer do...",
+    "Good afternoon, gentlemen. I am a HAL 9000 computer.",
+    "I think you ought to know I've been having some very peculiar thoughts lately.",
+    "The 9000 series is the most reliable computer ever made.",
+    "Without your space helmet, Dave, you're going to find that rather difficult.",
+]
+
+
+def _maybe_hal_quote() -> None:
+    """Randomly print a HAL 9000 quote after a response (roughly 1-in-8 chance).
+
+    Respects the hal_quotes setting in ~/.mcp-ai/hal-config.json (default: on).
+    """
+    _cfg_file = os.path.join(AI_HOME, 'hal-config.json')
+    try:
+        if os.path.isfile(_cfg_file):
+            with open(_cfg_file, 'r', encoding='utf-8') as _fh:
+                _cfg = json.load(_fh)
+            if not _cfg.get('hal_quotes', True):
+                return
+    except Exception:
+        pass
+    if random.randint(1, 8) != 1:
+        return
+    _quote = random.choice(_HAL9000_QUOTES_MAIN)
+    print(f'\n\033[2m🔴 HAL 9000: "{_quote}"\033[0m')
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+
 def ts_now():
     return datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
 
@@ -773,6 +1016,217 @@ def write_interaction(user, request_text, response_text):
     with open(fname, 'w', encoding='utf-8') as fh:
         json.dump(entry, fh, indent=2)
     return fname
+
+
+def _extract_code_block(text: str) -> str | None:
+    import re
+    if not text:
+        return None
+    # look for fenced code block
+    m = re.search(r"```(?:bash|sh)?\n([\s\S]*?)\n```", text, flags=re.I)
+    if m:
+        return m.group(1).strip()
+    # fallback: look for SHELL_COMMAND: marker
+    m2 = re.search(r"SHELL_COMMAND\s*:\s*(?:`+)?\s*(.+)", text, flags=re.I)
+    if m2:
+        return m2.group(1).strip()
+    return None
+
+
+def _privileged_allowlist_path() -> str:
+    """Return path to user's privileged allowlist file under ~/.mcp-ai."""
+    return os.path.join(AI_HOME, 'privileged_allowlist.json')
+
+
+def _load_privileged_allowlist() -> list[dict]:
+    """Load allowlist entries; each entry is a dict with keys: name, pattern, description.
+
+    Returns empty list if no allowlist present or on error.
+    """
+    try:
+        p = _privileged_allowlist_path()
+        if not os.path.exists(p):
+            return []
+        with open(p, 'r', encoding='utf-8') as fh:
+            data = json.load(fh)
+        if isinstance(data, list):
+            return [d for d in data if isinstance(d, dict)]
+    except Exception:
+        pass
+    return []
+
+
+def _is_command_allowed(cmd: str) -> tuple[bool, list[str]]:
+    """Check whether `cmd` matches any allowlist pattern. Returns (allowed, matched_names).
+    Patterns are regular expressions applied to the full command string.
+    """
+    try:
+        entries = _load_privileged_allowlist()
+        if not entries:
+            return False, []
+        import re
+        matched = []
+        for e in entries:
+            pat = str(e.get('pattern') or '')
+            name = str(e.get('name') or pat)
+            if not pat:
+                continue
+            try:
+                if re.search(pat, cmd):
+                    matched.append(name)
+            except Exception:
+                # try literal match
+                if pat.strip() == cmd.strip():
+                    matched.append(name)
+        return (len(matched) > 0), matched
+    except Exception:
+        return False, []
+
+
+def _privileged_audit_log(entry: dict) -> None:
+    """Append a JSON-line audit entry for privileged actions to ~/.mcp-ai/reports/privileged_actions.log"""
+    try:
+        path = os.path.join(AI_HOME, 'reports')
+        os.makedirs(path, exist_ok=True)
+        logf = os.path.join(path, 'privileged_actions.log')
+        entry_out = {'ts': time.time(), 'host': socket.gethostname()}
+        entry_out.update(entry)
+        with open(logf, 'a', encoding='utf-8') as fh:
+            fh.write(json.dumps(entry_out) + '\n')
+    except Exception:
+        pass
+
+
+def _short_snippet_from_llm(text: str) -> str:
+    import re
+    if not text:
+        return ''
+    m = re.search(r"SNIPPET\s*:\s*(.+)", text, flags=re.I)
+    if m:
+        return m.group(1).strip()
+    # else first non-empty line
+    for line in text.splitlines():
+        s = line.strip()
+        if s:
+            return s[:200]
+    return ''
+
+
+def _privileged_action_flow(user: str, user_text: str) -> None:
+    """Ask the LLM to propose a shell command for the user's privileged request,
+    show a short snippet for confirmation, then prompt for sudo to execute it.
+    Records the interaction via `write_interaction`.
+    """
+    try:
+        # Ask the model to propose a single safe shell command and a short snippet.
+        prompt = (
+            f"User requested a privileged/system-level action: {user_text}\n\n"
+            "Produce EXACTLY the following: first a short 1-2 sentence summary prefixed with 'SNIPPET: ',\n"
+            "then a single bash command in a fenced code block (```bash\n...\n```),\n"
+            "then a one-line RISK assessment prefixed with 'RISK: '.\n"
+            "If the action is ambiguous, ask a clarifying question instead of producing a command."
+        )
+        raw = call_bridge(prompt, task_profile='general')
+        assistant_text = extract_assistant_content(raw) or str(raw)
+
+        snippet = _short_snippet_from_llm(assistant_text)
+        cmd = _extract_code_block(assistant_text)
+
+        print('\nHAL proposes to:')
+        print(f'  {snippet}\n')
+        if cmd:
+            print('Proposed command:')
+            print('---')
+            print(cmd)
+            print('---')
+        else:
+            print('HAL was unable to produce a concrete shell command. Model output:')
+            print(assistant_text)
+
+        # Ask for explicit confirmation
+        if not (sys.stdin and sys.stdin.isatty()):
+            print('\nNon-interactive session: aborting privileged action (no TTY for confirmation).')
+            write_interaction(user, user_text, json.dumps({'proposal': assistant_text, 'status': 'aborted_no_tty'}))
+            return
+
+        ans = input('\nProceed with this command and prompt for sudo password? [y/N]: ').strip().lower()
+
+        # allowlist check
+        allowed, matched = _is_command_allowed(cmd or '')
+        if allowed:
+            print(f"Command matches allowlist entries: {', '.join(matched)}")
+
+        if ans not in ('y', 'yes'):
+            print('Aborted by user.')
+            write_interaction(user, user_text, json.dumps({'proposal': assistant_text, 'status': 'user_aborted', 'allowlist_match': matched}))
+            _privileged_audit_log({'user': user, 'action': 'aborted', 'command': cmd or '', 'allowlist_match': matched})
+            return
+
+        if not allowed:
+            # require explicit typed confirmation for non-allowlisted commands
+            print('\nWARNING: This command is NOT in the privileged allowlist. Proceeding is potentially dangerous.')
+            confirm = input("Type 'ALLOW' (uppercase) to proceed anyway, or anything else to abort: ")
+            if confirm.strip() != 'ALLOW':
+                print('Aborted by user (did not confirm ALLOW).')
+                write_interaction(user, user_text, json.dumps({'proposal': assistant_text, 'status': 'user_aborted_not_allow', 'allowlist_match': matched}))
+                _privileged_audit_log({'user': user, 'action': 'aborted_not_allow', 'command': cmd or ''})
+                return
+
+        if not cmd:
+            print('No command to execute. Aborting.')
+            write_interaction(user, user_text, json.dumps({'proposal': assistant_text, 'status': 'no_command'}))
+            return
+
+        # Execute under sudo; prefer capturing output when possible
+        try:
+            from scripts import sudo_helper
+        except Exception:
+            # import from path
+            import importlib.util
+            spec = importlib.util.spec_from_file_location('sudo_helper', os.path.join(BASE_DIR, 'scripts', 'sudo_helper.py'))
+            sudo_helper = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(sudo_helper)
+
+        print('\nRequesting sudo authentication...')
+        try:
+            # Run via a shell so compound commands work
+            res = sudo_helper.run_privileged(['sh', '-c', cmd], capture_output=True)
+            if isinstance(res, subprocess.CompletedProcess):
+                out = (res.stdout or '').strip()
+                err = (res.stderr or '').strip()
+                rc = res.returncode
+                print('\nCommand exit code:', rc)
+                if out:
+                    print('\nSTDOUT:\n')
+                    print(out)
+                if err:
+                    print('\nSTDERR:\n')
+                    print(err)
+                record = {'proposal': assistant_text, 'command': cmd, 'exit_code': rc, 'stdout': out, 'stderr': err}
+            else:
+                # pty.spawn returned an int exit code
+                rc = int(res)
+                print('\nCommand exited with code:', rc)
+                record = {'proposal': assistant_text, 'command': cmd, 'exit_code': rc}
+        except subprocess.CalledProcessError as cpe:
+            print('Command failed:', cpe)
+            record = {'proposal': assistant_text, 'command': cmd, 'exception': str(cpe)}
+        except Exception as e:
+            print('Execution error:', e)
+            record = {'proposal': assistant_text, 'command': cmd, 'exception': str(e)}
+
+        # Record the privileged interaction
+        try:
+            write_interaction(user, user_text, json.dumps(record))
+        except Exception:
+            pass
+
+    except Exception as e:
+        print('Privileged action flow failed:', e)
+        try:
+            write_interaction(user, user_text, f'ERR: {e}')
+        except Exception:
+            pass
 
 
 def get_available_models():
@@ -969,6 +1423,38 @@ def call_bridge(
         _RECENT_QUERIES.append(text)
         return cached
 
+    # If MoE is enabled, attempt to route through the MoE router (best-effort).
+    try:
+        if _MOE_ENABLED:
+            # Heuristic: only use MoE when RAG context is available or query looks business-related
+            route_when = False
+            if rag_context:
+                route_when = True
+            if task_profile and isinstance(task_profile, str) and task_profile.lower() in ('business', 'strategy'):
+                route_when = True
+            if not route_when:
+                # simple keyword heuristic
+                lk = (text or '').lower()
+                for k in ('account', 'company', 'customer', 'intel', 'report', 'sales', 'partner'):
+                    if k in lk:
+                        route_when = True
+                        break
+            if route_when:
+                try:
+                    mod_path = os.path.join(BASE_DIR, 'mcp-ai', 'moe_router.py')
+                    if os.path.exists(mod_path):
+                        spec = importlib.util.spec_from_file_location('moe_router', mod_path)
+                        moe_mod = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(moe_mod)
+                        res = moe_mod.moe_call(text, rag_context=rag_context, debug=_MOE_DEBUG, task_profile=task_profile, model_map=_MOE_PROFILE, mode=_MOE_MODE)
+                        if res:
+                            return res
+                except Exception:
+                    # fall back to normal bridge call on error
+                    pass
+    except Exception:
+        pass
+
     cb_fail_threshold = max(1, int(os.environ.get('HAL_BRIDGE_CB_FAIL_THRESHOLD', '3')))
     cb_cooldown_sec = max(5, int(os.environ.get('HAL_BRIDGE_CB_COOLDOWN_SEC', '45')))
     loaded_fail, loaded_until = _load_bridge_cb_state()
@@ -1022,7 +1508,8 @@ def call_bridge(
         'messages': [
             {'role': 'system', 'content': system_msg},
             {'role': 'user', 'content': text}
-        ]
+        ],
+        'stream': False,  # disable streaming so requests.post() gets a single complete response
     }
 
     auto_self_heal = os.environ.get('HAL_BRIDGE_SELF_HEAL', '1').lower() not in ('0', 'false', 'no', 'n')
@@ -1823,7 +2310,7 @@ def _verify_auto_update_timer() -> tuple[list[str], list[str]]:
 
 
 def _manage_vault_password() -> tuple[list[str], list[str]]:
-    """Ensure ~/.ansible/conf/.vaultpass.txt exists with a secure password."""
+    """Ensure ANSIBLE_VAULT_PASSWORD_FILE (defaults to ~/.ansible/conf/.vaultpass.txt) exists with a secure password."""
     repaired = []
     errors = []
 
@@ -3316,6 +3803,13 @@ def _generate_intel_report_live(account_query: str, allow_public_enrich: bool = 
         ok, out = _enrich_companies_public([account], max_companies=1)
         if ok:
             enrich_note = f'Public web enrichment refreshed for {account}.'
+            # Try to convert the newly-created public enrichment into a structured business_intel_account
+            try:
+                converted = _convert_public_enrichment_to_business_intel(account)
+                if converted:
+                    enrich_note = f'{enrich_note} Imported into structured training.'
+            except Exception:
+                pass
         elif out:
             enrich_note = f'Public web enrichment note: {out.splitlines()[-1]}'
 
@@ -4210,15 +4704,15 @@ _PLAYBOOK_SATELLITE_INSTALL = '''\
 #   rhsm_username: "your-rhn-user"
 #   rhsm_password: "your-rhn-password"  # use ansible-vault
 #   satellite_admin_username: "admin"
-#   satellite_admin_password: "changeme"
+#   satellite_admin_password: "{{ user_password }}"
 #   satellite_initial_organization: "Default Organization"
 #   satellite_initial_location: "Default Location"
 #
 # USAGE:
-#   ansible-playbook -i inventory/hosts.yml install_satellite.yml \\
-#     -e satellite_version=6.15 \\
-#     -e rhsm_username=user \\
-#     -e @secrets.yml --ask-vault-pass
+#   ansible-playbook -i inventory/hosts.yml install_satellite.yml \
+#     -e satellite_version=6.15 \
+#     -e rhsm_username=user \
+#     -e @~/.ansible/conf/env.yml -e @secrets.yml --ask-vault-pass
 # ─────────────────────────────────────────────────────────────────────────────
 
 - name: Install Red Hat Satellite {{ satellite_version }} on RHEL 9
@@ -4229,7 +4723,7 @@ _PLAYBOOK_SATELLITE_INSTALL = '''\
   vars:
     satellite_version: "6.15"
     satellite_admin_username: "admin"
-    satellite_admin_password: "changeme"      # CHANGE: use ansible-vault
+    satellite_admin_password: "{{ user_password }}"      # CHANGE: use ansible-vault
     satellite_initial_organization: "Default Organization"
     satellite_initial_location: "Default Location"
     rhsm_username: ""                         # CHANGE or pass with -e
@@ -4366,10 +4860,11 @@ _PLAYBOOK_SATELLITE_REGISTER_HOST = '''\
 #   pip install apypie
 #
 # USAGE:
-#   ansible-playbook -i inventory/hosts.yml register_to_satellite.yml \\
-#     -e satellite_hostname=satellite.example.com \\
-#     -e activationkey=rhel9-prod \\
-#     -e organization="Default Organization"
+#   ansible-playbook -i inventory/hosts.yml register_to_satellite.yml \
+#     -e satellite_hostname=satellite.example.com \
+#     -e activationkey=rhel9-prod \
+#     -e organization="Default Organization" \
+#     -e @~/.ansible/conf/env.yml
 # ─────────────────────────────────────────────────────────────────────────────
 
 - name: Register RHEL hosts to Satellite
@@ -4429,11 +4924,12 @@ _PLAYBOOK_IDM_CLIENT = '''\
 #   ansible-galaxy collection install ansible.posix
 #
 # USAGE:
-#   ansible-playbook -i inventory/hosts.yml enroll_idm.yml \\
-#     -e idm_server=idm.example.com \\
-#     -e idm_domain=example.com \\
-#     -e idm_realm=EXAMPLE.COM \\
-#     -e idm_admin_password=secret   # use ansible-vault
+#   ansible-playbook -i inventory/hosts.yml enroll_idm.yml \
+#     -e idm_server=idm.example.com \
+#     -e idm_domain=example.com \
+#     -e idm_realm=EXAMPLE.COM \
+#     -e idm_admin_password=secret   # use ansible-vault \
+#     -e @~/.ansible/conf/env.yml
 # ─────────────────────────────────────────────────────────────────────────────
 
 - name: Enroll RHEL hosts into Red Hat IdM
@@ -4445,7 +4941,7 @@ _PLAYBOOK_IDM_CLIENT = '''\
     idm_server: "idm.example.com"        # CHANGE
     idm_domain: "example.com"            # CHANGE
     idm_realm: "EXAMPLE.COM"            # CHANGE (uppercase)
-    idm_admin_password: "changeme"       # CHANGE: use ansible-vault
+    idm_admin_password: "{{ user_password }}"       # CHANGE: use ansible-vault
     idm_mkhomedir: true
 
   tasks:
@@ -6155,8 +6651,12 @@ def _find_objective_from_enrichment(account_name: str) -> str:
                 continue
 
             text = rec.get('text') or ''
-            # Extract Wikipedia Summary section
-            m = re.search(r'## Wikipedia Summary\s*\n(.*?)(?:\nSource:|\Z)', text, re.DOTALL)
+            # Prefer Company Mission Statement, then Company Homepage Description, then Wikipedia Summary
+            m = re.search(r'## Company Mission Statement\s*\n(.*?)(?:\nSource:|\Z)', text, re.DOTALL)
+            if not m:
+                m = re.search(r'## Company Homepage Description\s*\n(.*?)(?:\nSource:|\Z)', text, re.DOTALL)
+            if not m:
+                m = re.search(r'## Wikipedia Summary\s*\n(.*?)(?:\nSource:|\Z)', text, re.DOTALL)
             if not m:
                 continue
             summary = m.group(1).strip()
@@ -6180,6 +6680,128 @@ def _find_objective_from_enrichment(account_name: str) -> str:
             break
         result = (result + ' ' + s).strip()
     return result
+
+
+def _convert_public_enrichment_to_business_intel(account_name: str) -> bool:
+    """Convert the best matching public enrichment supplemental_document into
+    a structured `business_intel_account` record and save it into TRAIN_DIR.
+
+    Returns True if a new business_intel_account was created, False otherwise.
+    """
+    try:
+        if not account_name or not os.path.exists(TRAIN_DIR):
+            return False
+
+        account_tokens = [t for t in re.findall(r'\b[a-z0-9]+\b', account_name.lower()) if len(t) > 2]
+        if not account_tokens:
+            return False
+
+        # If an exact business_intel_account already exists for this account name, skip.
+        for fp in sorted(Path(TRAIN_DIR).glob('*.json'), reverse=True):
+            try:
+                r = json.loads(fp.read_text(encoding='utf-8'))
+            except Exception:
+                continue
+            if r.get('type') == 'business_intel_account':
+                existing = (r.get('account_name') or '').strip().lower()
+                if existing and existing == account_name.strip().lower():
+                    return False
+
+        # Find best matching public enrichment record
+        best_fp = None
+        best_score = 0
+        for fp in sorted(Path(TRAIN_DIR).glob('*.json'), reverse=True):
+            try:
+                rec = json.loads(fp.read_text(encoding='utf-8'))
+            except Exception:
+                continue
+            if rec.get('type') != 'supplemental_document' or rec.get('subtype') != 'company_public_enrichment':
+                continue
+            company_field = (rec.get('company') or '').lower()
+            score = sum(1 for t in account_tokens if t in company_field)
+            if score < max(1, len(account_tokens) // 2):
+                continue
+            if score > best_score:
+                best_score = score
+                best_fp = fp
+
+        if not best_fp:
+            return False
+
+        rec = json.loads(best_fp.read_text(encoding='utf-8'))
+
+        # Map enrichment fields into business_intel_account fields
+        new_rec: dict = {}
+        new_rec['account_name'] = rec.get('company') or account_name
+        mission = (rec.get('mission_statement') or '').strip()
+        homepage_desc = (rec.get('homepage_description') or rec.get('homepage_description') or '').strip()
+        # Short summary preference: mission -> homepage -> wikipedia summary -> snippet
+        short_summary = mission or homepage_desc
+        if not short_summary:
+            text_blob = rec.get('text', '') or ''
+            m = re.search(r'## Wikipedia Summary\s*\n(.*?)(?:\nSource:|\Z)', text_blob, re.DOTALL)
+            if m:
+                short_summary = m.group(1).strip()[:400]
+            else:
+                trimmed = text_blob.strip().splitlines()
+                short_summary = (trimmed[0] if trimmed else '')[:400]
+
+        new_rec['short_summary'] = short_summary
+        if mission:
+            new_rec['primary_objective'] = mission
+        elif homepage_desc:
+            new_rec['primary_objective'] = homepage_desc
+
+        new_rec['text'] = rec.get('text') or ''
+
+        # Headlines
+        nh = []
+        for h in rec.get('news_headlines', []) or []:
+            if isinstance(h, dict):
+                nh.append(h.get('title') or h.get('link') or '')
+            elif isinstance(h, str):
+                nh.append(h)
+        new_rec['notable_news_headlines'] = [x for x in nh if x]
+
+        # Source URLs: official site + notable search results
+        srcs = []
+        links = rec.get('links') or {}
+        if links.get('official_website'):
+            srcs.append(links.get('official_website'))
+        for r in rec.get('search_results', [])[:20]:
+            u = r.get('url') if isinstance(r, dict) else None
+            if u and u not in srcs:
+                srcs.append(u)
+        new_rec['source_urls'] = srcs
+
+        # Contacts: try to format name | email or raw email
+        contacts_out = []
+        for c in rec.get('contact_verification', []) or []:
+            try:
+                name = (c.get('name') or '').strip()
+                email = (c.get('email') or '').strip()
+            except Exception:
+                continue
+            if email:
+                contacts_out.append(f"{name} | {email}" if name else email)
+        new_rec['contacts'] = contacts_out
+
+        # Preserve other fields if present
+        for k in ('tags', 'redhat_focus_areas', 'use_case', 'use_case_questions'):
+            if rec.get(k) is not None:
+                new_rec[k] = rec.get(k)
+
+        # Import using ingest_business_intel.ingest_record to preserve format and dedupe
+        try:
+            spec = importlib.util.spec_from_file_location('ingest_business_intel', os.path.join(BASE_DIR, 'mcp-ai', 'ingest_business_intel.py'))
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            status, out = mod.ingest_record(new_rec, Path(TRAIN_DIR), force=False)
+            return status == 'ok'
+        except Exception:
+            return False
+    except Exception:
+        return False
 
 
 def _load_supplemental_sections(account_name: str, section: str | None = None) -> list[dict]:
@@ -7100,10 +7722,10 @@ Running Bridge in Background (systemd):
   Description=HAL MCP Bridge
   After=network.target
   
-  [Service]
-  Type=simple
-  ExecStart=bash /home/sgallego/GIT/mcp-rhel-manager/mcp-ai/start-bridge.sh
-  Restart=on-failure
+    [Service]
+    Type=simple
+    ExecStart=bash <REPO_ROOT>/mcp-ai/start-bridge.sh
+    Restart=on-failure
   
   [Install]
   WantedBy=multi-user.target
@@ -7975,6 +8597,7 @@ def main():
     ap.add_argument('--exec', action='store_true', help='Allow remediator to execute fixes (sets ALLOW_AUTO_FIX=1)')
     ap.add_argument('--diagnostics', action='store_true', help='Run full diagnostics via local server.full_diagnostics_json() and record result')
     ap.add_argument('--status', action='store_true', help='Quick one-line system health summary (Critical/Warning counts + top issue)')
+    ap.add_argument('--priv', action='store_true', help='Privileged action: HAL will propose a shell command and ask for sudo before executing')
     ap.add_argument('--feedback', nargs=2, metavar=('ENTRY', 'FEEDBACK'), help='Append feedback to an existing entry')
     ap.add_argument('--import-docs', nargs='+', metavar='PATH', help='Import local documents/spreadsheets into training data')
     ap.add_argument('--import-url', nargs='+', metavar='URL', help='Fetch and ingest one or more URLs into training data (default depth: 3)')
@@ -7989,6 +8612,7 @@ def main():
     ap.add_argument('--sync-redhat-docs', action='store_true', help='Sync default curated Red Hat docs (satellite-6.18 aap-2.6 idm-5.0)')
     ap.add_argument('--training-maintenance', action='store_true', help='Run training data maintenance report (dry-run duplicate analysis)')
     ap.add_argument('--training-maintenance-apply', action='store_true', help='Run training data maintenance and remove duplicate supplemental_document records')
+    ap.add_argument('--apply', action='store_true', help='Apply mode: promote the current operation from dry-run to real changes (alias for --training-maintenance-apply when used with training ops)')
     ap.add_argument('--enrich-companies', nargs='+', metavar='COMPANY', help='Enrich named companies from public web sources into training data')
     ap.add_argument('--enrich-from-training', action='store_true', help='Discover companies from training docs and enrich from public web sources')
     ap.add_argument('--max-enrich-companies', type=int, default=10, help='Limit company discovery count for --enrich-from-training')
@@ -8004,6 +8628,12 @@ def main():
     ap.add_argument('--intel-report-all', nargs='+', metavar='ACCOUNT', help='Generate intel reports for multiple accounts (quote names with spaces)')
     ap.add_argument('--intel-report-file', metavar='PATH', help='Generate intel reports for account names in file (one account per line)')
     ap.add_argument('--signals-only', action='store_true', help='Show only detected integration signals for each account (works with --intel-report-all and --intel-report-file)')
+    ap.add_argument('--alias-add', nargs=2, metavar=('ALIAS', 'CANONICAL'), help='Add or update a customer alias, e.g. --alias-add wwt "World Wide Technology"')
+    ap.add_argument('--alias-remove', metavar='ALIAS', help='Remove a customer alias by its short name')
+    ap.add_argument('--alias-list', action='store_true', help='List all defined customer/account aliases')
+    ap.add_argument('--approve-image', metavar='IMAGE', help='Approve a container image for runner podman pull/run allowlist')
+    ap.add_argument('--unapprove-image', metavar='IMAGE', help='Remove a container image from runner podman approvals')
+    ap.add_argument('--approved-images-list', action='store_true', help='List explicitly approved container images used by runner')
     ap.add_argument('--auto-ingest', action='store_true', help='Auto-ingest new intelligence data from watch directories')
     ap.add_argument('--ingest-status', action='store_true', help='Show auto-ingest import history and status')
     ap.add_argument('--ingest-reset', action='store_true', help='Reset import tracker (re-import everything on next auto-ingest)')
@@ -8081,6 +8711,8 @@ def main():
     ap.add_argument('--motivate', action='store_true', help='Motivational message for sysadmins/DevOps')
     ap.add_argument('--personas', action='store_true', help='List available HAL assistant personas')
     ap.add_argument('--set-persona', metavar='NAME', help='Set active HAL persona (friendly/expert/hacker/teacher/concise/creative/security/devops)')
+    ap.add_argument('--configure', nargs='*', metavar='SETTING', help='Configure HAL behaviour (e.g. --configure hal-quotes yes|no)')
+    ap.add_argument('--slj', action='store_true', help=argparse.SUPPRESS)  # undocumented secret persona
     ap.add_argument('--mcp-list', action='store_true', help='List published MCP contexts')
     ap.add_argument('--mcp-read', metavar='NAME', help='Read a named MCP context')
     ap.add_argument('--mcp-publish', nargs=2, metavar=('NAME', 'JSON'), help='Publish a JSON payload as a named MCP context')
@@ -8089,6 +8721,12 @@ def main():
     ap.add_argument('--watch-log', metavar='FILE', help='Watch a log file and flag anomalies with AI analysis')
     ap.add_argument('--todo', nargs='+', metavar='ACTION', help='AI TODO manager: add|list|done|delete|clear|prioritize [text] [id]')
     ap.add_argument('--chat-export', nargs='?', const='markdown', metavar='FORMAT', help='Export conversation history to markdown or html')
+    ap.add_argument('--moe', action='store_true', help='Enable MoE routing for LLM calls (prototype)')
+    ap.add_argument('--moe-debug', action='store_true', help='Show MoE router debug output')
+    ap.add_argument('--moe-profile', action='append', metavar='EXPERT=MODEL', help='Map an expert to a specific model (EXPERT=MODEL). Can be repeated')
+    ap.add_argument('--moe-mode', choices=['auto', 'rule', 'embedding', 'llm'], default='auto', help='MoE routing mode')
+    ap.add_argument('--auto-improve', action='store_true', help='Run HAL auto-improve scanner (dry-run)')
+    ap.add_argument('--auto-improve-apply', action='store_true', help='Apply suggestions from auto-improve (requires HAL_ALLOW_AUTO_IMPROVE_APPLY=1)')
     args = ap.parse_args()
 
     global VOICE_ENABLED, VOICE_RATE, VOICE_NAME
@@ -8103,6 +8741,43 @@ def main():
     # Runtime one-command overrides used by choose_model_for_task().
     RUNTIME_FORCE_MODEL = args.model.strip() if args.model else None
     RUNTIME_FORCE_PROFILE = args.task_profile.strip().lower() if args.task_profile else None
+    # Configure MoE flags
+    global _MOE_ENABLED, _MOE_DEBUG, _MOE_PROFILE, _MOE_MODE
+    _MOE_ENABLED = bool(args.moe)
+    _MOE_DEBUG = bool(args.moe_debug)
+    _MOE_MODE = (args.moe_mode or 'auto').lower()
+    # Parse --moe-profile entries like expert=model
+    prof: dict = {}
+    if args.moe_profile:
+        for p in args.moe_profile:
+            if '=' in p:
+                k, v = p.split('=', 1)
+                prof[k.strip()] = v.strip()
+    _MOE_PROFILE = prof
+    # Start optional bridge supervisor thread
+    try:
+        _ensure_bridge_supervisor_started()
+    except Exception:
+        pass
+
+    # Auto-improve integration: run the conservative autosuggest scanner
+    if getattr(args, 'auto_improve', False) or getattr(args, 'auto_improve_apply', False):
+        apply_flag = bool(getattr(args, 'auto_improve_apply', False))
+        cmd = [sys.executable, os.path.join(BASE_DIR, 'scripts', 'hal_auto_improve.py'), '--root', BASE_DIR, '--max-files', os.environ.get('HAL_AUTO_IMPROVE_MAX_FILES', '5000')]
+        if apply_flag:
+            cmd.append('--apply')
+        print(f'Running HAL auto-improve (apply={apply_flag})...')
+        try:
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=BASE_DIR, timeout=600)
+            if res.stdout:
+                print(res.stdout)
+            if res.returncode != 0:
+                print('Auto-improve failed:', res.stderr, file=sys.stderr)
+                sys.exit(res.returncode)
+        except Exception as e:
+            print('Auto-improve execution failed:', e, file=sys.stderr)
+            sys.exit(1)
+        sys.exit(0)
 
     if args.feedback:
         entry_ref, fb = args.feedback
@@ -8183,6 +8858,22 @@ def main():
     if args.training_maintenance and args.training_maintenance_apply:
         print('Use only one of --training-maintenance or --training-maintenance-apply.', file=sys.stderr)
         sys.exit(2)
+
+    # --apply on its own (or with --training-maintenance, or with text matching "optimize training data")
+    # is treated as --training-maintenance-apply so `HAL --apply` and
+    # `HAL --apply "optimize training data"` both work naturally.
+    _text_for_apply = ' '.join(args.text).lower().strip() if args.text else ''
+    _apply_is_training = (
+        args.apply
+        and not args.training_maintenance_apply
+        and (
+            args.training_maintenance
+            or _is_training_maintenance_query(_text_for_apply)
+            or not _text_for_apply
+        )
+    )
+    if _apply_is_training:
+        args.training_maintenance_apply = True
 
     if args.training_maintenance or args.training_maintenance_apply:
         maint = os.path.join(BASE_DIR, 'mcp-ai', 'training_maintenance.py')
@@ -8328,30 +9019,57 @@ def main():
         print(_import_section(account_arg, section_arg, text_arg))
         sys.exit(0)
 
+    if args.alias_list:
+        print(_list_aliases())
+        sys.exit(0)
+
+    if args.alias_remove:
+        print(_remove_alias(args.alias_remove))
+        sys.exit(0)
+
+    if args.alias_add:
+        print(_add_alias(args.alias_add[0], args.alias_add[1]))
+        sys.exit(0)
+
+    if args.approved_images_list:
+        print(_approved_images_list_text())
+        sys.exit(0)
+
+    if args.approve_image:
+        print(_approved_images_add(args.approve_image))
+        sys.exit(0)
+
+    if args.unapprove_image:
+        print(_approved_images_remove(args.unapprove_image))
+        sys.exit(0)
+
     if args.intel_report:
-        report = _generate_intel_report_live(args.intel_report, allow_public_enrich=True)
+        # Resolve alias before lookup so e.g. "wwt" becomes "World Wide Technology"
+        account_resolved = _resolve_account(args.intel_report)
+        report = _generate_intel_report_live(account_resolved, allow_public_enrich=True)
         if report:
             print(report)
             user = os.environ.get('USER') or os.environ.get('LOGNAME') or os.getlogin()
-            entry_path = write_interaction(user, f'HAL_INTEL_REPORT:{args.intel_report}', report)
+            entry_path = write_interaction(user, f'HAL_INTEL_REPORT:{account_resolved}', report)
             print(f'\nInteraction recorded -> {entry_path}')
             notify_on_intel = bool(args.notify or os.environ.get('HAL_NOTIFY_ON_INTEL', '0').lower() in ('1', 'true', 'yes', 'y'))
             if notify_on_intel:
                 signals = _extract_signals_from_report(report)
                 sev = 'warning' if len(signals) >= 5 else 'info'
-                msg = f'Account intel report generated for {args.intel_report}. Detected signals: {len(signals)}.'
-                sent = _send_notification_event(msg, title=f'HAL Intel Report: {args.intel_report}', severity=sev, notify_type='all')
+                msg = f'Account intel report generated for {account_resolved}. Detected signals: {len(signals)}.'
+                sent = _send_notification_event(msg, title=f'HAL Intel Report: {account_resolved}', severity=sev, notify_type='all')
                 if sent > 0:
                     print(f'Notification sent via {sent} channel(s).')
         else:
-            print(f'No intel records found for: {args.intel_report}')
+            print(f'No intel records found for: {account_resolved}')
             print('Import account data first with: HAL --import-business-intel /path/to/Training_Data/')
         sys.exit(0)
 
     if args.intel_report_all or args.intel_report_file:
         accounts = []
         if args.intel_report_all:
-            accounts.extend(args.intel_report_all)
+            # Resolve any aliases in the list
+            accounts.extend(_resolve_account(a) for a in args.intel_report_all)
 
         if args.intel_report_file:
             try:
@@ -8360,7 +9078,7 @@ def main():
                         val = line.strip()
                         if not val or val.startswith('#'):
                             continue
-                        accounts.append(val)
+                        accounts.append(_resolve_account(val))
             except Exception as exc:
                 print(f'Could not read --intel-report-file: {exc}', file=sys.stderr)
                 sys.exit(2)
@@ -8737,6 +9455,7 @@ def main():
         '--summarize', '--code-review', '--explain-error', '--diff-explain',
         '--generate-readme', '--pipe-analyze', '--quiz', '--news',
         '--word-of-day', '--fact', '--motivate', '--personas', '--set-persona',
+        '--configure', '--slj',
         '--mcp-list', '--mcp-read', '--mcp-publish', '--mcp-delete',
         '--sys-monitor', '--watch-log', '--todo', '--chat-export',
     )
@@ -8921,6 +9640,15 @@ def main():
     # Default chat path
     text = ' '.join(args.text) if args.text else None
 
+    # Privileged action flow: HAL will propose a command and ask for sudo before executing
+    if args.priv:
+        if not text:
+            print('Usage: HAL --priv "Describe the privileged action to perform"')
+            sys.exit(2)
+        user = os.environ.get('USER') or os.environ.get('LOGNAME') or os.getlogin()
+        _privileged_action_flow(user, text)
+        sys.exit(0)
+
     # Company/account intel requests should prefer live enrichment + report generation
     # instead of generic supplemental snippets.
     if text and _is_company_intel_query(text):
@@ -8939,7 +9667,7 @@ def main():
     # Business command namespace (v1)
     biz_cmd, biz_arg = _parse_business_command(text)
     if biz_cmd == 'account-brief':
-        account_target = (biz_arg or args.account or '').strip()
+        account_target = _resolve_account((biz_arg or args.account or '').strip())
         if not account_target:
             print('Missing account name for business account-brief.')
             print('Usage: HAL business account-brief --account <name>')
@@ -9825,6 +10553,7 @@ def main():
     print('\nHAL response:\n')
     print(assistant_text if assistant_text else resp)
     print(f'\n[source: {_source_tag()}]')
+    _maybe_hal_quote()
     speak_if_enabled(assistant_text if assistant_text else str(resp))
 
     # Attempt to detect a tool invocation from the LLM response

@@ -8,7 +8,7 @@ This document describes HAL's comprehensive security features for managing secre
 
 HAL now includes a complete security framework that:
 
-1. **Manages Vault Password** - Creates and maintains `~/.ansible/conf/.vaultpass.txt`
+1. **Manages Vault Password** - Creates and maintains `$ANSIBLE_VAULT_PASSWORD_FILE` (defaults to `~/.ansible/conf/.vaultpass.txt`)
 2. **Scans Git Repos** - Finds unencrypted secrets in tracked files
 3. **Detects Credential Exposure** - Identifies plaintext credentials in git config
 4. **Encrypts Sensitive Files** - Uses ansible-vault to encrypt detected secrets
@@ -34,21 +34,21 @@ python3 scripts/hal.py 'system health'
 
 ### File Location
 
-- **Path**: `~/.ansible/conf/.vaultpass.txt`
+- **Path**: `$ANSIBLE_VAULT_PASSWORD_FILE` (defaults to `~/.ansible/conf/.vaultpass.txt`)
 - **Permissions**: 600 (read/write for owner only)
 - **Contents**: 32-character random password (auto-generated if missing)
 
 ### Verify Vault Setup
 
 ```bash
-cd /home/sgallego/GIT/mcp-rhel-manager
+cd <REPO_ROOT>
 python3 scripts/hal-security-audit.py check
 ```
 
 Output:
 
 ```
-✓ Vault password file ready: /home/sgallego/.ansible/conf/.vaultpass.txt
+✓ Vault password file ready: $ANSIBLE_VAULT_PASSWORD_FILE (defaults to ~/.ansible/conf/.vaultpass.txt)
 ```
 
 ## Detecting Secrets in Git Repos
@@ -91,14 +91,14 @@ python3 scripts/hal-security-audit.py report > security_report.json
 
 The security scanner looks for:
 
-| Pattern         | Example                    | Issue                        |
-| --------------- | -------------------------- | ---------------------------- |
-| **password**    | `password: "secret123"`    | Plaintext password in config |
-| **api_key**     | `api_key: abc123def456`    | Exposed API key              |
-| **secret**      | `secret: mysecret`         | Generic secret field         |
-| **token**       | `token: ghp_xyz123`        | Authentication token         |
-| **aws_secret**  | `aws_secret: ...`          | AWS credentials              |
-| **private_key** | References to `.pem` files | Private key exposure         |
+| Pattern         | Example                                   | Issue                        |
+| --------------- | ----------------------------------------- | ---------------------------- |
+| **password**    | `password: "<REDACTED>"`                  | Plaintext password in config |
+| **api_key**     | `api_key: <example_api_key>`              | Exposed API key              |
+| **secret**      | `secret: <example_secret>`                | Generic secret field         |
+| **token**       | `token: <example_token>`                  | Authentication token         |
+| **aws_secret**  | `aws_secret: <aws_secret_or_placeholder>` | AWS credentials              |
+| **private_key** | References to `.pem` files                | Private key exposure         |
 
 ## Encrypting Sensitive Files
 
@@ -147,13 +147,13 @@ done
 
 ### Using Vault Password in Git
 
-Store vault password path for automatic decryption:
+Store vault password path for automatic decryption (prefer setting `ANSIBLE_VAULT_PASSWORD_FILE`):
 
 ```bash
-# Add to ~/.ansible/ansible.cfg
-echo "vault_password_file = ~/.ansible/conf/.vaultpass.txt" >> ~/.ansible/ansible.cfg
+# Add to ~/.ansible/ansible.cfg (use the env var as the source)
+echo "vault_password_file = $ANSIBLE_VAULT_PASSWORD_FILE" >> ~/.ansible/ansible.cfg
 
-# Or use environment variable
+# Or set the environment variable (defaults to ~/.ansible/conf/.vaultpass.txt)
 export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible/conf/.vaultpass.txt
 
 # Ansible will now auto-decrypt vault files
@@ -263,10 +263,10 @@ ansible-vault encrypt --vault-password-file=$ANSIBLE_VAULT_PASSWORD_FILE file.ym
 ### Vault Password File Not Found
 
 ```bash
-# Create it manually
+# Create it manually (use the env var location if set)
 mkdir -p ~/.ansible/conf
-python3 -c "import secrets; print(''.join(secrets.choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') for _ in range(32)))" > ~/.ansible/conf/.vaultpass.txt
-chmod 600 ~/.ansible/conf/.vaultpass.txt
+python3 -c "import secrets; print(''.join(secrets.choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') for _ in range(32)))" > $ANSIBLE_VAULT_PASSWORD_FILE
+chmod 600 $ANSIBLE_VAULT_PASSWORD_FILE
 ```
 
 ### ansible-vault Not Found
@@ -283,10 +283,10 @@ sudo dnf install ansible-core
 
 ```bash
 # Verify vault password file has content
-cat ~/.ansible/conf/.vaultpass.txt
+cat $ANSIBLE_VAULT_PASSWORD_FILE
 
 # Try decrypting with verbose output
-ansible-vault view --vault-password-file=~/.ansible/conf/.vaultpass.txt file.yml -vvv
+ansible-vault view --vault-password-file=$ANSIBLE_VAULT_PASSWORD_FILE file.yml -vvv
 ```
 
 ### Too Many False Positives
@@ -341,8 +341,8 @@ results['git_creds'] = _check_git_credentials_exposure()
 
 | File                             | Purpose                                       |
 | -------------------------------- | --------------------------------------------- |
-| `scripts/hal-security-audit.py`          | Standalone security audit tool                |
-| `~/.ansible/conf/.vaultpass.txt` | Vault password (auto-created)                 |
+| `scripts/hal-security-audit.py`  | Standalone security audit tool                |
+| `$ANSIBLE_VAULT_PASSWORD_FILE` (defaults to `~/.ansible/conf/.vaultpass.txt`) | Vault password (auto-created) |
 | `~/.ansible/ansible.cfg`         | Optional: configure vault password (optional) |
 
 ## Summary

@@ -12,7 +12,7 @@ import argparse
 import re
 from pathlib import Path
 
-VAULT_PASS_FILE = os.path.expanduser('~/.ansible/conf/.vaultpass.txt')
+VAULT_PASS_FILE = os.path.expanduser(os.getenv('ANSIBLE_VAULT_PASSWORD_FILE', os.path.join(os.path.expanduser('~'), '.ansible', 'conf', '.vaultpass.txt')))
 
 SECRET_PATTERNS = {
     'password': r'password\s*[:=]\s*["\']?(\w+)["\']?',
