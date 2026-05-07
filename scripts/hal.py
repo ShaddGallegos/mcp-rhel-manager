@@ -1018,6 +1018,36 @@ def write_interaction(user, request_text, response_text):
     return fname
 
 
+def _save_health_report(diag_json, final_text, mode='1') -> str | None:
+    """Save a human-readable health report to `REPORTS_DIR` and return the path."""
+    try:
+        os.makedirs(REPORTS_DIR, exist_ok=True)
+        host = socket.gethostname()
+        ts = ts_now()
+        fname = os.path.join(REPORTS_DIR, f'health-report-{host}-{ts}.txt')
+        with open(fname, 'w', encoding='utf-8') as fh:
+            fh.write(f"HAL Health Report\n")
+            fh.write(f"Host: {host}\n")
+            fh.write(f"Mode: {mode}\n")
+            fh.write(f"Timestamp: {datetime.now(timezone.utc).isoformat()}\n\n")
+            if final_text:
+                fh.write(final_text)
+                fh.write('\n\n')
+            fh.write('--- Raw diagnostics (JSON) ---\n')
+            try:
+                fh.write(json.dumps(diag_json, indent=2))
+            except Exception:
+                try:
+                    fh.write(str(diag_json))
+                except Exception:
+                    fh.write('<unable to serialize diagnostics>')
+        print('Health report saved to', fname)
+        return fname
+    except Exception as e:
+        print('Failed to save health report:', e, file=sys.stderr)
+        return None
+
+
 def _extract_code_block(text: str) -> str | None:
     import re
     if not text:
@@ -10377,6 +10407,10 @@ def main():
                     combined = json.dumps({'llm_response_raw': llm_raw, 'diagnostics': diag_json, 'final_report': final_text, 'mode': mode}, indent=2)
                     entry_path = write_interaction(user, text, combined)
                     print('\nInteraction recorded ->', entry_path)
+                    try:
+                        _save_health_report(diag_json, final_text, mode=mode)
+                    except Exception:
+                        pass
 
                     if mode == '5':
                         print('\nFix all selected. Starting full auto-remediation...')
@@ -10465,6 +10499,10 @@ def main():
                 combined = json.dumps({'llm_response_raw': llm_raw, 'diagnostics': diag_json, 'final_report': final_text, 'mode': mode}, indent=2)
                 entry_path = write_interaction(user, text, combined)
                 print('\nInteraction recorded ->', entry_path)
+                try:
+                    _save_health_report(diag_json, final_text, mode=mode)
+                except Exception:
+                    pass
 
                 if mode == '5':
                     print('\nFix all selected. Starting full auto-remediation...')
