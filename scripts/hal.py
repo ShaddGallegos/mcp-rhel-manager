@@ -1877,6 +1877,7 @@ def _render_health_summary_menu(diag_json) -> str:
 
     lines.append('')
     lines.append('Menu:')
+    lines.append('  0) Exit')
     lines.append('  1) Quick summary (default)')
     lines.append('  2) Recommended actions only')
     lines.append('  3) Full raw diagnostics (JSON)')
@@ -1900,8 +1901,8 @@ def _choose_health_output_mode() -> str:
     try:
         if not (sys.stdin and sys.stdin.isatty()):
             return '1'
-        choice = input('\nChoose output [1/2/3/4/5] (default 1): ').strip()
-        return choice if choice in {'1', '2', '3', '4', '5'} else '1'
+        choice = input('\nChoose output [0/1/2/3/4/5] (default 1, 0=exit): ').strip()
+        return choice if choice in {'0', '1', '2', '3', '4', '5'} else '1'
     except Exception:
         return '1'
 
@@ -1915,8 +1916,9 @@ def _choose_health_remediation_mode() -> str:
         print('  1) Report only (no changes)')
         print('  2) Show guided fixes (LLM + MCP plan)')
         print('  3) Full auto-remediation (let HAL fix what it can)')
-        choice = input('Choose remediation [1/2/3] (default 1): ').strip()
-        return choice if choice in {'1', '2', '3'} else '1'
+        print('  0) Back (return to previous menu)')
+        choice = input('Choose remediation [0/1/2/3] (default 1, 0=back): ').strip()
+        return choice if choice in {'0', '1', '2', '3'} else '1'
     except Exception:
         return '1'
 
@@ -10386,53 +10388,66 @@ def main():
                             invoke_remediator(entry_path, args.exec)
                         sys.exit(0)
 
-                    print('\nHAL final report:\n')
-                    print(_render_health_summary_menu(diag_json))
+                    # Present the health menu and allow looping between output and remediation
+                    while True:
+                        print('\nHAL final report:\n')
+                        print(_render_health_summary_menu(diag_json))
 
-                    mode = _choose_health_output_mode()
-                    llm_raw = ''
-                    if mode == '2':
-                        final_text = _render_health_actions(diag_json)
-                    elif mode == '3':
-                        final_text = f"Local diagnostics (raw):\n{json.dumps(diag_json, indent=2)}"
-                    elif mode == '4':
-                        followup = (
-                            f"User asked: {text}\n"
-                            f"Local diagnostics (JSON):\n{json.dumps(diag_json, indent=2)[:4000]}\n\n"
-                            "Return only a short, plain-text summary (4-8 lines) with the most important findings and immediate actions. "
-                            "Do not include JSON."
-                        )
-                        llm_raw = _run_with_spinner('Generating AI summary', call_bridge, followup)
-                        final_text = extract_assistant_content(llm_raw) or _render_health_actions(diag_json)
-                    elif mode == '5':
-                        final_text = _render_health_actions(diag_json)
-                    else:
-                        final_text = _render_health_summary_menu(diag_json)
+                        mode = _choose_health_output_mode()
+                        if mode == '0':
+                            print('Exiting health check.')
+                            sys.exit(0)
 
-                    if mode != '1':
-                        print('\nSelected output:\n')
-                        print(final_text)
+                        llm_raw = ''
+                        if mode == '2':
+                            final_text = _render_health_actions(diag_json)
+                        elif mode == '3':
+                            final_text = f"Local diagnostics (raw):\n{json.dumps(diag_json, indent=2)}"
+                        elif mode == '4':
+                            followup = (
+                                f"User asked: {text}\n"
+                                f"Local diagnostics (JSON):\n{json.dumps(diag_json, indent=2)[:4000]}\n\n"
+                                "Return only a short, plain-text summary (4-8 lines) with the most important findings and immediate actions. "
+                                "Do not include JSON."
+                            )
+                            llm_raw = _run_with_spinner('Generating AI summary', call_bridge, followup)
+                            final_text = extract_assistant_content(llm_raw) or _render_health_actions(diag_json)
+                        elif mode == '5':
+                            final_text = _render_health_actions(diag_json)
+                        else:
+                            final_text = _render_health_summary_menu(diag_json)
 
-                    combined = json.dumps({'llm_response_raw': llm_raw, 'diagnostics': diag_json, 'final_report': final_text, 'mode': mode}, indent=2)
-                    entry_path = write_interaction(user, text, combined)
-                    print('\nInteraction recorded ->', entry_path)
-                    try:
-                        _save_health_report(diag_json, final_text, mode=mode)
-                    except Exception:
-                        pass
+                        if mode != '1':
+                            print('\nSelected output:\n')
+                            print(final_text)
 
-                    if mode == '5':
-                        print('\nFix all selected. Starting full auto-remediation...')
-                        remediation_mode = '3'
-                    else:
-                        remediation_mode = _choose_health_remediation_mode()
-                        if args.remediate and args.exec:
-                            remediation_mode = '3'
-                        elif args.remediate:
-                            remediation_mode = '2'
-                    _execute_health_remediation(text, diag_json, entry_path, remediation_mode)
+                        combined = json.dumps({'llm_response_raw': llm_raw, 'diagnostics': diag_json, 'final_report': final_text, 'mode': mode}, indent=2)
+                        entry_path = write_interaction(user, text, combined)
+                        print('\nInteraction recorded ->', entry_path)
+                        try:
+                            _save_health_report(diag_json, final_text, mode=mode)
+                        except Exception:
+                            pass
 
-                    sys.exit(0)
+                        # Remediation menu: allow the user to go back to output menu by choosing 0
+                        while True:
+                            if mode == '5':
+                                print('\nFix all selected. Starting full auto-remediation...')
+                                remediation_mode = '3'
+                                break
+                            remediation_mode = _choose_health_remediation_mode()
+                            if remediation_mode == '0':
+                                print('Returning to health output menu.')
+                                break
+                            if args.remediate and args.exec:
+                                remediation_mode = '3'
+                            elif args.remediate:
+                                remediation_mode = '2'
+                            _execute_health_remediation(text, diag_json, entry_path, remediation_mode)
+                            sys.exit(0)
+
+                        # If remediation_mode was 0, loop back to the outer menu; otherwise we've exited
+                        continue
                 else:
                     # user declined; provide guidance to request diagnostics later
                     print('\nIf you want a full system check later, run: hal --diagnostics')
@@ -10478,53 +10493,66 @@ def main():
                         invoke_remediator(entry_path, args.exec)
                     sys.exit(0)
 
-                print('\nHAL final report:\n')
-                print(_render_health_summary_menu(diag_json))
+                # Present the health menu and allow looping between output and remediation
+                while True:
+                    print('\nHAL final report:\n')
+                    print(_render_health_summary_menu(diag_json))
 
-                mode = _choose_health_output_mode()
-                llm_raw = ''
-                if mode == '2':
-                    final_text = _render_health_actions(diag_json)
-                elif mode == '3':
-                    final_text = f"Local diagnostics (raw):\n{json.dumps(diag_json, indent=2)}"
-                elif mode == '4':
-                    followup = (
-                        f"User asked: {text}\n"
-                        f"Local diagnostics (JSON):\n{json.dumps(diag_json, indent=2)[:4000]}\n\n"
-                        "Return only a short, plain-text summary (4-8 lines) with the most important findings and immediate actions. "
-                        "Do not include JSON."
-                    )
-                    llm_raw = _run_with_spinner('Generating AI summary', call_bridge, followup)
-                    final_text = extract_assistant_content(llm_raw) or _render_health_actions(diag_json)
-                elif mode == '5':
-                    final_text = _render_health_actions(diag_json)
-                else:
-                    final_text = _render_health_summary_menu(diag_json)
+                    mode = _choose_health_output_mode()
+                    if mode == '0':
+                        print('Exiting health check.')
+                        sys.exit(0)
 
-                if mode != '1':
-                    print('\nSelected output:\n')
-                    print(final_text)
+                    llm_raw = ''
+                    if mode == '2':
+                        final_text = _render_health_actions(diag_json)
+                    elif mode == '3':
+                        final_text = f"Local diagnostics (raw):\n{json.dumps(diag_json, indent=2)}"
+                    elif mode == '4':
+                        followup = (
+                            f"User asked: {text}\n"
+                            f"Local diagnostics (JSON):\n{json.dumps(diag_json, indent=2)[:4000]}\n\n"
+                            "Return only a short, plain-text summary (4-8 lines) with the most important findings and immediate actions. "
+                            "Do not include JSON."
+                        )
+                        llm_raw = _run_with_spinner('Generating AI summary', call_bridge, followup)
+                        final_text = extract_assistant_content(llm_raw) or _render_health_actions(diag_json)
+                    elif mode == '5':
+                        final_text = _render_health_actions(diag_json)
+                    else:
+                        final_text = _render_health_summary_menu(diag_json)
 
-                combined = json.dumps({'llm_response_raw': llm_raw, 'diagnostics': diag_json, 'final_report': final_text, 'mode': mode}, indent=2)
-                entry_path = write_interaction(user, text, combined)
-                print('\nInteraction recorded ->', entry_path)
-                try:
-                    _save_health_report(diag_json, final_text, mode=mode)
-                except Exception:
-                    pass
+                    if mode != '1':
+                        print('\nSelected output:\n')
+                        print(final_text)
 
-                if mode == '5':
-                    print('\nFix all selected. Starting full auto-remediation...')
-                    remediation_mode = '3'
-                else:
-                    remediation_mode = _choose_health_remediation_mode()
-                    if args.remediate and args.exec:
-                        remediation_mode = '3'
-                    elif args.remediate:
-                        remediation_mode = '2'
-                _execute_health_remediation(text, diag_json, entry_path, remediation_mode)
+                    combined = json.dumps({'llm_response_raw': llm_raw, 'diagnostics': diag_json, 'final_report': final_text, 'mode': mode}, indent=2)
+                    entry_path = write_interaction(user, text, combined)
+                    print('\nInteraction recorded ->', entry_path)
+                    try:
+                        _save_health_report(diag_json, final_text, mode=mode)
+                    except Exception:
+                        pass
 
-                sys.exit(0)
+                    # Remediation menu: allow the user to go back to output menu by choosing 0
+                    while True:
+                        if mode == '5':
+                            print('\nFix all selected. Starting full auto-remediation...')
+                            remediation_mode = '3'
+                            break
+                        remediation_mode = _choose_health_remediation_mode()
+                        if remediation_mode == '0':
+                            print('Returning to health output menu.')
+                            break
+                        if args.remediate and args.exec:
+                            remediation_mode = '3'
+                        elif args.remediate:
+                            remediation_mode = '2'
+                        _execute_health_remediation(text, diag_json, entry_path, remediation_mode)
+                        sys.exit(0)
+
+                    # If remediation_mode was 0, loop back to the outer menu; otherwise we've exited
+                    continue
     except Exception:
         pass
 
