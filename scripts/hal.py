@@ -1019,12 +1019,21 @@ def write_interaction(user, request_text, response_text):
 
 
 def _save_health_report(diag_json, final_text, mode='1') -> str | None:
-    """Save a human-readable health report to `REPORTS_DIR` and return the path."""
+    """Save a human-readable health report under `~/Documents/reports/`.
+
+    The default location is `~/Documents/reports/`. Override with the
+    environment variable `HAL_USER_REPORTS_DIR` if desired.
+    """
     try:
-        os.makedirs(REPORTS_DIR, exist_ok=True)
+        reports_root = os.environ.get(
+            'HAL_USER_REPORTS_DIR',
+            os.path.join(os.path.expanduser('~'), 'Documents', 'reports')
+        )
+        reports_root = os.path.expanduser(reports_root)
+        os.makedirs(reports_root, exist_ok=True)
         host = socket.gethostname()
         ts = ts_now()
-        fname = os.path.join(REPORTS_DIR, f'health-report-{host}-{ts}.txt')
+        fname = os.path.join(reports_root, f'health-report-{host}-{ts}.txt')
         with open(fname, 'w', encoding='utf-8') as fh:
             fh.write(f"HAL Health Report\n")
             fh.write(f"Host: {host}\n")
