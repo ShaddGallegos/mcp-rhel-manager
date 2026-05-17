@@ -78,6 +78,9 @@ Invoke as `HAL "..."` or `hal "..."`.
 
 ### Training Data
 
+Note: HAL can inject your local training data into LLM prompts (RAG). Control behavior with environment variables: `HAL_RAG_ALWAYS=0` disables automatic RAG collection; `HAL_RAG_FALLBACK=0` disables serving training-data fallback when the bridge fails. Defaults are enabled.
+
+
 | Command                                | Description                                                      |
 | -------------------------------------- | ---------------------------------------------------------------- |
 | `HAL --import-docs PATH...`            | Import local files (xlsx, pdf, csv, md, json, yaml, …)           |
@@ -85,7 +88,7 @@ Invoke as `HAL "..."` or `hal "..."`.
 | `HAL --import-url URL...`              | Fetch and ingest URLs (default depth 3; use `--1` through `--9`) |
 | `HAL --import-txt FILE...`             | Ingest plain-text files                                          |
 | `HAL --import-redhat-docs [DOCSET...]` | Import curated Red Hat docs                                      |
-| `HAL --sync-redhat-docs`               | Sync default Red Hat docs (Satellite 6.18, AAP 2.6, IdM 5.0)     |
+| `HAL --sync-redhat-docs`               | Sync default Red Hat docs                                         |
 | `HAL --auto-ingest`                    | Run auto-ingest from watch directories                           |
 | `HAL --ingest-status`                  | Show import history                                              |
 | `HAL --ingest-reset`                   | Reset tracker (re-import everything next run)                    |
@@ -180,7 +183,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=bash /home/sgallego/GIT/mcp-rhel-manager/mcp-ai/start-bridge.sh
+ExecStart=bash <REPO_ROOT>/mcp-ai/start-bridge.sh  # replace <REPO_ROOT> with your repository path
 Restart=on-failure
 
 [Install]
@@ -270,3 +273,95 @@ Use `HAL --encrypt-training` for at-rest protection (PBKDF2, 390 000 iterations,
 
 - Added diagnostics, remediation features, and genesis script venv support.
 - Added `HAL-FUNCTIONALITY.md` capability inventory.
+
+---
+
+## Execution Environment (mcp-ee)
+
+**Synopsis:**
+
+- `mcp-ee` is the Ansible Builder v3 execution-environment image used to run Ansible and HAL-related tooling in a reproducible container. The image purposefully does not include large LLM model files; those remain on the host and are mounted into the container at runtime.
+
+**How to connect / run a shell in the image:**
+
+- Quick interactive shell (replace `<TAG>` with the timestamp tag produced at build time):
+
+```
+podman run --rm -it \
+  -v /var/lib/mcp-llms:/var/lib/mcp-llms:Z \
+  localhost/mcp-ee:<TAG> /bin/bash
+```
+
+- Run a smoke-test (check Ansible and Ansible Runner are present):
+
+```
+podman run --rm localhost/mcp-ee:<TAG> ansible-galaxy --version
+podman run --rm localhost/mcp-ee:<TAG> ansible-runner --version
+```
+
+**How to build (recommended, temporary context in /tmp):**
+
+- A helper script is provided to avoid creating build artifacts in the git tree and to tag the image with a UTC timestamp. It creates `/tmp/<image>_<datetime>/context`, prunes podman caches, builds, and (by default) removes the temporary context.
+
+Examples:
+
+```
+# build and remove temporary context when finished
+scripts/build_ee_tmp_context.sh -f path/to/execution-environment.yml -n mcp-ee
+
+# build and keep the temporary context for inspection
+scripts/build_ee_tmp_context.sh -f path/to/execution-environment.yml -n mcp-ee -k
+
+# build, flatten and run smoke tests (see scripts/ee_smoke_test.sh)
+scripts/build_ee_tmp_context.sh -f path/to/execution-environment.yml -n mcp-ee -F -r
+```
+
+- The script tags images as `$(hostname)/mcp-ee:<YYYYMMDDTHHMMSSZ>` (UTC) by default. Use that exact tag when running the image.
+
+- Use `-r` to run a quick smoke test after a successful build; the smoke test runner is `scripts/ee_smoke_test.sh` and performs basic checks (ansible-galaxy, ansible-runner, python, and a minimal ansible-runner playbook).
+
+**How to update features and functions (rebuild flow):**
+
+1. Edit `path/to/execution-environment.yml` to change system packages, additional build steps, or Python/pip dependencies.
+2. Optionally update `additional_build_files` paths referenced by the manifest. Keep these paths outside of git-tracked build contexts when possible.
+3. Run the build helper to produce a fresh, timestamped image:
+
+```
+scripts/build_ee_tmp_context.sh -f path/to/execution-environment.yml -n mcp-ee
+```
+
+Notes:
+- The helper runs `podman system prune -a -f` before each build to reduce layer/cache problems and keep iterations clean.
+- For rapid debugging only: you may `ansible-builder create -f path/to/execution-environment.yml -c /tmp/my-debug-context` and then edit `/tmp/my-debug-context/Containerfile` directly, but prefer modifying the manifest and re-running the helper for reproducibility.
+
+**How to use `mcp-ee` in containers (recommended runtime patterns):**
+
+- Keep large LLM models on the host and mount them read-only into the container. Example host model path: `/var/lib/mcp-llms`.
+
+```
+podman run --rm -it \
+  -v /var/lib/mcp-llms:/var/lib/mcp-llms:Z \
+  -v $PWD:/work:Z -w /work \
+  localhost/mcp-ee:<TAG> bash
+```
+
+- Run HAL or other services inside the container (example starting HAL in an ephemeral container):
+
+```
+podman run --rm -it \
+  -v /var/run/docker.sock:/var/run/docker.sock:Z \
+  -v /var/lib/mcp-llms:/var/lib/mcp-llms:Z \
+  -v $HOME/.mcp-ai:/root/.mcp-ai:Z \
+  localhost/mcp-ee:<TAG> bash -c "HAL --bridge-check && HAL 'what needs attention?'"
+```
+
+**Advanced notes and troubleshooting:**
+
+- Rootless podman: building images rootless requires `newuidmap`/`newgidmap` properly configured; if you see `permission denied` for user namespaces, either configure subordinate uid/gid maps or run builds with elevated privileges.
+- If a generated `context/Containerfile` contains `python` invocations that fail on images that only provide `python3`, the build helper accommodates correct `PYCMD` usage; prefer fixing the `execution-environment.yml` rather than editing generated Containerfiles in git.
+- Never bake model files into the image; always mount them from the host to ensure small, portable images and separate storage for large model artifacts.
+
+If you want, I can:
+- run a fresh build now and show the generated tag, or
+- add a short smoke-test script to the repo that validates a built image (ansible-galaxy, ansible-runner, python version).
+
