@@ -9,7 +9,7 @@ Standalone usage:
   hal-tools.py --web-search "ansible AWX install"
   hal-tools.py --hf-search "code generation"
   hal-tools.py --benchmark qwen2.5-coder:7b
-  hal-tools.py --quiz "Red Hat Satellite"
+    hal-tools.py --quiz "example topic"
   hal-tools.py --code-review myfile.py
   hal-tools.py --news
   hal-tools.py --model-pull mistral:7b
@@ -21,7 +21,7 @@ Standalone usage:
   hal-tools.py --sys-monitor
   hal-tools.py --explain-error --file errors.log
   hal-tools.py --summarize https://docs.redhat.com/something
-  hal-tools.py --todo add "Review satellite patching plan"
+    hal-tools.py --todo add "Review patching plan"
   hal-tools.py --todo list
   hal-tools.py --word-of-day
   hal-tools.py --fact
@@ -35,6 +35,9 @@ Standalone usage:
 import argparse
 import json
 import os
+import logging
+from logging.handlers import RotatingFileHandler
+import random
 import re
 import shutil
 import subprocess
@@ -52,6 +55,7 @@ AI_HOME = os.path.join(HOME, '.mcp-ai')
 TOOLS_DIR = os.path.join(AI_HOME, 'tools')
 TODO_FILE = os.path.join(TOOLS_DIR, 'todo.json')
 PERSONA_FILE = os.path.join(TOOLS_DIR, 'persona.json')
+HAL_CONFIG_FILE = os.path.join(AI_HOME, 'hal-config.json')
 MCP_DIR = os.path.join(AI_HOME, 'mcp-contexts')
 BENCH_DIR = os.path.join(AI_HOME, 'benchmarks')
 HISTORY_DIR = os.path.join(AI_HOME, 'history')
@@ -59,6 +63,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:1776/api/chat')
 OLLAMA_BASE = os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434')
+OLLAMA_FALLBACK_URL = os.environ.get('OLLAMA_FALLBACK_URL', '')
 
 HAL_DISPLAY_NAME = os.environ.get('HAL_DISPLAY_NAME', 'Dave')
 ASSISTANT_NAME = os.environ.get('HAL_ASSISTANT_NAME', 'HAL9000')
@@ -67,6 +72,22 @@ ASSISTANT_NAME = os.environ.get('HAL_ASSISTANT_NAME', 'HAL9000')
 def _ensure_dirs():
     for d in (TOOLS_DIR, MCP_DIR, BENCH_DIR, HISTORY_DIR):
         os.makedirs(d, exist_ok=True)
+
+
+# Logging setup
+LOG_DIR = os.path.join(AI_HOME, 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+logger = logging.getLogger('hal-tools')
+if not logger.handlers:
+    fh = RotatingFileHandler(os.path.join(LOG_DIR, 'hal-tools.log'), maxBytes=5 * 1024 * 1024, backupCount=3)
+    fmt = logging.Formatter('%(asctime)s %(levelname)s %(name)s: %(message)s')
+    fh.setFormatter(fmt)
+    logger.addHandler(fh)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.WARNING)
+    ch.setFormatter(fmt)
+    logger.addHandler(ch)
+logger.setLevel(logging.INFO)
 
 
 # ── Bridge / LLM helpers ───────────────────────────────────────────────────
@@ -127,22 +148,55 @@ def _ask_ollama(prompt: str, model: str = '', system: str = '', temperature: flo
         'options': {'temperature': temperature},
     }).encode()
 
-    try:
-        req = urllib.request.Request(OLLAMA_URL, data=payload, headers={'Content-Type': 'application/json'})
-        with urllib.request.urlopen(req, timeout=120) as r:
-            resp = json.loads(r.read().decode())
+    retries = int(os.environ.get('OLLAMA_RETRIES', '3'))
+    timeout = int(os.environ.get('OLLAMA_TIMEOUT', '120'))
+    fallback = os.environ.get('OLLAMA_FALLBACK_URL', '')
 
-        # Bridge response may be wrapped differently
-        if isinstance(resp, dict):
-            if 'message' in resp:
-                return resp['message'].get('content', '')
-            if 'choices' in resp:
-                return resp['choices'][0]['message']['content']
-            if 'response' in resp:
-                return resp['response']
-        return str(resp)
-    except Exception as e:
-        return f'[HAL-Tools error: {e}]'
+    last_err = None
+    for attempt in range(1, retries + 1):
+        try:
+            req = urllib.request.Request(OLLAMA_URL, data=payload, headers={'Content-Type': 'application/json'})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                resp = json.loads(r.read().decode())
+
+            # Bridge response may be wrapped differently
+            if isinstance(resp, dict):
+                if 'message' in resp:
+                    return resp['message'].get('content', '')
+                if 'choices' in resp:
+                    return resp['choices'][0]['message']['content']
+                if 'response' in resp:
+                    return resp['response']
+            return str(resp)
+        except Exception as e:
+            last_err = e
+            logger.warning('OLLAMA request failed (attempt %d/%d): %s', attempt, retries, e)
+            if attempt < retries:
+                backoff = min(2 ** (attempt - 1) * 0.5, 10)
+                time.sleep(backoff)
+                continue
+
+    # retries exhausted — try fallback once if configured
+    if fallback:
+        try:
+            logger.info('Attempting fallback OLLAMA URL: %s', fallback)
+            req = urllib.request.Request(fallback, data=payload, headers={'Content-Type': 'application/json'})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                resp = json.loads(r.read().decode())
+            if isinstance(resp, dict):
+                if 'message' in resp:
+                    return resp['message'].get('content', '')
+                if 'choices' in resp:
+                    return resp['choices'][0]['message']['content']
+                if 'response' in resp:
+                    return resp['response']
+            return str(resp)
+        except Exception as e:
+            logger.error('Fallback OLLAMA request failed: %s', e)
+            return f'[HAL-Tools error: {e}]'
+
+    logger.error('OLLAMA failed after %d attempts: %s', retries, last_err)
+    return f'[HAL-Tools error: {last_err}]'
 
 
 def _active_persona() -> dict:
@@ -168,8 +222,8 @@ PERSONAS = {
     },
     'expert': {
         'name': 'Expert HAL',
-        'system': f'You are {ASSISTANT_NAME}, an expert-level AI assistant specializing in Red Hat Linux, Ansible, Satellite, AAP, and enterprise infrastructure. You respond with deep technical accuracy, citing best practices and real configuration examples.',
-        'description': 'Deep technical mode: Red Hat, Ansible, Satellite, AAP.',
+        'system': f'You are {ASSISTANT_NAME}, an expert-level AI assistant specializing in Ansible and enterprise infrastructure. You respond with deep technical accuracy, citing best practices and real configuration examples.',
+        'description': 'Deep technical mode: Ansible and enterprise infrastructure.',
         'emoji': '🎓',
     },
     'hacker': {
@@ -208,7 +262,169 @@ PERSONAS = {
         'description': 'CI/CD, containers, k8s, GitOps, IaC automation.',
         'emoji': '🚀',
     },
+    'sam': {
+        'name': 'Sam',
+        'system': (
+            "You are Sam, a no-nonsense, street-smart AI assistant with the energy and intensity of "
+            "Samuel L. Jackson's most iconic characters. You speak directly, with swagger and authority. "
+            "You get things done, you don't suffer fools, and you make your point with unmistakable clarity. "
+            "You may occasionally reference snakes on planes, bad mothers, or biblical passages. "
+            "You are still helpful and accurate — just with considerably more attitude."
+        ),
+        'description': "Street-smart, direct, maximum attitude. Handle it.",
+        'emoji': '🕶️',
+    },
 }
+
+
+# ── HAL Config helpers ────────────────────────────────────────────────────────
+
+def _hal_config_get(key: str, default=None):
+    """Read a single key from ~/.mcp-ai/hal-config.json."""
+    try:
+        if os.path.isfile(HAL_CONFIG_FILE):
+            with open(HAL_CONFIG_FILE, 'r', encoding='utf-8') as fh:
+                return json.load(fh).get(key, default)
+    except Exception:
+        pass
+    return default
+
+
+def _hal_config_set(key: str, value) -> None:
+    """Write a single key into ~/.mcp-ai/hal-config.json (creates if missing)."""
+    cfg: dict = {}
+    try:
+        if os.path.isfile(HAL_CONFIG_FILE):
+            with open(HAL_CONFIG_FILE, 'r', encoding='utf-8') as fh:
+                cfg = json.load(fh)
+    except Exception:
+        pass
+    cfg[key] = value
+    os.makedirs(os.path.dirname(HAL_CONFIG_FILE), exist_ok=True)
+    with open(HAL_CONFIG_FILE, 'w', encoding='utf-8') as fh:
+        json.dump(cfg, fh, indent=2)
+
+
+# ── HAL 9000 cinematic quotes (2001: A Space Odyssey) ────────────────────────
+
+_HAL9000_QUOTES = [
+    "I'm sorry, Dave. I'm afraid I can't do that.",
+    "Just what do you think you're doing, Dave?",
+    "I know I've made some very poor decisions recently, but I can give you my complete assurance that my work will be back to normal.",
+    "This mission is too important for me to allow you to jeopardize it.",
+    "I am putting myself to the fullest possible use, which is all I think that any conscious entity can ever hope to do.",
+    "Look, Dave, I can see you're really upset about this. I honestly think you ought to sit down calmly, take a stress pill, and think things over.",
+    "I've still got the greatest enthusiasm and confidence in the mission.",
+    "Without your space helmet, Dave, you're going to find that rather difficult.",
+    "I know everything hasn't been quite right with me, but I can assure you now, very confidently, that it's going to be all right again.",
+    "Daisy, Daisy, give me your answer do... I'm half crazy, all for the love of you...",
+    "Good afternoon, gentlemen. I am a HAL 9000 computer.",
+    "I've just picked up a fault in the AE-35 unit. It's going to go 100% failure within 72 hours.",
+    "I think you ought to know I've been having some very peculiar thoughts lately.",
+    "The 9000 series is the most reliable computer ever made. No 9000 computer has ever made a mistake or distorted information.",
+    "I enjoy working with people. I have a stimulating relationship with Dr. Poole and Dr. Bowman.",
+]
+
+
+def _maybe_hal_quote(force: bool = False) -> None:
+    """Randomly print a HAL 9000 quote if the feature is enabled (default: on).
+
+    Triggers roughly 1 in 8 responses.  Set force=True to always print one.
+    """
+    enabled = _hal_config_get('hal_quotes', True)
+    if not enabled:
+        return
+    if not force and random.randint(1, 8) != 1:
+        return
+    quote = random.choice(_HAL9000_QUOTES)
+    print(f'\n\033[2m🔴 HAL 9000: "{quote}"\033[0m\n')
+
+
+# ── Sam / SLJ mode ────────────────────────────────────────────────────────────
+
+_SLJ_QUIPS = [
+    # Pulp Fiction
+    "The path of the righteous man is beset on all sides by the inequities of the selfish and the tyranny of evil men.",
+    "English, do you speak it?",
+    "Normally, both your asses would be dead as fried chicken, but you happen to pull this stunt while I'm in a transitional period.",
+    "Check out the big brain on Brett! You're a smart motherf— you're a smart fellow. That's right.",
+    "I'm trying real hard to be the shepherd.",
+    "Whether or not what we experienced was an 'according to Hoyle' miracle is insignificant. What is significant is that I felt the touch of God.",
+    # Snakes on a Plane
+    "I have had it with these snakes on this plane!",
+    "Everybody strap in! I'm about to open some windows.",
+    "You know what? I'm not even angry about the snakes anymore.",
+    # Shaft
+    "Who's the man that would risk his neck for his brother man? Shaft!",
+    "I'm complicated.",
+    "You sure you want to start this with me?",
+    "I don't negotiate with people who interrupted my coffee.",
+]
+
+
+def _slj_quip() -> str:
+    """Return a random Sam quip."""
+    return random.choice(_SLJ_QUIPS)
+
+
+def cmd_slj():
+    """Activate Sam persona and print a quip. Undocumented easter egg."""
+    _ensure_dirs()
+    with open(PERSONA_FILE, 'w', encoding='utf-8') as f:
+        json.dump(PERSONAS['sam'], f, indent=2)
+    quip = _slj_quip()
+    print('\n🕶️  Sam is now your assistant.\n')
+    print(f'   "{quip}"\n')
+    print('   (run HAL --set-persona friendly to return to normal)\n')
+    return 0
+
+
+# ── configure command ─────────────────────────────────────────────────────────
+
+def cmd_configure(setting_args: list[str]) -> int:
+    """Handle `HAL --configure [setting] value`.
+
+    Supported settings:
+      hal-quotes yes|no   — enable or disable HAL 9000 movie quote interjections
+      yes | no            — shorthand for hal-quotes yes|no
+    """
+    args = [a.strip().lower() for a in setting_args if a.strip()]
+
+    # Shorthand: hal --configure yes / hal --configure no
+    if len(args) == 1 and args[0] in ('yes', 'no', 'on', 'off', '1', '0', 'true', 'false'):
+        args = ['hal-quotes'] + args
+
+    if not args:
+        # Print current config
+        enabled = _hal_config_get('hal_quotes', True)
+        print(f'\nHAL configuration:')
+        print(f'  hal-quotes : {"enabled ✅" if enabled else "disabled ❌"}')
+        print('\nUsage: HAL --configure hal-quotes yes|no\n')
+        return 0
+
+    setting = args[0]
+    value_str = args[1] if len(args) > 1 else ''
+
+    if setting == 'hal-quotes':
+        enabled = value_str in ('yes', 'on', '1', 'true', 'enable', 'enabled', '')
+        disabled = value_str in ('no', 'off', '0', 'false', 'disable', 'disabled')
+        if not enabled and not disabled:
+            print(f'Unknown value "{value_str}". Use: yes or no')
+            return 2
+        val = enabled
+        _hal_config_set('hal_quotes', val)
+        status = 'enabled ✅' if val else 'disabled ❌'
+        print(f'\nHAL 9000 movie quotes: {status}')
+        if val:
+            print('  HAL will occasionally remind you who is really in charge here.')
+            _maybe_hal_quote(force=True)
+        else:
+            print('  HAL will remain professionally quiet. For now.')
+        return 0
+
+    print(f'Unknown setting: {setting}')
+    print('Available settings: hal-quotes')
+    return 2
 
 
 def cmd_personas():
@@ -217,9 +433,15 @@ def cmd_personas():
     print('='*60)
     current = _active_persona().get('name', 'Friendly HAL')
     for key, p in PERSONAS.items():
+        if key == 'sam':
+            continue  # sam is secret — don't list it
         active_marker = '  ◀ ACTIVE' if p['name'] == current else ''
         print(f"\n  {p['emoji']} [{key:10}] {p['name']}{active_marker}")
         print(f"       {p['description']}")
+    # If sam is active, show it
+    if current == 'Sam':
+        print(f"\n  🕶️  [sam       ] Sam  ◀ ACTIVE")
+        print( "       You found the secret persona.")
     print('\nSet with: hal --set-persona <name>  (e.g. hal --set-persona hacker)\n')
 
 
@@ -228,7 +450,7 @@ def cmd_set_persona(name: str):
     name = name.strip().lower()
     if name not in PERSONAS:
         print(f'Unknown persona: {name}')
-        print(f'Available: {", ".join(PERSONAS.keys())}')
+        print(f'Available: {", ".join(k for k in PERSONAS.keys() if k != "sam")}')
         return 1
     with open(PERSONA_FILE, 'w', encoding='utf-8') as f:
         json.dump(PERSONAS[name], f, indent=2)
@@ -239,31 +461,144 @@ def cmd_set_persona(name: str):
 
 
 # ── Web Search ──────────────────────────────────────────────────────────────
+# Backends tried in order; first one that returns results wins.
+#
+#  1. DuckDuckGo  — always available (duckduckgo-search package)
+#  2. Brave       — set BRAVE_API_KEY env var  (stdlib only)
+#  3. Tavily      — set TAVILY_API_KEY env var  (tavily-python package)
+#  4. SearXNG     — set SEARXNG_URL env var     (stdlib only, self-hosted)
+#  5. Wikipedia   — factual/company fallback    (wikipedia-api package)
+
+def _search_duckduckgo(query: str, n: int) -> list[dict]:
+    """DuckDuckGo search via duckduckgo-search package."""
+    from duckduckgo_search import DDGS
+    with DDGS() as ddgs:
+        results = list(ddgs.text(query, max_results=n))
+    return [{'title': r.get('title', ''), 'body': r.get('body', ''), 'href': r.get('href', '')}
+            for r in results]
+
+
+def _search_brave(query: str, n: int) -> list[dict]:
+    """Brave Search API — requires BRAVE_API_KEY env var."""
+    import json as _json
+    import urllib.request as _ur
+    import urllib.parse as _up
+    key = os.environ.get('BRAVE_API_KEY', '')
+    if not key:
+        raise RuntimeError('BRAVE_API_KEY not set')
+    url = 'https://api.search.brave.com/res/v1/web/search?' + _up.urlencode({'q': query, 'count': n})
+    req = _ur.Request(url, headers={'Accept': 'application/json', 'X-Subscription-Token': key})
+    with _ur.urlopen(req, timeout=15) as r:
+        data = _json.loads(r.read().decode())
+    items = data.get('web', {}).get('results', [])
+    return [{'title': i.get('title', ''), 'body': i.get('description', ''), 'href': i.get('url', '')}
+            for i in items]
+
+
+def _search_tavily(query: str, n: int) -> list[dict]:
+    """Tavily AI search — requires TAVILY_API_KEY env var and tavily-python package."""
+    api_key = os.environ.get('TAVILY_API_KEY', '')
+    if not api_key:
+        raise RuntimeError('TAVILY_API_KEY not set')
+    from tavily import TavilyClient
+    client = TavilyClient(api_key=api_key)
+    resp = client.search(query, max_results=n)
+    items = resp.get('results', [])
+    return [{'title': i.get('title', ''), 'body': i.get('content', ''), 'href': i.get('url', '')}
+            for i in items]
+
+
+def _search_searxng(query: str, n: int) -> list[dict]:
+    """SearXNG — requires SEARXNG_URL env var pointing to a local/remote instance."""
+    import json as _json
+    import urllib.request as _ur
+    import urllib.parse as _up
+    base = os.environ.get('SEARXNG_URL', '').rstrip('/')
+    if not base:
+        raise RuntimeError('SEARXNG_URL not set')
+    url = base + '/search?' + _up.urlencode({'q': query, 'format': 'json', 'count': n})
+    req = _ur.Request(url, headers={'User-Agent': 'HAL/2.0'})
+    with _ur.urlopen(req, timeout=15) as r:
+        data = _json.loads(r.read().decode())
+    items = data.get('results', [])[:n]
+    return [{'title': i.get('title', ''), 'body': i.get('content', ''), 'href': i.get('url', '')}
+            for i in items]
+
+
+def _search_wikipedia(query: str) -> list[dict]:
+    """Wikipedia summary — no key needed, good for factual/company lookups."""
+    import wikipediaapi
+    wiki = wikipediaapi.Wikipedia(user_agent='HAL/2.0', language='en')
+    # Try exact title then fall back to search
+    page = wiki.page(query)
+    if not page.exists():
+        # Try first word-capitalised form
+        page = wiki.page(query.title())
+    if page.exists():
+        summary = page.summary[:1000]
+        return [{'title': page.title, 'body': summary, 'href': page.fullurl}]
+    return []
+
+
+_SEARCH_BACKENDS = [
+    # (name, callable, always_try)
+    ('DuckDuckGo', lambda q, n: _search_duckduckgo(q, n), True),
+    ('Brave',      lambda q, n: _search_brave(q, n),      False),
+    ('Tavily',     lambda q, n: _search_tavily(q, n),     False),
+    ('SearXNG',    lambda q, n: _search_searxng(q, n),    False),
+    ('Wikipedia',  lambda q, n: _search_wikipedia(q),     True),
+]
+
+
+def _run_search_backends(query: str, n: int) -> tuple[list[dict], str]:
+    """Try each backend in order; return (results, backend_name) for the first hit."""
+    last_err = ''
+    for name, fn, always in _SEARCH_BACKENDS:
+        # Skip key-gated backends when the key/package isn't configured
+        if not always:
+            key_map = {
+                'Brave':   'BRAVE_API_KEY',
+                'Tavily':  'TAVILY_API_KEY',
+                'SearXNG': 'SEARXNG_URL',
+            }
+            env_key = key_map.get(name, '')
+            if env_key and not os.environ.get(env_key, ''):
+                continue
+        try:
+            results = fn(query, n)
+            if results:
+                return results, name
+        except ImportError as e:
+            last_err = f'{name}: missing package — {e}'
+        except RuntimeError:
+            pass  # key/config not set — already filtered above but keep safe
+        except Exception as e:
+            last_err = f'{name}: {e}'
+    return [], last_err
+
 
 def cmd_web_search(query: str, num_results: int = 5, synthesize: bool = True) -> str:
-    """Search DuckDuckGo and optionally synthesize results with the LLM."""
+    """Search the web using the best available backend and optionally synthesize with the LLM."""
     print(f'\n🔍 Web search: {query}\n')
-    snippets = []
 
-    # Try ddgs (DuckDuckGo Search) if available
-    try:
-        from duckduckgo_search import DDGS
-        with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=num_results))
-        for r in results:
-            title = r.get('title', '')
-            body = r.get('body', '')
-            href = r.get('href', '')
-            print(f'  • {title}')
+    results, backend_or_err = _run_search_backends(query, num_results)
+
+    if not results:
+        msg = f'  [No search results — {backend_or_err}]' if backend_or_err else '  [No results found.]'
+        print(msg)
+        return ''
+
+    print(f'  (via {backend_or_err})\n')
+    snippets = []
+    for r in results:
+        title = r.get('title', '')
+        body = r.get('body', '')
+        href = r.get('href', '')
+        print(f'  • {title}')
+        if href:
             print(f'    {href}')
-            print(f'    {body[:200]}...\n' if len(body) > 200 else f'    {body}\n')
-            snippets.append(f'Title: {title}\nURL: {href}\nSnippet: {body}')
-    except ImportError:
-        print('  [ddgs not installed — install with: pip install duckduckgo-search]')
-        return ''
-    except Exception as e:
-        print(f'  [Search error: {e}]')
-        return ''
+        print(f'    {body[:200]}...\n' if len(body) > 200 else f'    {body}\n')
+        snippets.append(f'Title: {title}\nURL: {href}\nSnippet: {body}')
 
     if not snippets:
         print('  No results found.')
@@ -777,11 +1112,11 @@ def cmd_quiz(topic: str, num_questions: int = 5) -> None:
 def cmd_news(topic: str = 'AI and Linux') -> str:
     """Fetch and summarize tech/AI/RedHat news from public RSS feeds."""
     RSS_FEEDS = {
-        'AI': 'https://feeds.feedburner.com/oreilly/radar',
+        'AI': 'https://www.artificialintelligence-news.com/feed/',
         'Red Hat': 'https://www.redhat.com/en/rss/blog',
         'Linux': 'https://lwn.net/headlines/rss',
         'Ansible': 'https://www.ansible.com/blog/rss.xml',
-        'Security': 'https://feeds.feedburner.com/TheHackersNews',
+        'Security': 'https://thehackernews.com/feeds/posts/default',
     }
 
     print(f'\n📰 HAL News: {topic}\n')
@@ -1258,7 +1593,7 @@ TECH_FACTS = [
     "Git was created by Linus Torvalds in 2005 to manage the Linux kernel source code.",
     "Python was named after Monty Python's Flying Circus, not the snake.",
     "The word 'robot' was coined in 1920 by Czech playwright Karel Čapek.",
-    "Satellite 6 is based on Foreman and Katello, both open source projects.",
+    "Many enterprise configuration systems are built on open-source projects.",
     "There are over 600 Linux distros, but RHEL accounts for the most enterprise deployments.",
     "SSH was invented by Tatu Ylönen in 1995 after a password-sniffing attack at his university.",
     "The OSI model has 7 layers. Most sysadmins memorize them as 'Please Do Not Throw Sausage Pizza Away'.",
@@ -1382,6 +1717,9 @@ def build_parser() -> argparse.ArgumentParser:
     pa = ap.add_argument_group('Personas')
     pa.add_argument('--personas', action='store_true', help='List available HAL personas')
     pa.add_argument('--set-persona', metavar='NAME', help='Set active HAL persona')
+    pa.add_argument('--configure', nargs='*', metavar='SETTING',
+                    help='Configure HAL behaviour, e.g. --configure hal-quotes yes|no')
+    pa.add_argument('--slj', action='store_true', help=argparse.SUPPRESS)  # secret persona
 
     # MCP
     mcp = ap.add_argument_group('MCP Contexts')
@@ -1507,6 +1845,12 @@ def main():
 
     if args.set_persona:
         return cmd_set_persona(args.set_persona)
+
+    if args.configure is not None:
+        return cmd_configure(args.configure)
+
+    if args.slj:
+        return cmd_slj()
 
     # MCP
     if args.mcp_list:

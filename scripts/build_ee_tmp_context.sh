@@ -60,8 +60,45 @@ fi
 # try to re-run this script under sudo (preserving PATH) so the build can proceed.
 if [[ $(id -u) -ne 0 ]]; then
   if ! podman info >/dev/null 2>&1; then
+    echo "Rootless podman appears unusable; running diagnostics to suggest fixes..."
+
+    # Check presence of newuidmap/newgidmap
+    NEWUID=$(command -v newuidmap || true)
+    NEWGID=$(command -v newgidmap || true)
+    echo "newuidmap: ${NEWUID:-not found}"
+    echo "newgidmap: ${NEWGID:-not found}"
+
+    # Check for nosuid on / or /usr
+    if mount | grep -E '\s/usr\s|\s/\s' | grep -q nosuid; then
+      echo "\nDetected 'nosuid' on / or /usr. This prevents setuid from working.\nRemount with suid (example):"
+      echo "  sudo mount -o remount,suid /usr"
+      echo "or"
+      echo "  sudo mount -o remount,suid /"
+    fi
+
+    # Check file capabilities for newuidmap/newgidmap
+    if command -v getcap >/dev/null 2>&1; then
+      GC_NEWUID=$(getcap /usr/bin/newuidmap 2>/dev/null || true)
+      GC_NEWGID=$(getcap /usr/bin/newgidmap 2>/dev/null || true)
+      echo "getcap(newuidmap): ${GC_NEWUID:-none}"
+      echo "getcap(newgidmap): ${GC_NEWGID:-none}"
+      if [[ -z "$GC_NEWUID" || "$GC_NEWUID" == "none" || -z "$GC_NEWGID" || "$GC_NEWGID" == "none" ]]; then
+        echo "\nIf capabilities are missing, as root run the following to grant the needed file capabilities:"
+        echo "  sudo chmod 0755 /usr/bin/newuidmap"
+        echo "  sudo setcap cap_setuid+ep /usr/bin/newuidmap"
+        echo "  sudo setcap cap_setgid+ep /usr/bin/newgidmap"
+        echo "  getcap /usr/bin/newuidmap"
+      fi
+    fi
+
+    # Check /etc/subuid and /etc/subgid for current user
+    CURUSER="${SUDO_USER:-$USER}"
+    if ! grep -q "^${CURUSER}:" /etc/subuid 2>/dev/null; then
+      echo "\nNo /etc/subuid entry found for ${CURUSER}. Add a line like:\n  ${CURUSER}:524288:65536\nand similarly to /etc/subgid"
+    fi
+
     if command -v sudo >/dev/null 2>&1; then
-      echo "Rootless podman appears unusable; retrying under sudo to perform build"
+      echo "Retrying under sudo to perform build"
       exec sudo env PATH="$PATH" "$0" "$@"
     else
       echo "Rootless podman appears unusable and sudo is not available; aborting." >&2
@@ -96,6 +133,18 @@ if [[ -f "$CONTAINERFILE" ]]; then
     # adjust the COPY instruction to use that path so the build can find it.
     if [[ -f "$CONTEXT_DIR/_build/scripts/pkgmgr.sh/pkgmgr.sh" ]]; then
       sed -i "s|COPY scripts/pkgmgr.sh /build/scripts/pkgmgr.sh|COPY _build/scripts/pkgmgr.sh/pkgmgr.sh /build/scripts/pkgmgr.sh|g" "$CONTAINERFILE" || true
+    fi
+    # If additional_build_files were placed under _build with their own
+    # directory (e.g. download_llm.sh/download_llm.sh or apply_lora.sh/apply_lora.sh)
+    # adjust COPY paths for those as well so the Containerfile can find them.
+    if [[ -f "$CONTEXT_DIR/_build/scripts/download_llm.sh/download_llm.sh" ]]; then
+      sed -i "s|COPY scripts/download_llm.sh /usr/local/bin/download_llm|COPY _build/scripts/download_llm.sh/download_llm.sh /usr/local/bin/download_llm|g" "$CONTAINERFILE" || true
+    fi
+    if [[ -f "$CONTEXT_DIR/_build/scripts/apply_lora.sh/apply_lora.sh" ]]; then
+      sed -i "s|COPY scripts/apply_lora.sh /usr/local/bin/apply_lora|COPY _build/scripts/apply_lora.sh/apply_lora.sh /usr/local/bin/apply_lora|g" "$CONTAINERFILE" || true
+    fi
+    if [[ -f "$CONTEXT_DIR/_build/mcp-ai/runtime/runtime.py/runtime.py" ]]; then
+      sed -i "s|COPY mcp-ai/runtime/runtime.py /usr/local/bin/mcp-runtime|COPY _build/mcp-ai/runtime/runtime.py/runtime.py /usr/local/bin/mcp-runtime|g" "$CONTAINERFILE" || true
     fi
   fi
 fi

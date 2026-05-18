@@ -5,10 +5,8 @@ This script targets a bounded set of Red Hat documentation roots and crawls only
 the relevant product/version pages so the resulting training corpus is useful
 for HAL without pulling in unrelated site footer/navigation content.
 
-Supported doc sets:
-  - satellite-6.18
-  - aap-2.6
-  - idm-5.0   (mapped to the RHEL 10 Identity Management documentation set)
+Currently no curated Red Hat doc sets are enabled for ingestion in this
+repository.
 """
 
 from __future__ import annotations
@@ -19,69 +17,7 @@ import sys
 from ingest_urls import crawl
 
 
-DOCSETS = {
-    'satellite-6.18': {
-        'label': 'Red Hat Satellite 6.18',
-        'start_urls': [
-            'https://docs.redhat.com/en/documentation/red_hat_satellite/6.18',
-        ],
-        'allow_prefixes': [
-            'https://docs.redhat.com/en/documentation/red_hat_satellite/6.18',
-        ],
-    },
-    'aap-2.6': {
-        'label': 'Red Hat Ansible Automation Platform 2.6',
-        'start_urls': [
-            'https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.6',
-        ],
-        'allow_prefixes': [
-            'https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.6',
-        ],
-    },
-    'idm-5.0': {
-        'label': 'Identity Management docs (mapped to RHEL 10 IdM documentation set)',
-        'start_urls': [
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/installing_identity_management',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/planning_identity_management',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/using_ansible_to_install_and_manage_identity_management_in_rhel',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/installing_trust_between_idm_and_ad',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/managing_certificates_in_idm',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/accessing_identity_management_services',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/migrating_to_identity_management_on_rhel_10',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/managing_idm_users_groups_hosts_and_access_control_rules',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/managing_replication_in_identity_management',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/tuning_performance_in_identity_management',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/preparing_for_disaster_recovery_with_identity_management',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/performing_disaster_recovery_with_identity_management',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/working_with_dns_in_identity_management',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/using_external_red_hat_utilities_with_identity_management',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/using_idm_api',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/using_idm_healthcheck_to_monitor_your_idm_environment',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/managing_smart_card_authentication',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/working_with_vaults_in_identity_management',
-        ],
-        'allow_prefixes': [
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/installing_identity_management',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/planning_identity_management',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/using_ansible_to_install_and_manage_identity_management_in_rhel',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/installing_trust_between_idm_and_ad',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/managing_certificates_in_idm',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/accessing_identity_management_services',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/migrating_to_identity_management_on_rhel_10',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/managing_idm_users_groups_hosts_and_access_control_rules',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/managing_replication_in_identity_management',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/tuning_performance_in_identity_management',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/preparing_for_disaster_recovery_with_identity_management',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/performing_disaster_recovery_with_identity_management',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/working_with_dns_in_identity_management',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/using_external_red_hat_utilities_with_identity_management',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/using_idm_api',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/using_idm_healthcheck_to_monitor_your_idm_environment',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/managing_smart_card_authentication',
-            'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/working_with_vaults_in_identity_management',
-        ],
-    },
-}
+DOCSETS = {}
 
 
 def parse_args() -> argparse.Namespace:
@@ -105,7 +41,7 @@ def main() -> int:
     selected = args.docsets or list(DOCSETS.keys())
 
     # Resolve URL arguments to their matching docset keys so that both
-    # `satellite-6.18` and `https://docs.redhat.com/.../satellite/6.18` work.
+    # a docset key (e.g. "product-1.0") and a full seed URL map to the same docset.
     def _url_to_docset(item: str) -> str:
         if item in DOCSETS:
             return item

@@ -1,0 +1,13 @@
+gcc
+make
+python3-devel
+python3-pip
+libffi-devel
+openssl-devel
+redhat-rpm-config
+git
+cmake
+gcc-c++
+wget
+xz
+tar

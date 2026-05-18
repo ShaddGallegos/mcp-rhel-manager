@@ -1,6 +1,6 @@
 [Unit]
 Description=HAL Auto-Update Timer (Daily at 7 AM)
-Documentation=file:///home/sgallego/GIT/mcp-rhel-manager/README.md
+Documentation=file://<REPO_ROOT>/README.md
 Requires=hal-auto-update.service
 
 [Timer]

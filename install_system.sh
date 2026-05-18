@@ -27,6 +27,10 @@ ROLLBACK_ON_FAIL=1
 VENV_MODE=0
 SELINUX_POLICY="permissive"
 FIREWALLD_POLICY="disabled"
+RECONFIGURE=0
+UNINSTALL=0
+PRESERVE_DATA=0
+REALLY_FORCE=0
 
 usage(){
   cat <<EOF
@@ -77,6 +81,10 @@ while [[ $# -gt 0 ]]; do
     --selinux) SELINUX_POLICY="${2:-}"; shift 2 ;;
     --firewalld) FIREWALLD_POLICY="${2:-}"; shift 2 ;;
     --no-rollback) ROLLBACK_ON_FAIL=0; shift ;;
+    --reconfigure) RECONFIGURE=1; shift ;;
+    --uninstall) UNINSTALL=1; shift ;;
+    --preserve-data) PRESERVE_DATA=1; shift ;;
+    --really-force) REALLY_FORCE=1; shift ;;
     --help|-h) usage; exit 0 ;;
     *) echo "Unknown argument: $1"; usage; exit 1 ;;
   esac
@@ -188,6 +196,18 @@ if [[ $VERIFY_JSON -ne 1 ]]; then
   echo
 fi
 
+# If user requested reconfiguration, run the interactive configure helper and exit.
+if [[ $RECONFIGURE -eq 1 ]]; then
+  if command -v python3 >/dev/null 2>&1; then
+    python3 "$SCRIPT_DIR/scripts/configure_ansible_env.py" || {
+      echo "Reconfiguration failed." >&2; exit 1
+    }
+    echo "Reconfiguration complete."; exit 0
+  else
+    echo "python3 not found; cannot run configure script" >&2; exit 1
+  fi
+fi
+
 [[ -d "$SCRIPT_DIR" ]] || fail "Script directory not found: $SCRIPT_DIR"
 [[ "$BRIDGE_PORT" =~ ^[0-9]+$ ]] || fail "BRIDGE_PORT must be numeric (got: $BRIDGE_PORT)"
 (( BRIDGE_PORT >= 1 && BRIDGE_PORT <= 65535 )) || fail "BRIDGE_PORT out of range: $BRIDGE_PORT"
@@ -205,6 +225,61 @@ if [[ $APPLY -eq 1 && $YES -ne 1 ]]; then
   echo " - apply SELinux contexts and file permission hardening"
   echo
   if ! prompt_confirm "Proceed?"; then echo "Aborting."; exit 1; fi
+fi
+
+if [[ $UNINSTALL -eq 1 ]]; then
+  if [[ $APPLY -ne 1 ]]; then
+    echo "UNINSTALL dry-run: no changes will be made"
+  fi
+  if [[ $YES -ne 1 ]]; then
+    echo "About to uninstall mcp-rhel-manager from this host:" 
+    echo " - disable & remove systemd units"
+    echo " - remove venv: $VENV_DIR"
+    echo " - remove base dir: $BASE_DIR"
+    echo " - remove users: $MCP_USER, $AI_USER"
+    if ! prompt_confirm "Proceed with uninstall?"; then echo "Aborting uninstall."; exit 1; fi
+  fi
+  uninstall_all(){
+    echo "Performing uninstall (dry-run=$((1-APPLY)) )"
+    # stop and disable systemd units
+    run systemctl disable --now mcp-bridge.service mcp-ai-remediator.service mcp-ai-collector.timer mcp-ai-dashboard.service mcp-ai-hal-brain.service || true
+    run systemctl daemon-reload || true
+    # remove systemd unit files
+    run rm -f /etc/systemd/system/mcp-bridge.service /etc/systemd/system/mcp-ai-remediator.service /etc/systemd/system/mcp-ai-collector.service /etc/systemd/system/mcp-ai-collector.timer /etc/systemd/system/mcp-ai-remediator.path /etc/systemd/system/mcp-ai-dashboard.service /etc/systemd/system/mcp-ai-hal-brain.service /etc/systemd/system/mcp-ai-indexer.service /etc/systemd/system/mcp-ai-indexer.timer /etc/systemd/system/mcp-ai-reindex.service /etc/systemd/system/mcp-ai-reindex.timer || true
+    # remove per-user systemd units
+    run rm -f "$INSTALL_HOME/.config/systemd/user/mcp-bridge.service" "$INSTALL_HOME/.config/systemd/user/mcp-sentinel.service" "$INSTALL_HOME/.config/systemd/user/mcp-ai-collector.service" "$INSTALL_HOME/.config/systemd/user/mcp-ai-collector.timer" || true
+    # remove sudoers snippets
+    run rm -f /etc/sudoers.d/mcp-ai /etc/sudoers.d/mcp-ai-runner || true
+    # remove venv
+    run rm -rf "$VENV_DIR" || true
+    # remove base dir (safe-guarded)
+    if [[ $FORCE -eq 1 ]]; then
+      # Safety: only delete BASE_DIR if it contains a recognizable project marker
+      marker_ok=0
+      if [[ -f "$BASE_DIR/install_system.sh" || -d "$BASE_DIR/.git" || -f "$BASE_DIR/scripts/hal.py" ]]; then
+        marker_ok=1
+      fi
+      if [[ $marker_ok -eq 1 || $REALLY_FORCE -eq 1 ]]; then
+        run rm -rf "$BASE_DIR" || true
+      else
+        echo "Refusing to remove $BASE_DIR: no project marker found. Re-run with --really-force to override." >&2
+      fi
+    else
+      echo "Not removing $BASE_DIR (use --force to delete)"
+    fi
+    # remove users/groups (preserve data option keeps MCP_HOME)
+    if [[ $PRESERVE_DATA -eq 1 ]]; then
+      echo "Preserving data under $MCP_HOME as requested (--preserve-data)"
+    else
+      run rm -rf "$MCP_HOME" || true
+    fi
+    run userdel "$MCP_USER" 2>/dev/null || true
+    run userdel "$AI_USER" 2>/dev/null || true
+    run groupdel "$AI_USER" 2>/dev/null || true
+    echo "Uninstall steps complete."
+  }
+  uninstall_all
+  exit 0
 fi
 
 PKG_CMD=""
@@ -566,6 +641,37 @@ WantedBy=timers.target
 UNITEOF
   _install_unit "$t" /etc/systemd/system/mcp-ai-indexer.timer || true
 
+  # Reindex embeddings service + timer (uses scripts/reindex_embeddings.py)
+  t="$(mktemp)"
+  cat >"$t" <<UNITEOF
+[Unit]
+Description=MCP AI Reindex Embeddings (one-shot)
+After=network.target
+[Service]
+Type=oneshot
+User=$AI_USER
+Group=$AI_USER
+Environment=HOME=$MCP_HOME
+ExecStart=$BASE_DIR/scripts/reindex_wrapper.sh --input-dir $MCP_HOME/training --out $MCP_HOME/training_index.jsonl --dim 64
+TimeoutStartSec=1800
+[Install]
+WantedBy=multi-user.target
+UNITEOF
+  _install_unit "$t" /etc/systemd/system/mcp-ai-reindex.service || true
+
+  t="$(mktemp)"
+  cat >"$t" <<UNITEOF
+[Unit]
+Description=Run MCP AI Reindex Embeddings daily
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=1d
+Persistent=true
+[Install]
+WantedBy=timers.target
+UNITEOF
+  _install_unit "$t" /etc/systemd/system/mcp-ai-reindex.timer || true
+
   t="$(mktemp)"
   cat >"$t" <<UNITEOF
 [Unit]
@@ -774,8 +880,88 @@ post_install(){
         mcp-ai-dashboard.service \
         mcp-ai-hal-brain.service || true
     fi
+    # Optionally run a one-shot reindex at install time when requested
+    if [[ "${HAL_REINDEX_ON_START:-0}" =~ ^(1|true|yes)$ ]]; then
+      echo "HAL_REINDEX_ON_START enabled: running initial reindex (may take time)"
+      run "$VENV_DIR/bin/python" "$BASE_DIR/scripts/reindex_embeddings.py" --input-dir "$MCP_HOME/training" --out "$MCP_HOME/training_index.jsonl" || true
+    fi
   else
     echo "DRY-RUN: would run systemctl daemon-reload and optionally enable/start services"
+  fi
+}
+
+# ===========================================================================
+configure_search_backends(){
+  # Writes ~/.mcp-ai/search-env with API keys / URLs for optional search backends.
+  # In --yes mode, skips interactive prompts (env vars can still be pre-set).
+  # In --dry-run mode, just shows what would be written.
+
+  local env_file="$HOME/.mcp-ai/search-env"
+
+  # Collect current / pre-set values
+  local brave_key="${BRAVE_API_KEY:-}"
+  local tavily_key="${TAVILY_API_KEY:-}"
+  local searxng_url="${SEARXNG_URL:-}"
+
+  # Interactive prompts only when YES=0 and APPLY=1
+  if [[ $APPLY -eq 1 && $YES -eq 0 ]]; then
+    echo ""
+    echo "══════════════════════════════════════════════════════"
+    echo " Optional search backend configuration"
+    echo " (press Enter to skip any backend)"
+    echo "══════════════════════════════════════════════════════"
+    echo ""
+
+    read -rp "  Brave Search API key (https://api.search.brave.com, free 2k/mo): " _input
+    [[ -n "$_input" ]] && brave_key="$_input"
+
+    read -rp "  Tavily API key (https://app.tavily.com, free tier available):    " _input
+    [[ -n "$_input" ]] && tavily_key="$_input"
+
+    read -rp "  SearXNG URL (e.g. http://localhost:8888, leave blank to skip):    " _input
+    [[ -n "$_input" ]] && searxng_url="$_input"
+
+    echo ""
+  fi
+
+  if [[ $APPLY -eq 1 ]]; then
+    mkdir -p "$(dirname "$env_file")"
+    # Write env file — only emit lines for keys that are set
+    {
+      echo "# HAL search backend environment — sourced by shell profile"
+      echo "# Generated by install_system.sh on $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      echo ""
+      [[ -n "$brave_key"   ]] && echo "export BRAVE_API_KEY=\"$brave_key\""
+      [[ -n "$tavily_key"  ]] && echo "export TAVILY_API_KEY=\"$tavily_key\""
+      [[ -n "$searxng_url" ]] && echo "export SEARXNG_URL=\"$searxng_url\""
+    } > "$env_file"
+    chmod 600 "$env_file"
+
+    # Source from ~/.bashrc if not already wired in
+    local rc_file="$HOME/.bashrc"
+    local source_line="# HAL search backends"$'\n'"[[ -f \"$env_file\" ]] && source \"$env_file\""
+    if ! grep -qF "$env_file" "$rc_file" 2>/dev/null; then
+      printf '\n%s\n' "$source_line" >> "$rc_file"
+    fi
+
+    # Also export into the current shell so HAL works immediately
+    [[ -n "$brave_key"   ]] && export BRAVE_API_KEY="$brave_key"
+    [[ -n "$tavily_key"  ]] && export TAVILY_API_KEY="$tavily_key"
+    [[ -n "$searxng_url" ]] && export SEARXNG_URL="$searxng_url"
+
+    # Report what was configured
+    local configured=()
+    [[ -n "$brave_key"   ]] && configured+=("Brave")
+    [[ -n "$tavily_key"  ]] && configured+=("Tavily")
+    [[ -n "$searxng_url" ]] && configured+=("SearXNG")
+    if [[ ${#configured[@]} -gt 0 ]]; then
+      echo "Search backends configured: ${configured[*]} -> $env_file"
+    else
+      echo "Search backends: no keys provided — only DuckDuckGo + Wikipedia will be used"
+      echo "  (re-run install or edit $env_file to add keys later)"
+    fi
+  else
+    echo "DRY-RUN: would write search backend keys to $env_file"
   fi
 }
 
@@ -795,6 +981,40 @@ install_hal_cli(){
     echo "HAL CLI: /usr/local/bin/HAL -> $wrapper_src"
   else
     echo "DRY-RUN: would link $wrapper_src to /usr/local/bin/{HAL,hal}"
+  fi
+
+  # ── Bash tab-completion ──────────────────────────────────────────────────
+  local comp_src="$BASE_DIR/completions/hal.bash"
+  if [[ -f "$comp_src" ]]; then
+    local comp_dest=""
+    # System-wide completion dir (preferred when running as root)
+    if [[ $EUID -eq 0 && -d /etc/bash_completion.d ]]; then
+      comp_dest="/etc/bash_completion.d/hal"
+    fi
+    if [[ $APPLY -eq 1 ]]; then
+      if [[ -n "$comp_dest" ]]; then
+        run cp "$comp_src" "$comp_dest"
+        echo "HAL bash completion: $comp_dest"
+      else
+        # Per-user install via ~/.bashrc sourcing
+        local rc_file="$HOME/.bashrc"
+        local source_line="# HAL tab-completion"$'\n'"source \"$comp_src\""
+        if ! grep -qF "$comp_src" "$rc_file" 2>/dev/null; then
+          printf '\n%s\n' "$source_line" >> "$rc_file"
+          echo "HAL bash completion: sourced from $rc_file (source ~/.bashrc to activate)"
+        else
+          echo "HAL bash completion: already in $rc_file"
+        fi
+      fi
+    else
+      if [[ -n "$comp_dest" ]]; then
+        echo "DRY-RUN: would install $comp_src -> $comp_dest"
+      else
+        echo "DRY-RUN: would add source $comp_src to ~/.bashrc"
+      fi
+    fi
+  else
+    echo "WARN: HAL completion script not found at $comp_src; skipping"
   fi
 }
 
@@ -957,6 +1177,7 @@ main(){
   post_install
   apply_runtime_baseline
   install_hal_cli
+  configure_search_backends
   apply_selinux_hardening
   check_ollama
   [[ $VERIFY_MODE -eq 1 ]] && verify_install

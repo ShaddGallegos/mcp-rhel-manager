@@ -5,7 +5,7 @@ Supported types:
 - Plain text: .txt, .md, .rst, .log, .ini, .cfg, .conf, .yaml, .yml, .json, .jsonl, .xml, .html, .htm
 - Delimited data: .csv, .tsv
 - Spreadsheets: .xlsx, .xls, .ods (requires pandas + compatible engine)
-- Docs (best effort): .pdf (requires pypdf), .docx (requires python-docx)
+- Docs (best effort): .pdf (requires pypdf), .docx (requires python-docx), .doc (antiword/catdoc/libreoffice)
 
 Each ingested source file becomes one JSON file in ~/.mcp-ai/training.
 """
@@ -17,7 +17,10 @@ import csv
 import hashlib
 import json
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,7 +36,7 @@ TEXT_EXTS = {
 }
 DELIMITED_EXTS = {".csv", ".tsv"}
 SPREADSHEET_EXTS = {".xlsx", ".xls", ".ods"}
-DOC_EXTS = {".pdf", ".docx"}
+DOC_EXTS = {".pdf", ".docx", ".doc"}
 DEFAULT_EXTS = TEXT_EXTS | DELIMITED_EXTS | SPREADSHEET_EXTS | DOC_EXTS
 
 
@@ -149,6 +152,50 @@ def read_docx(path: Path, max_chars: int) -> str:
         raise RuntimeError(f"failed to parse docx {path}: {exc}") from exc
 
 
+def _run_text_extractor(cmd: list[str]) -> str | None:
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=60)
+        if proc.returncode == 0:
+            out = (proc.stdout or "").strip()
+            return out or None
+    except Exception:
+        pass
+    return None
+
+
+def read_doc(path: Path, max_chars: int) -> str:
+    # Prefer dedicated legacy .doc extractors when available.
+    if shutil.which("antiword"):
+        text = _run_text_extractor(["antiword", str(path)])
+        if text:
+            return text[:max_chars]
+
+    if shutil.which("catdoc"):
+        text = _run_text_extractor(["catdoc", str(path)])
+        if text:
+            return text[:max_chars]
+
+    # Fallback: convert .doc to .txt with LibreOffice headless.
+    soffice = shutil.which("soffice") or shutil.which("libreoffice")
+    if soffice:
+        with tempfile.TemporaryDirectory(prefix="hal-doc-") as td:
+            proc = subprocess.run(
+                [soffice, "--headless", "--convert-to", "txt:Text", "--outdir", td, str(path)],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=120,
+            )
+            if proc.returncode == 0:
+                txt_path = Path(td) / f"{path.stem}.txt"
+                if txt_path.exists():
+                    return txt_path.read_text(encoding="utf-8", errors="replace")[:max_chars]
+
+    raise RuntimeError(
+        "failed to parse .doc file; install one of: antiword, catdoc, or libreoffice"
+    )
+
+
 def gather_files(paths: Iterable[str], recursive: bool, allowed_exts: set[str]) -> list[Path]:
     resolved: list[Path] = []
     for p in paths:
@@ -194,6 +241,9 @@ def ingest_file(path: Path, outdir: Path, max_chars: int, max_rows: int) -> Inge
         elif ext == ".docx":
             content = read_docx(path, max_chars=max_chars)
             parser = "docx"
+        elif ext == ".doc":
+            content = read_doc(path, max_chars=max_chars)
+            parser = "doc"
         else:
             return IngestResult(str(path), None, "skipped", f"unsupported extension {ext}")
 

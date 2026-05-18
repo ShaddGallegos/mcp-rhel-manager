@@ -24,7 +24,7 @@ Usage (standalone):
   hal --mcp-server-status                 # list registered MCP servers
   hal --mcp-server-start architect        # start a named MCP server
   hal --mcp-server-stop architect         # stop a named MCP server
-  hal --task-plan "fully automate RHEL patching via Satellite + AAP"
+    hal --task-plan "fully automate RHEL patching"
   hal --auto-pull                         # smart: pull recommended models if missing
   hal --brain-learn                       # re-score models against benchmark tasks
 """
@@ -64,7 +64,7 @@ ASSISTANT    = os.environ.get('HAL_ASSISTANT_NAME', 'HAL9000')
 # ── Task types ──────────────────────────────────────────────────────────────
 TASK_TYPES = [
     'code',       # code generation, review, debugging
-    'ansible',    # Ansible playbooks, roles, AAP
+    'ansible',    # Ansible playbooks, roles
     'security',   # CVE analysis, hardening, OWASP
     'reasoning',  # complex multi-step logic, math, planning
     'business',   # intel reports, account briefs, stocks
@@ -100,7 +100,7 @@ RECOMMENDED_MODELS = {
 # ── Known MCP server definitions (extended from mcp-config.json)
 BUILTIN_MCP_SERVERS = {
     'architect': {
-        'description': 'Main HAL MCP server (RHEL/Ansible/Satellite diagnostics)',
+        'description': 'Main HAL MCP server (RHEL/Ansible diagnostics)',
         'command': [os.path.join(BASE_DIR, '.venv', 'bin', 'python'), os.path.join(BASE_DIR, 'scripts', 'server.py')],
         'env': {},
         'health_url': None,
@@ -181,7 +181,7 @@ def _append_route_log(entry: dict):
 
 _TASK_PATTERNS = {
     'ansible': re.compile(
-        r'\b(ansible|playbook|role|collection|aap|automation\s+platform|jinja2?|inventory|handler|task|module|galaxy|awx|satellite\s+patch)\b',
+        r'\b(ansible|playbook|role|collection|automation\s+platform|jinja2?|inventory|handler|task|module|galaxy|awx)\b',
         re.IGNORECASE,
     ),
     'code': re.compile(
@@ -205,7 +205,7 @@ _TASK_PATTERNS = {
         re.IGNORECASE,
     ),
     'system': re.compile(
-        r'\b(systemd|service|journalctl|log|diagnostic|disk|cpu|memory|process|kernel|boot|grub|rhel|satellite|insights|subscription)\b',
+        r'\b(systemd|service|journalctl|log|diagnostic|disk|cpu|memory|process|kernel|boot|grub|rhel|insights|subscription)\b',
         re.IGNORECASE,
     ),
     'fast': re.compile(
@@ -468,7 +468,7 @@ def task_plan(goal: str) -> list[dict]:
         f'GOAL: {goal}\n\n'
         f'For each subtask, identify:\n'
         f'1. What needs to be done (action)\n'
-        f'2. What tool/resource is best (ollama-model, ansible, satellite, bash, python, web-search, hal-tools)\n'
+        f'2. What tool/resource is best (ollama-model, ansible, bash, python, web-search, hal-tools)\n'
         f'3. Expected output / success criteria\n'
         f'4. Dependencies on prior steps\n\n'
         f'Available Ollama models: {", ".join(available[:8])}\n\n'

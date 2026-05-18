@@ -29,25 +29,20 @@ LLM for remediation suggestions.
 
 Directory layout (created under `~/.mcp-ai`):
 
-- `raw-logs/` — timestamped raw captures (journalctl, dmesg, systemctl failed)
-- `training/` — JSONL entries created from raw captures
-- `fixes/` — suggested fixes (JSON) produced by the LLM
-- `reports/` — raw LLM responses and reports
 
 Usage
------
 
 Collector (invoked automatically by systemd user timer):
 
-  /usr/bin/env python3 /home/sgallego/mcp-rhel-manager/mcp-ai/collector.py --run
+  /usr/bin/env python3 <REPO_ROOT>/mcp-ai/collector.py --run
 
 Run once and push to remediator:
 
-  /usr/bin/env python3 /home/sgallego/mcp-rhel-manager/mcp-ai/collector.py --once --push
+  /usr/bin/env python3 <REPO_ROOT>/mcp-ai/collector.py --once --push
 
 Remediator (analyze latest entry):
 
-  /usr/bin/env python3 /home/sgallego/mcp-rhel-manager/mcp-ai/remediate.py --latest
+  /usr/bin/env python3 <REPO_ROOT>/mcp-ai/remediate.py --latest
 
 To allow automatic execution of suggested commands set an environment variable
 and ensure you understand the risk:
@@ -56,7 +51,7 @@ and ensure you understand the risk:
 
 Then run:
 
-  /usr/bin/env python3 /home/sgallego/mcp-rhel-manager/mcp-ai/remediate.py --latest --exec
+  /usr/bin/env python3 <REPO_ROOT>/mcp-ai/remediate.py --latest --exec
 
 Notes & Safety
 --------------

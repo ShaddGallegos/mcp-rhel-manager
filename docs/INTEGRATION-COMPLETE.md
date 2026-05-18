@@ -153,27 +153,27 @@ CPU Usage
 
 ### Modified
 
-- `/home/sgallego/GIT/mcp-rhel-manager/scripts/hal.py`
+- `<REPO_ROOT>/scripts/hal.py`
   - Added 4 arguments
   - Added 3 command handlers
   - Fixed import patterns
 
-- `/home/sgallego/GIT/mcp-rhel-manager/scripts/hal-metrics.py`
+- `<REPO_ROOT>/scripts/hal-metrics.py`
   - Fixed date filtering bug
   - Fixed file parsing bug
   - Fixed trend key bug
 
 ### Created
 
-- `/home/sgallego/GIT/mcp-rhel-manager/scripts/hal-notify.py` (7.9KB)
-- `/home/sgallego/GIT/mcp-rhel-manager/scripts/hal-dashboard.py` (6.5KB)
-- `/home/sgallego/GIT/mcp-rhel-manager/PREDICTIVE-SYSTEM.md`
+- `<REPO_ROOT>/scripts/hal-notify.py` (7.9KB)
+- `<REPO_ROOT>/scripts/hal-dashboard.py` (6.5KB)
+- `<REPO_ROOT>/PREDICTIVE-SYSTEM.md`
 
 ### Data Storage Created
 
-- `~/.mcp-ai/hal-setup.json` - Configuration
-- `~/.mcp-ai/hal-inventory.json` - System inventory
-- `~/.mcp-ai/metrics/` - 7 days of sample metrics
+- `<HOME>/.mcp-ai/hal-setup.json` - Configuration
+- `<HOME>/.mcp-ai/hal-inventory.json` - System inventory
+- `<HOME>/.mcp-ai/metrics/` - 7 days of sample metrics
 
 ## Usage Examples
 

@@ -97,7 +97,7 @@ Comprehensive guide covering:
 ### Manual One-Time Import
 
 ```bash
-cd /home/sgallego/GIT/mcp-rhel-manager
+cd <REPO_ROOT>
 HAL --auto-ingest
 ```
 
@@ -126,7 +126,7 @@ Or manually add to crontab:
 ```bash
 crontab -e
 # Add:
-0 2 * * * cd /home/sgallego/GIT/mcp-rhel-manager && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
+0 2 * * * cd <REPO_ROOT> && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
 ```
 
 ### View Ingestion Logs

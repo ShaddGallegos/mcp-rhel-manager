@@ -339,11 +339,11 @@ results['git_creds'] = _check_git_credentials_exposure()
 
 ## Files Created
 
-| File                             | Purpose                                       |
-| -------------------------------- | --------------------------------------------- |
-| `scripts/hal-security-audit.py`  | Standalone security audit tool                |
-| `$ANSIBLE_VAULT_PASSWORD_FILE` (defaults to `~/.ansible/conf/.vaultpass.txt`) | Vault password (auto-created) |
-| `~/.ansible/ansible.cfg`         | Optional: configure vault password (optional) |
+| File                                                                          | Purpose                                       |
+| ----------------------------------------------------------------------------- | --------------------------------------------- |
+| `scripts/hal-security-audit.py`                                               | Standalone security audit tool                |
+| `$ANSIBLE_VAULT_PASSWORD_FILE` (defaults to `~/.ansible/conf/.vaultpass.txt`) | Vault password (auto-created)                 |
+| `~/.ansible/ansible.cfg`                                                      | Optional: configure vault password (optional) |
 
 ## Summary
 

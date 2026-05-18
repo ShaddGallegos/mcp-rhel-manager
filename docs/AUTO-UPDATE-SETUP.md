@@ -39,7 +39,7 @@ HAL now includes 9 auto-healing domains in its comprehensive health check (mode 
 ### Step 1: Install the Auto-Update Service
 
 ```bash
-cd /home/sgallego/GIT/mcp-rhel-manager
+cd <REPO_ROOT>
 sudo ./scripts/install-auto-update.sh
 ```
 
@@ -90,7 +90,7 @@ sudo /usr/local/bin/hal-auto-update.sh
 
 ```bash
 # Trigger health check with full auto-remediation
-cd /home/sgallego/GIT/mcp-rhel-manager
+cd <REPO_ROOT>
 python3 scripts/hal.py 'system health'
 # When prompted: select "y" for health check, then "3" for full auto-remediation
 ```

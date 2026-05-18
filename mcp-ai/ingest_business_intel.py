@@ -8,7 +8,7 @@ structured HAL training records (type: business_intel_account) stored in
 Usage:
     python3 mcp-ai/ingest_business_intel.py /path/to/Training_Data/
     python3 mcp-ai/ingest_business_intel.py file.jsonl another.jsonl
-    HAL --import-business-intel /home/sgallego/GIT/Business_Tools/Training_Data/
+    HAL --import-business-intel <PATH_TO>/Business_Tools/Training_Data/
 """
 from __future__ import annotations
 
@@ -53,7 +53,6 @@ INTEL_FIELDS = [
     "stack_signals",
     "use_case",
     "rhel_subscription_count",
-    "aap_subscription_count",
     "openshift_subscription_count",
 ]
 
@@ -88,7 +87,21 @@ def record_to_text(record: dict) -> str:
     if record.get("contacts"):
         contacts = record["contacts"]
         if isinstance(contacts, list):
-            parts.append("Contacts: " + ", ".join(str(c) for c in contacts[:30]))
+            formatted = []
+            for c in contacts[:30]:
+                if isinstance(c, dict):
+                    name = (c.get("name") or "").strip()
+                    email = (c.get("email") or "").strip()
+                    title = (c.get("title") or "").strip()
+                    s = name
+                    if email:
+                        s = (s + " <" + email + ">") if s else email
+                    if title:
+                        s = (s + " (" + title + ")") if s else title
+                    formatted.append(s.strip())
+                else:
+                    formatted.append(str(c))
+            parts.append("Contacts: " + ", ".join(formatted))
         else:
             parts.append(f"Contacts: {contacts}")
 
@@ -113,8 +126,7 @@ def record_to_text(record: dict) -> str:
     sub_parts = []
     if record.get("rhel_subscription_count") is not None:
         sub_parts.append(f"RHEL subscriptions: {record.get('rhel_subscription_count')}")
-    if record.get("aap_subscription_count") is not None:
-        sub_parts.append(f"AAP subscriptions: {record.get('aap_subscription_count')}")
+    # AAP subscription counts removed from normalized outputs
     if record.get("openshift_subscription_count") is not None:
         sub_parts.append(f"OpenShift subscriptions: {record.get('openshift_subscription_count')}")
     if sub_parts:
@@ -132,7 +144,6 @@ def _extract_numeric_subscription_count(record: dict, product: str) -> int | Non
     product = product.lower()
     product_tokens = {
         "rhel": ("rhel", "red hat enterprise linux", "enterprise linux"),
-        "aap": ("aap", "ansible automation platform", "ansible"),
         "openshift": ("openshift", "ocp"),
     }[product]
 
@@ -190,7 +201,6 @@ def enrich_subscription_counts(record: dict) -> None:
     """Populate normalized subscription count fields when discoverable."""
     for product, out_key in (
         ("rhel", "rhel_subscription_count"),
-        ("aap", "aap_subscription_count"),
         ("openshift", "openshift_subscription_count"),
     ):
         if record.get(out_key) is not None:
@@ -211,6 +221,55 @@ def ingest_record(record: dict, out_dir: Path, force: bool = False) -> tuple[str
 
     # Normalize structured fields before we generate searchable text/hash.
     enrich_subscription_counts(record)
+
+    # Normalize contacts into structured dicts: {name,title,email,source,confidence}
+    def _normalize_contact_item(item, source_hint=None):
+        if isinstance(item, dict):
+            name = (item.get("name") or item.get("full_name") or item.get("contact") or "").strip()
+            email = (item.get("email") or item.get("work_email") or "").strip()
+            title = (item.get("title") or item.get("role") or "").strip()
+            source = item.get("source") or source_hint or ""
+            confidence = item.get("confidence") or (item.get("verification") or {}).get("confidence") or "unknown"
+            return {"name": name, "title": title, "email": email, "source": source, "confidence": confidence}
+        if isinstance(item, str):
+            s = item.strip()
+            em = re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", s)
+            email = em.group(0) if em else ""
+            s_no_email = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "", s).strip()
+            # Try common separators for name/title
+            parts = re.split(r"\s*\|\s*|\s*-\s*|\s*—\s*|\s*–\s*|,\s*|;\s*", s_no_email)
+            name = parts[0].strip() if parts and parts[0] else ""
+            title = parts[1].strip() if len(parts) > 1 else ""
+            # Parentheses hint
+            mp = re.search(r"([^\(]+)\(([^)]+)\)", s_no_email)
+            if mp:
+                name = mp.group(1).strip()
+                title = mp.group(2).strip()
+            confidence = "medium" if email else "low"
+            return {"name": name, "title": title, "email": email, "source": source_hint or "", "confidence": confidence}
+        return {"name": "", "title": "", "email": "", "source": source_hint or "", "confidence": "low"}
+
+    if record.get("contacts"):
+        src_hint = record.get("_source_file") or record.get("source_file") or ""
+        try:
+            raw_contacts = record.get("contacts") or []
+            normalized = []
+            seen_emails = set()
+            if isinstance(raw_contacts, dict):
+                # Some sources provide a dict; convert to list
+                raw_contacts = [raw_contacts]
+            for it in (raw_contacts or []):
+                nc = _normalize_contact_item(it, source_hint=src_hint)
+                em = (nc.get("email") or "").lower()
+                if em and em in seen_emails:
+                    continue
+                if em:
+                    seen_emails.add(em)
+                normalized.append(nc)
+            record["contacts"] = normalized
+        except Exception:
+            # best-effort; leave contacts as-is on failure
+            pass
 
     ts = utc_ts()
     slug = slugify(account)

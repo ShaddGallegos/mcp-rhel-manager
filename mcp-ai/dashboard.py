@@ -5,7 +5,7 @@ Run: `FLASK_APP=mcp-ai/dashboard.py flask run --host=0.0.0.0 --port=8080`
 Requires: `flask` (install into venv if needed)
 """
 from pathlib import Path
-from flask import Flask, render_template_string, request, redirect
+from flask import Flask, render_template_string, request, redirect, jsonify
 import json, os
 
 HOME = os.path.expanduser('~')
@@ -36,6 +36,27 @@ def index():
     approved = [str(x.name).replace('.approved.json','') for x in appd.glob('plan-*.approved.json')] if appd.exists() else []
     return render_template_string(TEMPLATE, plans=plans, approved=approved)
 
+
+@app.route('/health')
+def health():
+    """Simple health endpoint for monitoring.
+
+    Returns JSON with counts of plan files and approvals and a 200 status when
+    the dashboard can access its storage directories.
+    """
+    try:
+        p = Path(FIXES)
+        plans = 0
+        if p.exists():
+            plans = sum(1 for _ in p.glob('plan-*.json') if _.is_file())
+        a = Path(APPROVALS)
+        approvals = 0
+        if a.exists():
+            approvals = sum(1 for _ in a.glob('plan-*.approved.json') if _.is_file())
+        return jsonify({"status": "ok", "plans": plans, "approvals": approvals}), 200
+    except Exception as exc:
+        return jsonify({"status": "error", "error": str(exc)}), 500
+
 @app.route('/plan')
 def plan_view():
     fn = request.args.get('file')
@@ -64,4 +85,6 @@ def approve():
     return redirect('/')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    host = os.environ.get('MCP_DASH_HOST', '0.0.0.0')
+    port = int(os.environ.get('MCP_DASH_PORT', '8080'))
+    app.run(host=host, port=port)

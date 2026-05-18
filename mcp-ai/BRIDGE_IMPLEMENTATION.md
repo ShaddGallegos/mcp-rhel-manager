@@ -136,7 +136,7 @@ HAL response:
 Ansible is an open-source automation platform that...
 [complete LLM response received]
 
-Interaction recorded -> /home/sgallego/.mcp-ai/training/hal-kaso.prod.spg-20260428T171256Z.jsonl
+Interaction recorded -> <HOME>/.mcp-ai/training/hal-kaso.prod.spg-20260428T171256Z.jsonl
 ```
 
 ### ✓ Diagnostics Command

@@ -1,5 +1,13 @@
 ---
 # Remediation tasks for Lenovo ThinkPad, IdeaPad, and P and W-Series nodes (populated by architect_genesis.sh)
+
+# Idempotency guard — skip entire role body if already applied in this play.
+# Prevents the "minirhis_host_setup ran twice" noise when the role is included
+# more than once (e.g. via roles: and include_role: in the same playbook).
+- name: Skip if host setup already applied this play
+  ansible.builtin.meta: end_host
+  when: _minirhis_host_setup_done | default(false)
+
 - name: Install required diagnostic and remediation packages
   become: true
   dnf:
@@ -71,3 +79,18 @@
   become: true
   command: systemctl daemon-reload
   changed_when: false
+
+# Refresh pci.ids so libvirt/GTK stops warning about unknown PCI IDs
+# (e.g. 1af4:1012 — virtio-rng — which ships in newer upstream pci.ids but
+# may be absent from the version bundled with the installed pciutils package).
+- name: Refresh pci.ids database (fixes virtio-rng 1af4:1012 libvirt noise)
+  become: true
+  ansible.builtin.command: update-pciids
+  changed_when: false
+  failed_when: false
+  tags: [pciutils, hardware]
+
+# Mark this role as applied so a second include in the same play is a no-op.
+- name: Mark host setup as completed (idempotency guard)
+  ansible.builtin.set_fact:
+    _minirhis_host_setup_done: true

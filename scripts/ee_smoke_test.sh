@@ -22,17 +22,32 @@ fi
 
 echo "Using image: $IMG"
 
+# Determine host model store to mount into the container. Prefer env MCP_LLMS,
+# fall back to /var/lib/mcp-llms, then to the user-local store.
+MODEL_DIR=${MCP_LLMS:-/var/lib/mcp-llms}
+if [[ ! -d "$MODEL_DIR" && -d "$HOME/.local/share/mcp-llms" ]]; then
+  MODEL_DIR="$HOME/.local/share/mcp-llms"
+fi
+MOUNT_ARGS=()
+if [[ -d "$MODEL_DIR" ]]; then
+  # Mount read-only by default to avoid modifying host models during tests
+  MOUNT_ARGS+=("-v" "$MODEL_DIR:/var/lib/mcp-llms:Z,ro")
+  echo "Mounting host model store into container: $MODEL_DIR -> /var/lib/mcp-llms"
+else
+  echo "Host model store not present; skipping mount" >&2
+fi
+
 echo "\n--- ansible-galaxy --version ---"
-podman run --rm "$IMG" ansible-galaxy --version || true
+podman run --rm "${MOUNT_ARGS[@]}" "$IMG" ansible-galaxy --version || true
 
 echo "\n--- ansible-runner --version ---"
-podman run --rm "$IMG" ansible-runner --version || true
+podman run --rm "${MOUNT_ARGS[@]}" "$IMG" ansible-runner --version || true
 
 echo "\n--- python3 --version ---"
-podman run --rm "$IMG" python3 --version || true
+podman run --rm "${MOUNT_ARGS[@]}" "$IMG" python3 --version || true
 
 echo "\n--- /var/lib/mcp-llms listing ---"
-podman run --rm "$IMG" sh -c 'ls -la /var/lib/mcp-llms || echo "(not present or empty)"' || true
+podman run --rm "${MOUNT_ARGS[@]}" "$IMG" sh -c 'ls -la /var/lib/mcp-llms || echo "(not present or empty)"' || true
 
 # Run a minimal ansible-runner job as root inside the container to avoid
 # host-mount permission issues.
@@ -51,7 +66,11 @@ localhost ansible_connection=local
 INV
 
 echo "\nRunning ansible-runner smoke playbook inside container (as root)"
-if podman run --rm -u 0 -v "$TMP":/runner:Z "$IMG" ansible-runner run /runner -p playbook.yml; then
+RUN_MOUNTS=("-v" "$TMP:/runner:Z")
+if [[ -d "$MODEL_DIR" ]]; then
+  RUN_MOUNTS+=("-v" "$MODEL_DIR:/var/lib/mcp-llms:Z,ro")
+fi
+if podman run --rm -u 0 "${RUN_MOUNTS[@]}" "$IMG" ansible-runner run /runner -p playbook.yml; then
   echo "Smoke test: ok"
   rm -rf "$TMP"
   exit 0

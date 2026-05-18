@@ -10,7 +10,7 @@ Scripts
 - `ingest_urls.py` — crawl URLs and write per-URL JSON files (already present).
 - `ingest_history.py` — detect the latest Copilot chat transcript and write sanitized JSONL entries.
 - `ingest_artifacts.py` — collect repository artifacts (fix plans, patches, generated scripts) and write JSONL.
-- `ingest_documents.py` — import local files (txt/csv/tsv/json/md/log/xml/html), spreadsheets (`.xlsx/.xls/.ods`), and optional PDF/DOCX into training JSON records.
+- `ingest_documents.py` — import local files (txt/csv/tsv/json/md/log/xml/html), spreadsheets (`.xlsx/.xls/.ods`), and optional PDF/DOCX/DOC into training JSON records.
 - `merge_supplemental.py` — merge `supplemental-*.jsonl` files into a single deduplicated JSONL.
 - `training_crypto.py` — encrypt/decrypt local training files with a password-derived key.
 
@@ -55,6 +55,7 @@ python3 mcp-ai/training_crypto.py decrypt --recursive --indir ~/.mcp-ai/training
 Notes & safety
 
 - Files are lightly redacted (private key blocks, inline secrets). Review the resulting JSONL before using it to train models.
+- `.doc` ingestion requires one of: `antiword`, `catdoc`, or `libreoffice` (`soffice`) installed on the host.
 - These scripts write into `~/.mcp-ai/training` by default. Ensure you have adequate disk space and backup if necessary.
 - Use `--dry-run` (where supported) to preview actions.
 - `training_crypto.py` prompts for a password unless `HAL_TRAINING_KEY` is set in your shell environment.

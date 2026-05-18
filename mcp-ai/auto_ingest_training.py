@@ -10,7 +10,7 @@ Usage:
     python3 mcp-ai/auto_ingest_training.py --sync-intel /path/to/Business_Tools
     
 For cron scheduling:
-    0 2 * * * cd /home/sgallego/GIT/mcp-rhel-manager && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
+    0 2 * * * cd <REPO_ROOT> && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
 """
 from __future__ import annotations
 
@@ -23,13 +23,23 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-DEFAULT_TRAIN_DIR = Path(os.path.expanduser("~/.mcp-ai/training"))
-IMPORT_TRACKER = DEFAULT_TRAIN_DIR / ".import_tracker.json"
-BUSINESS_TOOLS_PATH = Path(os.path.expanduser("~/GIT/Business_Tools/Training_Data"))
-DOCUMENT_WATCH_PATHS = [
-    Path(os.path.expanduser("~/Downloads")),
-    Path(os.path.expanduser("~/Documents")),
-]
+try:
+    import mcp_config as cfg
+    DEFAULT_TRAIN_DIR = Path(cfg.TRAIN_DIR)
+    IMPORT_TRACKER = DEFAULT_TRAIN_DIR / ".import_tracker.json"
+    BUSINESS_TOOLS_PATH = Path(os.path.expanduser(os.getenv('BUSINESS_TOOLS_PATH', os.path.join(cfg.REPO_ROOT, 'Business_Tools', 'Training_Data'))))
+    DOCUMENT_WATCH_PATHS = [
+        Path(os.path.expanduser(os.getenv('DOCUMENT_WATCH_PATHS_1', '~/Downloads'))),
+        Path(os.path.expanduser(os.getenv('DOCUMENT_WATCH_PATHS_2', '~/Documents'))),
+    ]
+except Exception:
+    DEFAULT_TRAIN_DIR = Path(os.path.expanduser("~/.mcp-ai/training"))
+    IMPORT_TRACKER = DEFAULT_TRAIN_DIR / ".import_tracker.json"
+    BUSINESS_TOOLS_PATH = Path(os.path.expanduser("~/GIT/Business_Tools/Training_Data"))
+    DOCUMENT_WATCH_PATHS = [
+        Path(os.path.expanduser("~/Downloads")),
+        Path(os.path.expanduser("~/Documents")),
+    ]
 
 
 def utc_ts() -> str:

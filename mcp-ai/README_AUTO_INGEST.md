@@ -41,7 +41,7 @@ crontab -e
 Then add this line:
 
 ```cron
-0 2 * * * cd /home/sgallego/GIT/mcp-rhel-manager && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
+0 2 * * * cd <REPO_ROOT> && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
 ```
 
 ### View Ingestion Log
@@ -111,19 +111,19 @@ python3 mcp-ai/auto_ingest_training.py --track-reset
 ### Daily at 2 AM
 
 ```cron
-0 2 * * * cd /home/sgallego/GIT/mcp-rhel-manager && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
+0 2 * * * cd <REPO_ROOT> && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
 ```
 
 ### Every 6 hours
 
 ```cron
-0 */6 * * * cd /home/sgallego/GIT/mcp-rhel-manager && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
+0 */6 * * * cd <REPO_ROOT> && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
 ```
 
 ### Every hour
 
 ```cron
-0 * * * * cd /home/sgallego/GIT/mcp-rhel-manager && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
+0 * * * * cd <REPO_ROOT> && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
 ```
 
 ## Integration with HAL Chat
@@ -142,28 +142,28 @@ $ HAL 'what are the latest activities at centene'
 # Returns: Latest intel from most recent ingestion
 
 $ HAL --intel-report davita
-# Shows: Report with any newly discovered contacts or headlines
+0 2 * * * cd <REPO_ROOT> && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
 ```
 
 ## Troubleshooting
 
 ### Import Log Grows Large
 
-```bash
+0 */6 * * * cd <REPO_ROOT> && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
 # Rotate or truncate
 > ~/.mcp-ai/auto_ingest.log
 
 # Or view specific run
 grep "Auto-Ingest started" ~/.mcp-ai/auto_ingest.log | tail -1
 ```
-
+0 * * * * cd <REPO_ROOT> && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py >> ~/.mcp-ai/auto_ingest.log 2>&1
 ### Some Files Not Being Imported
 
 ```bash
 # Check tracker for skip reasons
 python3 mcp-ai/auto_ingest_training.py --show-tracker | grep filename
 
-# Reset if needed
+cd <REPO_ROOT> && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py
 HAL --ingest-reset
 ```
 
@@ -178,7 +178,7 @@ which python3
 pwd
 
 # Test manually
-cd /home/sgallego/GIT/mcp-rhel-manager && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py
+cd <REPO_ROOT> && source .venv/bin/activate && python3 mcp-ai/auto_ingest_training.py
 ```
 
 ## Configuration

@@ -22,6 +22,8 @@ import zipfile
 import time
 import threading
 import importlib.util
+import urllib.parse
+import gzip
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -29,6 +31,11 @@ try:
     import requests
 except Exception:
     requests = None
+
+try:
+    import scripts.search_index as search_index
+except Exception:
+    search_index = None
 
 HOME = os.path.expanduser('~')
 AI_HOME = os.path.join(HOME, '.mcp-ai')
@@ -43,6 +50,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 HAL_DISPLAY_NAME = os.environ.get('HAL_DISPLAY_NAME', 'Dave')
 ASSISTANT_NAME = os.environ.get('HAL_ASSISTANT_NAME', 'HAL9000')
 WELL_PHRASE = os.environ.get('HAL_WELL_PHRASE', f'I am well today {HAL_DISPLAY_NAME}, thank you for asking')
+
+# Runtime flags to control RAG behavior. Defaults enable always-include RAG and
+# prefer serving training-data fallback when the bridge fails. Set to '0',
+# 'false', or 'no' to disable respective behaviors.
+HAL_RAG_ALWAYS = os.environ.get('HAL_RAG_ALWAYS', '1').lower() not in ('0', 'false', 'no', 'n')
+HAL_RAG_FALLBACK = os.environ.get('HAL_RAG_FALLBACK', '1').lower() not in ('0', 'false', 'no', 'n')
 
 # Apply centralized repository configuration when available, but prefer current
 # runtime HOME/AI_HOME (important for tests that set HOME dynamically).
@@ -755,6 +768,95 @@ def _save_intel_cache(account: str, report: str) -> None:
         pass
 
 
+def _mask_email(email: str) -> str:
+    """Return a lightly obfuscated email for safe display by default."""
+    if not email:
+        return ''
+    try:
+        if '@' not in email:
+            return email
+        local, domain = email.split('@', 1)
+        if len(local) <= 2:
+            masked = (local[0] if local else '*') + '***'
+        else:
+            masked = local[0] + '***' + local[-1]
+        return f'{masked}@{domain}'
+    except Exception:
+        return email
+
+
+def _clean_display_text(s: str) -> str:
+    """Clean leading punctuation/whitespace from display strings (names, titles).
+
+    Removes leading dashes, em/en-dashes, underscores and extra spaces so bullets
+    display as "• Name" instead of "• - - - Name" when source text contains
+    visual separators.
+    """
+    if not s:
+        return ''
+    try:
+        txt = str(s)
+        # remove leading whitespace and common dash/sep characters
+        txt = re.sub(r'^[\s\-\u2013\u2014_]+', '', txt)
+        return txt.strip()
+    except Exception:
+        return str(s).strip()
+
+
+def _show_full_contacts() -> bool:
+    """Environment opt-in to show raw contact emails in reports.
+    Default: show full emails. Set `HAL_SHOW_FULL_CONTACTS=0` to mask.
+    """
+    val = os.environ.get('HAL_SHOW_FULL_CONTACTS')
+    if val is None:
+        return True
+    return val.lower() in ('1', 'true', 'yes', 'y')
+
+
+def _maybe_export_contacts_csv(account: str, contacts: list) -> str | None:
+    """If `HAL_EXPORT_CONTACTS_DIR` is set, write a CSV of contacts and return the path."""
+    out_dir = os.environ.get('HAL_EXPORT_CONTACTS_DIR', '').strip()
+    if not out_dir:
+        return None
+    try:
+        os.makedirs(out_dir, exist_ok=True)
+        safe = re.sub(r'[^A-Za-z0-9_\-]', '_', account)[:120]
+        fname = os.path.join(out_dir, f'{safe}-contacts.csv')
+        with open(fname, 'w', encoding='utf-8') as fh:
+            fh.write('name,email,confidence,source\n')
+            for c in contacts:
+                name = ''
+                email = ''
+                confidence = ''
+                source = ''
+                if isinstance(c, dict):
+                    name = (c.get('name') or '')
+                    email = (c.get('email') or '')
+                    confidence = (c.get('confidence') or '')
+                    source = (c.get('source') or c.get('source_file') or '')
+                else:
+                    s = str(c)
+                    if '|' in s:
+                        parts = [p.strip() for p in s.split('|', 1)]
+                        if len(parts) == 2:
+                            name, email = parts[0], parts[1]
+                        else:
+                            name = s
+                    elif '@' in s:
+                        email = s
+                    else:
+                        name = s
+                # Escape quotes
+                name = name.replace('"', '""')
+                email = email.replace('"', '""')
+                confidence = str(confidence).replace('"', '""')
+                source = source.replace('"', '""')
+                fh.write(f'"{name}","{email}","{confidence}","{source}"\n')
+        return fname
+    except Exception:
+        return None
+
+
 def _register_query_classifier(pattern: str, classifier_name: str, func) -> None:
     """🧠 Register a query type classifier for later use."""
     _QUERY_CLASSIFIER_REGISTRY[classifier_name] = {'pattern': pattern, 'func': func}
@@ -806,14 +908,9 @@ def _suggest_next_queries(current_query: str) -> list[str]:
     if len(_RECENT_QUERIES) > 2:
         # Suggest related topics from recent queries
         last_3 = _RECENT_QUERIES[-3:]
-        if 'satellite' in current_query.lower():
-            suggestions.extend([
-                'What are best practices for Satellite 6.18 performance tuning?',
-                'How do I configure capsules with load balancing?',
-            ])
         if 'ansible' in current_query.lower():
             suggestions.extend([
-                'Show me an example AAP workflow for deployment.',
+                'Show me an example Ansible workflow for deployment.',
                 'How do I use event-driven Ansible automation?',
             ])
     return suggestions[:3]  # Top 3 suggestions
@@ -948,6 +1045,182 @@ If the information is insufficient, say so clearly."""
 def ensure_dirs():
     for d in (TRAIN_DIR, FIXES_DIR, REPORTS_DIR, CACHE_DIR):
         os.makedirs(d, exist_ok=True)
+
+
+def _log_interaction(entry: dict) -> None:
+    """Append a JSON-line entry to the HAL interactions log.
+
+    The file is stored under REPORTS_DIR/hal-interactions.logl. Each line is a
+    compact JSON object for easy ingestion by log processors.
+    """
+    try:
+        ensure_dirs()
+        p = os.path.join(REPORTS_DIR, 'hal-interactions.logl')
+        # rotate log if it grows too large
+        try:
+            max_bytes = int(os.environ.get('HAL_LOG_MAX_BYTES', str(10 * 1024 * 1024)))
+            backup_count = int(os.environ.get('HAL_LOG_BACKUP_COUNT', '5'))
+            compress = os.environ.get('HAL_LOG_COMPRESS', '1').lower() not in ('0', 'false', 'no', 'n')
+        except Exception:
+            max_bytes = 10 * 1024 * 1024
+            backup_count = 5
+            compress = True
+
+        def _rotate_log(path, max_bytes, backup_count, compress):
+            try:
+                if not os.path.exists(path):
+                    return
+                if os.path.getsize(path) < max_bytes:
+                    return
+                # shift existing backups
+                for i in range(backup_count - 1, 0, -1):
+                    src = f"{path}.{i}"
+                    dst = f"{path}.{i+1}"
+                    if os.path.exists(src):
+                        try:
+                            os.replace(src, dst)
+                        except Exception:
+                            pass
+                # move current to .1
+                try:
+                    os.replace(path, f"{path}.1")
+                except Exception:
+                    return
+                # compress rotated file if requested
+                if compress:
+                    try:
+                        with open(f"{path}.1", 'rb') as fh_in:
+                            with gzip.open(f"{path}.1.gz", 'wb') as fh_out:
+                                shutil.copyfileobj(fh_in, fh_out)
+                        try:
+                            os.remove(f"{path}.1")
+                        except Exception:
+                            pass
+                    except Exception:
+                        pass
+                # remove oldest beyond backup_count
+                oldest = f"{path}.{backup_count + 1}"
+                if os.path.exists(oldest):
+                    try:
+                        os.remove(oldest)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+        _rotate_log(p, max_bytes, backup_count, compress)
+
+        # truncate large fields for safety
+        if 'response' in entry and isinstance(entry['response'], str):
+            entry['response_preview'] = entry['response'][:2000]
+            del entry['response']
+        with open(p, 'a', encoding='utf-8') as fh:
+            fh.write(json.dumps(entry, default=str, ensure_ascii=False) + '\n')
+    except Exception:
+        # Logging must not raise during runtime
+        pass
+
+
+def _tokenize(s: str):
+    return [w for w in re.split(r"\W+", (s or '').lower()) if w]
+
+
+def _ngram_set(tokens, n=1):
+    if not tokens:
+        return set()
+    return set(' '.join(tokens[i:i+n]) for i in range(max(0, len(tokens)-n+1)))
+
+
+def evaluate_prompts(prompts, expected_keywords=None, expected_answers=None, max_examples=10):
+    """Lightweight evaluator that runs prompts through HAL and returns simple metrics.
+
+    - `prompts`: iterable of strings to evaluate
+    - `expected_keywords`: None or list of keywords to check presence in responses
+    - `expected_answers`: None or list/dict of golden expected answers for precision/overlap
+    Returns a dict with overall counts and a per-prompt list of results.
+    """
+    results = []
+    total_ok = 0
+    total_keyword_hits = 0
+    keyword_list = [k.lower() for k in (expected_keywords or [])]
+    prompts = list(prompts)[:max_examples]
+    # normalize expected answers into a list aligned with prompts when possible
+    expected_map = {}
+    if isinstance(expected_answers, dict):
+        expected_map = expected_answers
+    elif isinstance(expected_answers, (list, tuple)):
+        for i, p in enumerate(prompts):
+            if i < len(expected_answers):
+                expected_map[p] = expected_answers[i]
+
+    for p in prompts:
+        t0 = time.time()
+        try:
+            resp = call_bridge(p, allow_self_heal=False)
+            status = 'ok' if resp and not str(resp).startswith('ERR:') else 'error'
+        except Exception as e:
+            resp = f'ERR: {e}'
+            status = 'error'
+        dt = time.time() - t0
+        hit = False
+        if status == 'ok' and keyword_list:
+            low = str(resp).lower()
+            for k in keyword_list:
+                if k in low:
+                    hit = True
+                    break
+        if status == 'ok':
+            total_ok += 1
+        if hit:
+            total_keyword_hits += 1
+
+        # compute overlap metrics when golden answer provided
+        precision = None
+        recall = None
+        f1 = None
+        expected = expected_map.get(p)
+        if expected and status == 'ok':
+            tok_exp = _tokenize(expected)
+            tok_resp = _tokenize(str(resp))
+            if tok_resp:
+                set_resp = set(tok_resp)
+                set_exp = set(tok_exp)
+                tp = len(set_resp & set_exp)
+                precision = tp / len(set_resp) if set_resp else 0.0
+                recall = tp / len(set_exp) if set_exp else 0.0
+                if precision + recall > 0:
+                    f1 = 2 * (precision * recall) / (precision + recall)
+
+        entry = {
+            'timestamp': ts_now(),
+            'prompt': p[:1000],
+            'duration_s': round(dt, 3),
+            'status': status,
+            'keyword_hit': hit,
+            'precision': precision,
+            'recall': recall,
+            'f1': f1,
+            'answer_source': None,
+            'response': str(resp),
+        }
+        try:
+            if isinstance(resp, str) and '[Bridge error' in resp:
+                entry['answer_source'] = 'rag-fallback'
+            else:
+                entry['answer_source'] = 'bridge'
+        except Exception:
+            entry['answer_source'] = None
+
+        _log_interaction(dict(type='evaluation', **entry))
+        results.append(entry)
+
+    summary = {
+        'total': len(prompts),
+        'ok': total_ok,
+        'keyword_hits': total_keyword_hits,
+        'results': results,
+    }
+    return summary
 
 
 # ── HAL 9000 cinematic quote injection ───────────────────────────────────────
@@ -1462,6 +1735,15 @@ def call_bridge(
         _RECENT_QUERIES.append(text)
         return cached
 
+    # Optionally gather RAG (training-data) context unless explicitly provided.
+    # This ensures the LLM has access to the user's local knowledge base on
+    # every query when enabled by `HAL_RAG_ALWAYS`.
+    if rag_context is None and HAL_RAG_ALWAYS:
+        try:
+            rag_context = search_training_data_for_rag(text)
+        except Exception:
+            rag_context = None
+
     # If MoE is enabled, attempt to route through the MoE router (best-effort).
     try:
         if _MOE_ENABLED:
@@ -1560,7 +1842,26 @@ def call_bridge(
     
     if requests:
         try:
-            r = _run_with_spinner('Waiting for model response', requests.post, OLLAMA_URL, json=payload, timeout=timeout)
+            # Implement configurable retry with exponential backoff for transient network errors.
+            max_retries = max(0, int(os.environ.get('HAL_BRIDGE_MAX_RETRIES', '2')))
+            backoff_base = float(os.environ.get('HAL_BRIDGE_BACKOFF_BASE', '0.5'))
+            attempt = 0
+            last_exc = None
+            while True:
+                try:
+                    r = _run_with_spinner('Waiting for model response', requests.post, OLLAMA_URL, json=payload, timeout=timeout)
+                    last_exc = None
+                    break
+                except Exception as _e:
+                    last_exc = _e
+                    if attempt < max_retries:
+                        sleep_sec = backoff_base * (2 ** attempt) + (random.random() * 0.5)
+                        time.sleep(sleep_sec)
+                        attempt += 1
+                        continue
+                    # exhausted retries => re-raise so outer except handles fallback/self-heal
+                    raise last_exc
+
             _BRIDGE_FAIL_COUNT = 0
             _BRIDGE_OPEN_UNTIL = 0.0
             _save_bridge_cb_state(_BRIDGE_FAIL_COUNT, _BRIDGE_OPEN_UNTIL)
@@ -1601,26 +1902,58 @@ def call_bridge(
                         _answer_source=_answer_source,
                     )
 
+            # Bridge error: if we have training-data context or searchable
+            # training records, prefer returning that to the user instead of
+            # an opaque error. This makes HAL useful even when the bridge is
+            # flaky.
             _BRIDGE_FAIL_COUNT += 1
             if _BRIDGE_FAIL_COUNT >= cb_fail_threshold:
                 _BRIDGE_OPEN_UNTIL = time.time() + cb_cooldown_sec
             _save_bridge_cb_state(_BRIDGE_FAIL_COUNT, _BRIDGE_OPEN_UNTIL)
+
+            try:
+                if HAL_RAG_FALLBACK:
+                    # Prefer RAG context (compact block) if available
+                    if rag_context:
+                        return f'[Bridge error — serving relevant training-data context]\n\n{rag_context}'
+                    # Otherwise attempt a broader training-data search
+                    td = search_training_data(text)
+                    if td:
+                        return f'[Bridge error — answered from training data]\n\n{td}'
+            except Exception:
+                pass
+
             return f'ERR: {e}'
     # fallback to urllib
     try:
         import urllib.request
         data = json.dumps(payload).encode('utf-8')
         req = urllib.request.Request(OLLAMA_URL, data=data, headers={'Content-Type': 'application/json'})
-        with _run_with_spinner('Waiting for model response', urllib.request.urlopen, req, timeout=timeout) as resp:
-            _BRIDGE_FAIL_COUNT = 0
-            _BRIDGE_OPEN_UNTIL = 0.0
-            _save_bridge_cb_state(_BRIDGE_FAIL_COUNT, _BRIDGE_OPEN_UNTIL)
-            result = resp.read().decode('utf-8')
-            # 🚀 Cache successful response
-            _store_cached_response(text, result)
-            if _answer_source is not None:
-                _answer_source.append('bridge')
-            return result
+        # Retry loop for urllib as well
+        max_retries = max(0, int(os.environ.get('HAL_BRIDGE_MAX_RETRIES', '2')))
+        backoff_base = float(os.environ.get('HAL_BRIDGE_BACKOFF_BASE', '0.5'))
+        attempt = 0
+        last_exc = None
+        while True:
+            try:
+                with _run_with_spinner('Waiting for model response', urllib.request.urlopen, req, timeout=timeout) as resp:
+                    _BRIDGE_FAIL_COUNT = 0
+                    _BRIDGE_OPEN_UNTIL = 0.0
+                    _save_bridge_cb_state(_BRIDGE_FAIL_COUNT, _BRIDGE_OPEN_UNTIL)
+                    result = resp.read().decode('utf-8')
+                    # 🚀 Cache successful response
+                    _store_cached_response(text, result)
+                    if _answer_source is not None:
+                        _answer_source.append('bridge')
+                    return result
+            except Exception as _e:
+                last_exc = _e
+                if attempt < max_retries:
+                    sleep_sec = backoff_base * (2 ** attempt) + (random.random() * 0.5)
+                    time.sleep(sleep_sec)
+                    attempt += 1
+                    continue
+                raise last_exc
     except Exception as e:
         if auto_self_heal and allow_self_heal and _is_bridge_recoverable_error(e):
             if _is_bridge_timeout_error(e) and _bridge_health_ok(timeout=1.0) and not timeout_retry_done:
@@ -1654,6 +1987,17 @@ def call_bridge(
         if _BRIDGE_FAIL_COUNT >= cb_fail_threshold:
             _BRIDGE_OPEN_UNTIL = time.time() + cb_cooldown_sec
         _save_bridge_cb_state(_BRIDGE_FAIL_COUNT, _BRIDGE_OPEN_UNTIL)
+
+        try:
+            if HAL_RAG_FALLBACK:
+                if rag_context:
+                    return f'[Bridge error — serving relevant training-data context]\n\n{rag_context}'
+                td = search_training_data(text)
+                if td:
+                    return f'[Bridge error — answered from training data]\n\n{td}'
+        except Exception:
+            pass
+
         return f'ERR: {e}'
 
 
@@ -2786,18 +3130,14 @@ def _is_operational_howto_query(query: str) -> bool:
         q,
     ))
     has_howto = bool(re.search(r'\b(how\s+do\s+i|how\s+to|runbook|steps?|plan|strategy|best\s+way)\b', q))
-    has_product = bool(re.search(r'\b(rhel|satellite|aap|ansible|idm|freeipa|openshift|mcp|server|linux)\b', q))
+    has_product = bool(re.search(r'\b(rhel|ansible|openshift|mcp|server|linux)\b', q))
     return has_action and (has_howto or has_product)
 
 
 def _infer_primary_product(query: str) -> str:
     q = (query or '').lower()
-    if re.search(r'\b(idm|freeipa|identity\s+management)\b', q):
-        return 'Red Hat IdM'
-    if re.search(r'\b(aap|ansible\s+automation\s+platform|automation\s+controller)\b', q):
-        return 'AAP'
-    if re.search(r'\b(satellite|capsule|katello|foreman)\b', q):
-        return 'Satellite'
+    if re.search(r'\b(ansible|automation\s+controller)\b', q):
+        return 'Ansible'
     if re.search(r'\b(openshift|ocp)\b', q):
         return 'OpenShift'
     if re.search(r'\b(rhel|red\s*hat\s*enterprise\s*linux|linux)\b', q):
@@ -2848,19 +3188,10 @@ def _preferred_doc_source_patterns(query: str) -> list[str]:
     """Return source substrings that should be preferred for explicit product/version doc queries."""
     if not query:
         return []
-
-    q = query.lower()
-    patterns = []
-    if re.search(r'\b(satellite|red\s*hat\s*satellite)\b', q) and re.search(r'\b6\.18\b', q):
-        patterns.append('docs.redhat.com/en/documentation/red_hat_satellite/6.18')
-    if re.search(r'\b(aap|ansible\s+automation\s+platform|red\s+hat\s+ansible\s+automation\s+platform)\b', q) and re.search(r'\b2\.6\b', q):
-        patterns.append('docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.6')
-        if re.search(r'\b(event\s*[- ]?driven\s+ansible|automation\s+decisions|eda)\b', q):
-            patterns.append('using_automation_decisions')
-    if re.search(r'\b(idm|identity\s+management|freeipa)\b', q) and re.search(r'\b(5\.0|rhel\s*10|10)\b', q):
-        patterns.append('docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/')
-        patterns.append('identity_management')
-    return patterns
+    # Product/version-specific doc patterns have been removed from the repository
+    # to avoid hard-coded vendor links. Return an empty preferred list so HAL
+    # will use general search and RAG sources instead.
+    return []
 
 def _build_generic_operational_runbook(query: str, rag_context: str | None) -> str:
     """Build a deterministic fallback runbook when LLM output quality is poor."""
@@ -2967,72 +3298,19 @@ def _build_offline_doc_summary(query: str, rag_context: str | None) -> str:
     lines.append(f'{product} Offline Guidance (from local docs)')
     lines.append('=' * 72)
 
-    if 'aap' in q and re.search(r'\b(event\s*[- ]?driven\s+ansible|automation\s+decisions|eda)\b', q):
+    # Neutral, vendor-agnostic operational guidance
+    if re.search(r'\b(event\s*[- ]?driven\s+ansible|automation\s+decisions|eda)\b', q):
         lines.append('Recommended approach:')
-        lines.append('- Confirm AAP 2.6 EDA components and required permissions are installed and reachable.')
+        lines.append('- Confirm required event/EDA components and required permissions are installed and reachable.')
         lines.append('- Define event sources and rulebook decision logic for the automation decision flow.')
         lines.append('- Test decisions in non-production first, then promote to production with approval gates.')
         lines.append('- Add observability: capture rule activations, actions, and rollback conditions.')
         highlights = _keyword_sentences(['automation', 'decision', 'event-driven', 'eda', 'rulebook'])
-    elif 'satellite' in q:
-        is_install_query = bool(re.search(r'\b(install|automat|deploy|set\s*up|setup|provision)\b', q))
-        if is_install_query:
-            version_match = re.search(r'satellite\s+(\d+\.\d+)', q)
-            ver = version_match.group(1) if version_match else '6.18'
-            lines.append(f'Red Hat Satellite {ver} — Automated Installation Steps:')
-            lines.append('')
-            lines.append('1. Register and enable required repositories:')
-            lines.append('   subscription-manager register --username <user> --password <pass>')
-            lines.append('   subscription-manager attach --pool=<satellite_pool_id>')
-            lines.append(f'   subscription-manager repos --enable=rhel-8-for-x86_64-baseos-rpms \\')
-            lines.append(f'     --enable=rhel-8-for-x86_64-appstream-rpms \\')
-            lines.append(f'     --enable=satellite-{ver}-for-rhel-8-x86_64-rpms \\')
-            lines.append(f'     --enable=satellite-maintenance-{ver}-for-rhel-8-x86_64-rpms')
-            lines.append('')
-            lines.append('2. Install the Satellite package group and run the installer:')
-            lines.append('   dnf install satellite')
-            lines.append('   satellite-installer --scenario satellite \\')
-            lines.append('     --foreman-initial-admin-username admin \\')
-            lines.append('     --foreman-initial-admin-password <password> \\')
-            lines.append('     --foreman-proxy-dns true \\')
-            lines.append('     --foreman-proxy-dns-managed true \\')
-            lines.append('     --foreman-proxy-dhcp true \\')
-            lines.append('     --foreman-proxy-dhcp-managed true')
-            lines.append('')
-            lines.append('3. Automate via the Satellite Ansible Collection (recommended):')
-            lines.append('   # Install the collection')
-            lines.append('   ansible-galaxy collection install redhat.satellite')
-            lines.append('   # Example inventory group_vars/satellite.yml snippet:')
-            lines.append('   #   satellite_server_url: https://satellite.example.com')
-            lines.append('   #   satellite_username: admin')
-            lines.append('   #   satellite_password: "{{ vault_satellite_password }}"')
-            lines.append('   # Use modules: redhat.satellite.organization, redhat.satellite.location,')
-            lines.append('   #   redhat.satellite.repository, redhat.satellite.content_view')
-            lines.append('')
-            lines.append('4. Post-install validation:')
-            lines.append('   satellite-maintain health check')
-            lines.append('   hammer ping')
-            lines.append('   hammer organization list')
-            highlights = _keyword_sentences(['satellite-installer', 'ansible', 'collection', 'hammer', 'install'])
-        else:
-            lines.append('Recommended approach:')
-            lines.append('- Validate Satellite/Capsule prerequisites: DNS, certs, time sync, and content lifecycle.')
-            lines.append('- Stage changes in a lower environment, then apply to production in phased windows.')
-            lines.append('- Verify host registration, content views, and provisioning/patch workflows post-change.')
-            lines.append('- Keep rollback checkpoints for capsule/content changes before broad rollout.')
-            highlights = _keyword_sentences(['satellite', 'capsule', 'content', 'provision', 'lifecycle'])
-    elif 'idm' in q or 'freeipa' in q or 'identity management' in q:
-        lines.append('Recommended approach:')
-        lines.append('- Validate IdM topology, DNS/SRV records, and trust/authentication prerequisites.')
-        lines.append('- Implement configuration incrementally, validating auth, HBAC, and sudo policies each step.')
-        lines.append('- Run identity and access smoke tests before production cutover.')
-        lines.append('- Document rollback and recovery for replication or policy regressions.')
-        highlights = _keyword_sentences(['identity', 'idm', 'freeipa', 'hbac', 'sudo', 'auth'])
     else:
         lines.append('Recommended approach:')
-        lines.append('- Use the referenced product documentation to implement in phased, test-first steps.')
-        lines.append('- Validate core workflows and policy/security behavior after each phase.')
-        lines.append('- Keep rollback checkpoints and record evidence for each change gate.')
+        lines.append('- Validate platform prerequisites: DNS, certificates, time sync, and network access.')
+        lines.append('- Stage changes in a lower environment, then apply to production in phased windows.')
+        lines.append('- Verify registration, repositories, and provisioning/patch workflows post-change.')
         highlights = _keyword_sentences(['configure', 'install', 'deploy', 'update', 'validate'])
 
     if highlights:
@@ -3432,6 +3710,27 @@ def search_training_data(query: str, limit: int = 5) -> str | None:
     preferred_patterns = _preferred_doc_source_patterns(query)
 
     matches = []
+    # Try semantic vector search if an index exists
+    try:
+        index_paths = [os.path.join(MCP_HOME, 'training_index.jsonl'), os.path.join(TRAIN_DIR, 'training_index.jsonl')]
+        idx_used = None
+        for ip in index_paths:
+            if ip and os.path.exists(ip):
+                idx_used = ip
+                break
+        if idx_used and search_index is not None:
+            vec_hits = search_index.search_index(idx_used, query, top_k=limit)
+            for vh in vec_hits:
+                matches.append({
+                    'source': vh.get('id'),
+                    'type': 'semantic',
+                    'matches': 0,
+                    'score': int(vh.get('score', 0) * 1000),
+                    'snippet': vh.get('text_preview', '')[:300],
+                })
+            # proceed to also include keyword-based matches below, which will be merged/deduped
+    except Exception:
+        pass
     try:
         for item in _get_training_index():
             doc_type = item['doc_type']
@@ -3537,6 +3836,30 @@ def search_training_data_for_rag(query: str, limit: int = 5, max_chars: int = 30
     preferred_patterns = _preferred_doc_source_patterns(query)
 
     matches = []
+    # If a vector index exists, prefer semantic search results as well
+    try:
+        index_paths = [os.path.join(MCP_HOME, 'training_index.jsonl'), os.path.join(TRAIN_DIR, 'training_index.jsonl')]
+        idx_used = None
+        for ip in index_paths:
+            if ip and os.path.exists(ip):
+                idx_used = ip
+                break
+        if idx_used and search_index is not None:
+            vec_hits = search_index.search_index(idx_used, query, top_k=limit)
+            if vec_hits:
+                # format and return a compact RAG block based on vector hits
+                lines = ['[Relevant semantic matches from your training index:]']
+                total = len(lines[0])
+                for vh in vec_hits:
+                    entry = f"\n• [{vh.get('id')}]: {vh.get('text_preview')[:300]} (score={vh.get('score'):.3f})"
+                    if total + len(entry) > max_chars:
+                        break
+                    lines.append(entry)
+                    total += len(entry)
+                if len(lines) > 1:
+                    return '\n'.join(lines)
+    except Exception:
+        pass
     try:
         for item in _get_training_index():
             doc_type = item['doc_type']
@@ -3741,6 +4064,32 @@ def _known_accounts_from_training(max_accounts: int = 500) -> list[str]:
     return list(names)
 
 
+def _known_business_accounts_from_training(max_accounts: int = 1000) -> list[str]:
+    """Return account names only from `business_intel_account` records."""
+    names: list[str] = []
+    seen: set[str] = set()
+    try:
+        train_path = Path(TRAIN_DIR)
+        for fp in sorted(train_path.glob('*.json'), reverse=True):
+            try:
+                rec = json.loads(fp.read_text(encoding='utf-8'))
+            except Exception:
+                continue
+            if rec.get('type') != 'business_intel_account':
+                continue
+            cand = str(rec.get('account_name', '') or '').strip()
+            if not cand:
+                continue
+            if cand not in seen:
+                seen.add(cand)
+                names.append(cand)
+            if len(names) >= max_accounts:
+                break
+    except Exception:
+        pass
+    return names
+
+
 def _extract_company_name_from_query(query: str) -> str | None:
     """Extract company/account phrase from natural-language intel requests."""
     if not query:
@@ -3854,11 +4203,62 @@ def _generate_intel_report_live(account_query: str, allow_public_enrich: bool = 
         elif out:
             enrich_note = f'Public web enrichment note: {out.splitlines()[-1]}'
 
-    report = generate_business_account_brief(account) or generate_intel_report(account)
+    # Prefer offline structured report first; only fall back to bridge/LLM when allowed
+    report = generate_intel_report(account) or generate_business_account_brief(account)
     if report and enrich_note and enrich_note not in report:
         report = f'{report}\n\nNote: {enrich_note}'
     if report:
         _save_intel_cache(account, report)
+    return report
+
+
+def _generate_intel_report_now(account_query: str) -> str | None:
+    """Force a live enrichment + conversion then produce an offline-first intel report.
+
+    This is the simplified path used by the CLI when the user runs
+    `HAL --intel-report <account>`: it refreshes public enrichment (if available),
+    attempts to convert the best enrichment into a `business_intel_account`, and
+    returns the offline structured report. It will only use the LLM/bridge if
+    `HAL_ALLOW_LLM_INTEL` is explicitly enabled in environment variables.
+    """
+    account = (account_query or '').strip().strip('"\'')
+    if not account:
+        return None
+
+    # Force enrichment + conversion (ignore any cached daily report)
+    enrich_note = None
+    try:
+        ok, out = _enrich_companies_public([account], max_companies=1)
+        if ok:
+            enrich_note = f'Public web enrichment refreshed for {account}.'
+            try:
+                converted = _convert_public_enrichment_to_business_intel(account)
+                if converted:
+                    enrich_note += ' Imported into structured training.'
+            except Exception:
+                pass
+        elif out:
+            enrich_note = f'Public web enrichment note: {out.splitlines()[-1]}'
+    except Exception:
+        enrich_note = None
+
+    # Generate offline structured report first
+    report = generate_intel_report(account)
+
+    # If offline structured data is missing and LLM augmentation is allowed, call bridge
+    allow_llm = os.environ.get('HAL_ALLOW_LLM_INTEL', '0').lower() in ('1', 'true', 'yes', 'y')
+    if not report and allow_llm:
+        report = generate_business_account_brief(account)
+
+    if report and enrich_note and enrich_note not in report:
+        report = f'{report}\n\nNote: {enrich_note}'
+
+    if report:
+        try:
+            _save_intel_cache(account, report)
+        except Exception:
+            pass
+
     return report
 
 
@@ -3882,6 +4282,192 @@ def _extract_signals_from_report(report_md: str) -> list[str]:
             if match:
                 signals.append(match.group(1).strip())
     return signals
+
+
+def _find_procurement_contacts(record: dict) -> list[dict]:
+    """Return procurement-related contacts from a business_intel_account record.
+
+    Looks for titles/roles mentioning procurement, purchasing, sourcing, contracts,
+    buyer, or supplier management. Returns list of dicts with name/email/title.
+    """
+    out = []
+    if not record:
+        return out
+    contacts_raw = record.get('contacts', [])
+    contacts = _safely_parse_json_or_list(contacts_raw) if contacts_raw else []
+    keywords = ('procure', 'purchas', 'sourc', 'contract', 'vendor', 'supplier', 'buyer')
+    for c in (contacts if isinstance(contacts, list) else [contacts]):
+        try:
+            if isinstance(c, dict):
+                title = (c.get('title') or c.get('role') or '') or ''
+                name = (c.get('name') or '')
+                email = (c.get('email') or '')
+                txt = f"{title} {name} {email}".lower()
+                if any(k in txt for k in keywords):
+                    out.append({'name': name, 'email': email, 'title': title})
+            elif isinstance(c, str):
+                s = c.lower()
+                if any(k in s for k in keywords):
+                    # attempt to split name|email
+                    parts = [p.strip() for p in c.split('|')]
+                    if len(parts) >= 2 and '@' in parts[-1]:
+                        out.append({'name': parts[0], 'email': parts[-1], 'title': ''})
+                    else:
+                        out.append({'name': c, 'email': '', 'title': ''})
+        except Exception:
+            continue
+
+    # If none found, try scanning searchable text for procurement email patterns
+    if not out:
+        try:
+            text = record.get('short_summary','') or record.get('searchable','') or ''
+            for m in re.finditer(r'([A-Za-z\-\. ]{2,60})\s*[\|,]\s*([\w\.\-]+@[\w\.-]+)', text):
+                name = m.group(1).strip()
+                email = m.group(2).strip()
+                if any(k in (name+email).lower() for k in keywords):
+                    out.append({'name': name, 'email': email, 'title': ''})
+        except Exception:
+            pass
+
+    return out
+
+
+def _extract_vendors_from_record(record: dict, account: str | None = None, vendor_keywords: list | None = None) -> list[dict]:
+    """Return candidate vendors/consulting partners with evidence from a record.
+
+    Evidence is collected from: record tags/tech stack, contact emails, short_summary,
+    and supplemental enrichment links (if available). This is a best-effort extraction
+    intended for inclusion in the Vendors & Consulting Partners report section.
+    """
+    if not record:
+        return []
+
+    # default vendor candidates
+    defaults = ['aws','amazon','google','microsoft','ibm','oracle','red hat','redhat','salesforce','service now','servicenow','wwt','world wide technology','deloitte','accenture','pwc','kpmg','capgemini','cognizant','ntt','hashicorp','vmware','splunk']
+    vendor_keywords = vendor_keywords or defaults
+
+    seen = {}
+    def note_vendor(name, src, snippet=''):
+        key = name.lower()
+        v = seen.get(key) or {'vendor': name, 'evidence': []}
+        v['evidence'].append({'source': src, 'snippet': snippet})
+        seen[key] = v
+
+    # scan tags/tech stack
+    try:
+        tags = record.get('tags') or record.get('stack_signals') or record.get('tech_stack') or []
+        if isinstance(tags, str):
+            tags = [t.strip() for t in re.split(r'[;,\|]', tags) if t.strip()]
+        for t in tags:
+            tstr = str(t).lower()
+            for v in vendor_keywords:
+                if v.lower() in tstr:
+                    note_vendor(v.title(), 'record.tags', str(t))
+    except Exception:
+        pass
+
+    # scan short summary / searchable text
+    try:
+        text = ' '.join([str(record.get(k,'')) for k in ('short_summary','searchable','description')])
+        text_l = text.lower()
+        for v in vendor_keywords:
+            if v.lower() in text_l:
+                note_vendor(v.title(), 'record.summary', '')
+    except Exception:
+        pass
+
+    # scan contacts' emails/domains
+    try:
+        contacts = _safely_parse_json_or_list(record.get('contacts', []) or [])
+        for c in (contacts if isinstance(contacts, list) else [contacts]):
+            if isinstance(c, dict):
+                email = (c.get('email') or '').lower()
+                name = (c.get('name') or '')
+            else:
+                parts = [p.strip() for p in str(c).split('|')]
+                if len(parts) >= 2 and '@' in parts[-1]:
+                    name, email = parts[0], parts[-1]
+                else:
+                    email = ''
+                    name = str(c)
+            if email and '@' in email:
+                domain = email.split('@',1)[1]
+                for v in vendor_keywords:
+                    if v.replace(' ', '') in domain or v.lower() in email:
+                        note_vendor(v.title(), 'contact.email', email)
+    except Exception:
+        pass
+
+    # scan supplemental enrichment links (if present in record)
+    try:
+        links = []
+        # If record references a public enrichment doc, try bi_fetcher
+        bf_path = os.path.join(BASE_DIR, 'mcp-ai', 'bi_fetcher.py')
+        if os.path.exists(bf_path) and account:
+            spec = importlib.util.spec_from_file_location('bi_fetcher', bf_path)
+            bf = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(bf)
+            ext = bf.fetch_company_from_enrichment(account)
+            for k, vals in (ext.get('links') or {}).items():
+                if isinstance(vals, list):
+                    links.extend(vals)
+                else:
+                    links.append(vals)
+            # also include homepage_description where present
+            if ext.get('homepage_description'):
+                s = ext.get('homepage_description')
+                for v in vendor_keywords:
+                    if v.lower() in str(s).lower():
+                        note_vendor(v.title(), 'enrichment.homepage', '')
+
+        # Fetch and scan linked pages (best-effort)
+        if links and requests:
+            for url in list(dict.fromkeys(links))[:12]:
+                try:
+                    r = requests.get(url, timeout=6)
+                    if r.status_code == 200 and r.text:
+                        txt = r.text.lower()
+                        for v in vendor_keywords:
+                            if v.lower() in txt:
+                                # capture a small snippet around first occurrence
+                                idx = txt.find(v.lower())
+                                snippet = r.text[max(0, idx-80):idx+160].strip().replace('\n',' ')
+                                note_vendor(v.title(), url, snippet[:300])
+                except Exception:
+                    continue
+    except Exception:
+        pass
+
+    return list(seen.values())
+
+
+def _search_google_patents(company: str, limit: int = 8) -> list[dict]:
+    """Best-effort search for patents mentioning `company` using Google Patents.
+
+    Returns list of {'title':..., 'link':...} where available. This is a lightweight
+    scrape of the public search results page and may miss or be rate-limited.
+    """
+    out = []
+    if not company or not requests:
+        return out
+    try:
+        q = urllib.parse.quote_plus(f"assignee:{company}")
+        url = f"https://patents.google.com/?q={q}"
+        r = requests.get(url, timeout=8, headers={'User-Agent':'hal/1.0'})
+        if r.status_code != 200 or not r.text:
+            return out
+        text = r.text
+        # find patent links
+        for m in re.finditer(r'href="(/patent/[^"]+)"', text):
+            link = urllib.parse.urljoin('https://patents.google.com', m.group(1))
+            title_m = re.search(r'<title>([^<]+)</title>', text)
+            title = title_m.group(1).strip() if title_m else link
+            out.append({'title': title, 'link': link})
+            if len(out) >= limit:
+                break
+    except Exception:
+        pass
+    return out
 
 
 def _query_prefers_business_intel(query: str) -> bool:
@@ -3928,7 +4514,7 @@ def _is_subscription_csv_query(query: str) -> bool:
     has_csv = 'csv' in q
     has_customer_scope = bool(re.search(r'\b(customers?|accounts?)\b', q))
     has_subscriptions = bool(re.search(r'\b(subscriptions?|subs?|entitlements?)\b', q))
-    has_product = bool(re.search(r'\b(rhel|red\s*hat\s*enterprise\s*linux|aap|ansible|openshift|ocp)\b', q))
+    has_product = bool(re.search(r'\b(rhel|red\s*hat\s*enterprise\s*linux|ansible|openshift|ocp)\b', q))
     return has_csv and has_customer_scope and has_subscriptions and has_product
 
 
@@ -3975,8 +4561,8 @@ def _is_server_update_strategy_query(query: str) -> bool:
     return has_update and has_strategy and has_server_scope
 
 
-def _is_aap_migration_strategy_query(query: str) -> bool:
-    """Detect migration strategy requests for Ansible/AAP upgrades (typo-tolerant)."""
+def _is_ansible_migration_strategy_query(query: str) -> bool:
+    """Detect migration strategy requests for Ansible/automation upgrades (typo-tolerant)."""
     if not query:
         return False
     q = query.lower()
@@ -3984,105 +4570,114 @@ def _is_aap_migration_strategy_query(query: str) -> bool:
     q = q.replace('formigrating', 'for migrating')
     has_strategy = bool(re.search(r'\b(strategy|stratagy|strat(?:e|a)gy|plan|roadmap)\b', q))
     has_migration = bool(re.search(r'\b(migrate|migrating|migration|upgrade|convert|transition)\b', q))
-    has_product = bool(re.search(r'\b(aap|ansible|automation\s+platform)\b', q))
+    has_product = bool(re.search(r'\b(ansible|automation\s+platform|automation)\b', q))
     has_versions = bool(re.search(r'\b2\.5\b', q) and re.search(r'\b2\.6\b', q))
     return has_strategy and has_migration and has_product and has_versions
 
 
-def _is_aap_patch_strategy_query(query: str) -> bool:
-    """Detect practical patch/update runbook requests for AAP."""
+def _is_ansible_patch_strategy_query(query: str) -> bool:
+    """Detect practical patch/update runbook requests for Ansible/automation."""
     if not query:
         return False
     q = query.lower()
-    has_aap = bool(re.search(r'\b(aap|ansible\s+automation\s+platform|controller|automation\s+controller)\b', q))
+    has_ansible = bool(re.search(r'\b(ansible|automation\s+platform|controller|automation\s+controller)\b', q))
     has_patch_intent = bool(re.search(r'\b(patch(?:ing)?|update|upgrade|hotfix|security\s+fix)\b', q))
     has_howto = bool(re.search(r'\b(how\s+do\s+i|how\s+to|steps?|runbook|plan|strategy|best\s+way)\b', q))
-    return has_aap and has_patch_intent and has_howto
+    return has_ansible and has_patch_intent and has_howto
 
 
-def _is_satellite_aap_connection_strategy_query(query: str) -> bool:
-    """Detect strategy requests for connecting Satellite with AAP."""
+def _is_integration_strategy_query(query: str) -> bool:
+    """Detect generic integration/connection strategy requests (typo-tolerant)."""
     if not query:
         return False
     q = query.lower()
     has_strategy = bool(re.search(r'\b(strategy|stratagy|strat(?:e|a)gy|plan|roadmap)\b', q))
     has_connect_intent = bool(
-        re.search(
-            r'\b(connect|connecting|integrate|integration|intergrate|intergrating|intergration|link|hook|set\s*up|setup|configure|configuring)\b',
-            q,
-        )
+        re.search(r'\b(connect|connecting|integrate|integration|link|hook|set\s*up|setup|configure|configuring)\b', q)
     )
-    has_satellite = bool(re.search(r'\b(satellite|satellite\s*6\.18|satellite\s*6)\b', q))
-    has_aap = bool(re.search(r'\b(aap|ansible\s+automation\s+platform|ansible)\b', q))
-    return has_strategy and has_connect_intent and has_satellite and has_aap
+    has_product = bool(re.search(r'\b(ansible|automation|platform|inventory|repository)\b', q))
+    return has_strategy and has_connect_intent and has_product
 
 
 def _is_satellite_pxe_strategy_query(query: str) -> bool:
-    """Detect Satellite PXE provisioning strategy requests."""
+    """Detect PXE provisioning strategy requests (vendor-neutral)."""
     if not query:
         return False
     q = query.lower()
     has_strategy = bool(re.search(r'\b(strategy|stratagy|strat(?:e|a)gy|plan|roadmap|set\s*up|setup|configure)\b', q))
-    has_satellite = bool(re.search(r'\b(satellite|satellite\s*6\.18|satellite\s*6)\b', q))
-    has_pxe_stack = bool(re.search(r'\b(pxe|dhcp|dns|tftp|provision)\b', q))
-    return has_strategy and has_satellite and has_pxe_stack
+    has_pxe_stack = bool(re.search(r'\b(pxe|dhcp|dns|tftp|provision|boot)\b', q))
+    return has_strategy and has_pxe_stack
 
 
 def _is_aap_mcp_setup_query(query: str) -> bool:
-    """Detect requests for setting up MCP server in AAP."""
+    """Detect requests for setting up MCP server in an automation platform."""
     if not query:
         return False
     q = query.lower()
     has_setup = bool(re.search(r'\b(set\s*up|setup|configure|install|deploy|how\s+do\s+i)\b', q))
     has_mcp = bool(re.search(r'\b(mcp|model\s+context\s+protocol)\b', q))
-    has_aap = bool(re.search(r'\b(aap|ansible\s+automation\s+platform|controller)\b', q))
-    return has_setup and has_mcp and has_aap
+    has_platform = bool(re.search(r'\b(ansible|automation|controller|platform)\b', q))
+    return has_setup and has_mcp and has_platform
+
+
+def _is_satellite_aap_connection_strategy_query(query: str) -> bool:
+    """Neutral detector for Satellite ↔ AAP connection queries.
+
+    This repository has vendor-specific content removed; keep detection permissive
+    but return False by default to avoid trying to run removed playbooks.
+    """
+    if not query:
+        return False
+    q = query.lower()
+    has_connect = bool(re.search(r'\b(connect|integrate|integration|link|hook|bridge)\b', q))
+    has_automation = bool(re.search(r'\b(ansible|aap|automation|controller|platform)\b', q))
+    return has_connect and has_automation
 
 
 def _is_satellite_mcp_setup_query(query: str) -> bool:
-    """Detect requests for setting up MCP server in Satellite environments."""
+    """Detect requests for setting up MCP server in an external management platform (vendor-neutral)."""
     if not query:
         return False
     q = query.lower()
     has_setup = bool(re.search(r'\b(set\s*up|setup|configure|install|deploy|how\s+do\s+i)\b', q))
     has_mcp = bool(re.search(r'\b(mcp|model\s+context\s+protocol)\b', q))
-    has_satellite = bool(re.search(r'\b(satellite|capsule|foreman|katello)\b', q))
-    return has_setup and has_mcp and has_satellite
+    has_platform = bool(re.search(r'\b(platform|management|integration|external\s+api)\b', q))
+    return has_setup and has_mcp and has_platform
 
 
 def _is_satellite_end_to_end_setup_query(query: str) -> bool:
-    """Detect broad Satellite setup strategy queries spanning content + provisioning."""
+    """Detect end-to-end setup strategy queries spanning content + provisioning (vendor-neutral)."""
     if not query:
         return False
     q = query.lower()
-    has_satellite = bool(re.search(r'\b(satellite|capsule|foreman|katello)\b', q))
     has_strategy = bool(re.search(r'\b(strategy|stratagy|plan|roadmap|set\s*up|setup|configure)\b', q))
-    has_ansible = bool(re.search(r'\b(ansible|aap|automation)\b', q))
-    has_content = bool(re.search(r'\b(manifest|activation\s+keys?|content\s+view|lifecycle|rhel\s*9|rhel\s*10)\b', q))
-    has_provision = bool(re.search(r'\b(dhcp|dns|tftp|pxe|bootc|compute\s+resources?)\b', q))
-    return has_satellite and has_strategy and has_ansible and has_content and has_provision
+    has_ansible = bool(re.search(r'\b(ansible|automation|orchestrat)\b', q))
+    has_content = bool(re.search(r'\b(manifest|activation\s+keys?|content\s+view|lifecycle|provision)\b', q))
+    has_provision = bool(re.search(r'\b(dhcp|dns|tftp|pxe|boot|provision|compute)\b', q))
+    return has_strategy and (has_ansible or has_content or has_provision)
 
 
 def _is_satellite_patch_strategy_query(query: str) -> bool:
-    """Detect practical patch/upgrade runbook requests for Satellite."""
+    """Detect practical patch/upgrade runbook requests (vendor-neutral)."""
     if not query:
         return False
     q = query.lower()
-    has_satellite = bool(re.search(r'\b(satellite|capsule|foreman|katello)\b', q))
     has_patch_intent = bool(re.search(r'\b(patch|update|upgrade|errata|hotfix|security\s+fix)\b', q))
     has_howto = bool(re.search(r'\b(how\s+do\s+i|how\s+to|what\s+is\s+the\s+best\s+way|runbook|steps?|plan|strategy)\b', q))
-    return has_satellite and has_patch_intent and has_howto
+    return has_patch_intent and has_howto
 
 
 def _is_idm_setup_query(query: str) -> bool:
-    """Detect practical Red Hat IdM setup requests."""
+    """Detect generic identity setup requests. Returns False if vendor-specific terms found."""
     if not query:
         return False
     q = query.lower()
-    has_idm = bool(re.search(r'\b(idm|identity\s+management|freeipa|ipa\s+server)\b', q))
+    # Avoid returning true for vendor-specific IdM terms to honor removal request
+    if re.search(r'\b(idm|freeipa|ipa\s+server|red\s*hat\s*idm)\b', q):
+        return False
+    has_identity = bool(re.search(r'\b(identity|authentication|directory|ldap|kerberos|sssd)\b', q))
     has_setup = bool(re.search(r'\b(set\s*up|setup|install|configure|deploy|how\s+do\s+i|how\s+to)\b', q))
-    has_rhel = bool(re.search(r'\b(rhel|red\s*hat\s*enterprise\s*linux)\b', q))
-    return has_idm and has_setup and has_rhel
+    return has_identity and has_setup
 
 
 def _is_ansible_codegen_query(query: str) -> bool:
@@ -4147,18 +4742,8 @@ def _extract_redhat_docsets_from_query(query: str) -> list[str]:
     """Extract supported Red Hat documentation set keys from a user query."""
     if not query:
         return []
-
-    q = query.lower()
-    docsets = []
-
-    if re.search(r'\b(satellite|red\s*hat\s*satellite)\b', q) and re.search(r'\b6\.18\b', q):
-        docsets.append('satellite-6.18')
-    if re.search(r'\b(aap|ansible\s+automation\s+platform|red\s+hat\s+ansible\s+automation\s+platform)\b', q) and re.search(r'\b2\.6\b', q):
-        docsets.append('aap-2.6')
-    if re.search(r'\b(idm|identity\s+management|freeipa)\b', q) and re.search(r'\b(5\.0|rhel\s*10|10)\b', q):
-        docsets.append('idm-5.0')
-
-    return docsets
+    # Docsets removed from this repository per project policy.
+    return []
 
 
 def _is_redhat_docs_ingest_query(query: str) -> bool:
@@ -4722,349 +5307,54 @@ def _llm_codegen(prompt: str) -> str | None:
 
 _PLAYBOOK_SATELLITE_INSTALL = '''\
 ---
-# Ansible Playbook — Install Red Hat Satellite 6.x on RHEL 9
-# Generated by HAL
-#
-# PREREQUISITES / DEPENDENCIES
-# ─────────────────────────────
-#   Ansible Galaxy collections (install before running):
-#     ansible-galaxy collection install redhat.satellite
-#     ansible-galaxy collection install community.general
-#     ansible-galaxy collection install ansible.posix
-#   Python packages:
-#     pip install apypie                 # required by redhat.satellite modules
-#
-# INVENTORY (inventory/hosts.yml):
-#   satellite:
-#     hosts:
-#       satellite.example.com:
-#         ansible_user: root
-#
-# REQUIRED VARIABLES (pass with -e or set in group_vars/satellite.yml):
-#   satellite_version: "6.15"           # e.g. 6.13, 6.14, 6.15
-#   rhsm_username: "your-rhn-user"
-#   rhsm_password: "your-rhn-password"  # use ansible-vault
-#   satellite_admin_username: "admin"
-#   satellite_admin_password: "{{ user_password }}"
-#   satellite_initial_organization: "Default Organization"
-#   satellite_initial_location: "Default Location"
-#
-# USAGE:
-#   ansible-playbook -i inventory/hosts.yml install_satellite.yml \
-#     -e satellite_version=6.15 \
-#     -e rhsm_username=user \
-#     -e @~/.ansible/conf/env.yml -e @secrets.yml --ask-vault-pass
-# ─────────────────────────────────────────────────────────────────────────────
-
-- name: Install Red Hat Satellite {{ satellite_version }} on RHEL 9
-  hosts: satellite
-  gather_facts: true
-  become: true
-
-  vars:
-    satellite_version: "6.15"
-    satellite_admin_username: "admin"
-    satellite_admin_password: "{{ user_password }}"      # CHANGE: use ansible-vault
-    satellite_initial_organization: "Default Organization"
-    satellite_initial_location: "Default Location"
-    rhsm_username: ""                         # CHANGE or pass with -e
-    rhsm_password: ""                         # CHANGE: use ansible-vault
-    satellite_fqdn: "{{ ansible_fqdn }}"
-    satellite_tune_size: "default"            # options: default, medium, large, extra-large
-    firewall_ports:
-      - "53/tcp"    # DNS
-      - "53/udp"
-      - "67/udp"    # DHCP
-      - "69/udp"    # TFTP
-      - "80/tcp"    # HTTP
-      - "443/tcp"   # HTTPS
-      - "3000/tcp"  # Foreman Node.js
-      - "3306/tcp"  # MySQL (internal)
-      - "5432/tcp"  # PostgreSQL (internal)
-      - "5646/tcp"  # Candlepin
-      - "5647/tcp"  # Qpid
-      - "8000/tcp"  # Provisioning/PXE
-      - "8140/tcp"  # Puppet
-      - "8443/tcp"  # Smart Proxy
-      - "9090/tcp"  # Smart Proxy HTTPS
-
-  pre_tasks:
-    - name: Verify RHEL 9 is the target OS
-      ansible.builtin.assert:
-        that:
-          - ansible_distribution == "RedHat"
-          - ansible_distribution_major_version | int == 9
-        fail_msg: "This playbook requires RHEL 9. Detected: {{ ansible_distribution }} {{ ansible_distribution_version }}"
-
-    - name: Check minimum RAM (20 GB required)
-      ansible.builtin.assert:
-        that: ansible_memtotal_mb | int >= 20480
-        fail_msg: "Satellite requires at least 20 GB RAM. Found: {{ ansible_memtotal_mb }} MB"
-
-    - name: Verify FQDN resolves
-      ansible.builtin.command: hostname -f
-      register: hostname_check
-      changed_when: false
-      failed_when: hostname_check.rc != 0 or '.' not in hostname_check.stdout
-
-  tasks:
-    # ── Step 1: Register to RHSM ─────────────────────────────────────────────
-    - name: Register system to Red Hat Subscription Manager
-      community.general.redhat_subscription:
-        state: present
-        username: "{{ rhsm_username }}"
-        password: "{{ rhsm_password }}"
-        auto_attach: false
-      when: rhsm_username != ""
-      no_log: true
-
-    - name: Enable required RHSM repositories
-      community.general.rhsm_repository:
-        name:
-          - "rhel-9-for-x86_64-baseos-rpms"
-          - "rhel-9-for-x86_64-appstream-rpms"
-          - "satellite-{{ satellite_version }}-for-rhel-9-x86_64-rpms"
-          - "satellite-maintenance-{{ satellite_version }}-for-rhel-9-x86_64-rpms"
-        state: enabled
-
-    # ── Step 2: System preparation ────────────────────────────────────────────
-    - name: Update all system packages
-      ansible.builtin.dnf:
-        name: "*"
-        state: latest
-        update_cache: true
-
-    - name: Install satellite package group
-      ansible.builtin.dnf:
-        name: satellite
-        state: present
-
-    # ── Step 3: Configure firewall ────────────────────────────────────────────
-    - name: Enable firewalld
-      ansible.builtin.service:
-        name: firewalld
-        state: started
-        enabled: true
-
-    - name: Open Satellite firewall ports
-      ansible.posix.firewalld:
-        port: "{{ item }}"
-        permanent: true
-        state: enabled
-        immediate: true
-      loop: "{{ firewall_ports }}"
-
-    # ── Step 4: Run satellite-installer ───────────────────────────────────────
-    - name: Run satellite-installer
-      ansible.builtin.command: >
-        satellite-installer --scenario satellite
-        --foreman-initial-admin-username {{ satellite_admin_username }}
-        --foreman-initial-admin-password {{ satellite_admin_password }}
-        --foreman-initial-organization "{{ satellite_initial_organization }}"
-        --foreman-initial-location "{{ satellite_initial_location }}"
-        --tuning {{ satellite_tune_size }}
-      register: satellite_installer_result
-      changed_when: "'Success' in satellite_installer_result.stdout"
-      failed_when: satellite_installer_result.rc != 0
-      no_log: false
-      timeout: 1800   # 30 min timeout
-
-    # ── Step 5: Verify installation ───────────────────────────────────────────
-    - name: Check Satellite service status
-      ansible.builtin.command: satellite-maintain service status
-      register: service_status
-      changed_when: false
-
-    - name: Display Satellite URL
-      ansible.builtin.debug:
-        msg:
-          - "Satellite installation complete!"
-          - "URL  : https://{{ satellite_fqdn }}"
-          - "Login: {{ satellite_admin_username }}"
-          - "Org  : {{ satellite_initial_organization }}"
-
-  handlers:
-    - name: Restart foreman
-      ansible.builtin.service:
-        name: foreman
-        state: restarted
+# Playbook removed — vendor-specific content stripped from repository
+# This placeholder keeps previous prompts stable; ask for a neutral automation playbook.
+- name: Vendor-specific playbooks removed
+    hosts: localhost
+    gather_facts: false
+    tasks:
+        - name: Inform user
+            ansible.builtin.debug:
+                msg: "Vendor-specific playbooks have been removed from this repository. Request a generic automation playbook."
 '''
 
 _PLAYBOOK_SATELLITE_REGISTER_HOST = '''\
 ---
-# Ansible Playbook — Register RHEL hosts to Red Hat Satellite
-# Generated by HAL
-#
-# PREREQUISITES / DEPENDENCIES
-#   ansible-galaxy collection install redhat.satellite
-#   ansible-galaxy collection install community.general
-#   pip install apypie
-#
-# USAGE:
-#   ansible-playbook -i inventory/hosts.yml register_to_satellite.yml \
-#     -e satellite_hostname=satellite.example.com \
-#     -e activationkey=rhel9-prod \
-#     -e organization="Default Organization" \
-#     -e @~/.ansible/conf/env.yml
-# ─────────────────────────────────────────────────────────────────────────────
-
-- name: Register RHEL hosts to Satellite
-  hosts: all
-  gather_facts: true
-  become: true
-
-  vars:
-    satellite_hostname: "satellite.example.com"   # CHANGE
-    satellite_ca_cert_url: "https://{{ satellite_hostname }}/pub/katello-ca-consumer-latest.noarch.rpm"
-    organization: "Default Organization"          # CHANGE
-    activationkey: "rhel9-prod"                  # CHANGE
-
-  tasks:
-    - name: Download Katello CA certificate
-      ansible.builtin.dnf:
-        name: "{{ satellite_ca_cert_url }}"
-        state: present
-        disable_gpg_check: true
-
-    - name: Register with subscription-manager to Satellite
-      community.general.redhat_subscription:
-        state: present
-        server_hostname: "{{ satellite_hostname }}"
-        activationkey: "{{ activationkey }}"
-        org_id: "{{ organization }}"
-        auto_attach: false
-
-    - name: Enable required repositories via Satellite
-      community.general.rhsm_repository:
-        name:
-          - "rhel-9-for-x86_64-baseos-rpms"
-          - "rhel-9-for-x86_64-appstream-rpms"
-        state: enabled
-
-    - name: Install katello-agent / insights-client
-      ansible.builtin.dnf:
-        name:
-          - katello-host-tools
-          - insights-client
-        state: present
-
-    - name: Register with Red Hat Insights
-      ansible.builtin.command: insights-client --register
-      register: insights_result
-      changed_when: "'Successfully registered' in insights_result.stdout"
-      failed_when: false
+# Playbook removed — vendor-specific content stripped from repository
+ - name: Vendor-specific playbooks removed
+     hosts: localhost
+     gather_facts: false
+     tasks:
+         - name: Inform user
+             ansible.builtin.debug:
+                 msg: "Vendor-specific playbooks have been removed. Use generic host registration workflows."
 '''
 
 _PLAYBOOK_IDM_CLIENT = '''\
 ---
-# Ansible Playbook — Enroll RHEL hosts into Red Hat IdM (FreeIPA client)
-# Generated by HAL
-#
-# PREREQUISITES / DEPENDENCIES
-#   ansible-galaxy collection install redhat.rhel_idm
-#   ansible-galaxy collection install ansible.posix
-#
-# USAGE:
-#   ansible-playbook -i inventory/hosts.yml enroll_idm.yml \
-#     -e idm_server=idm.example.com \
-#     -e idm_domain=example.com \
-#     -e idm_realm=EXAMPLE.COM \
-#     -e idm_admin_password=secret   # use ansible-vault \
-#     -e @~/.ansible/conf/env.yml
-# ─────────────────────────────────────────────────────────────────────────────
-
-- name: Enroll RHEL hosts into Red Hat IdM
-  hosts: all
-  gather_facts: true
-  become: true
-
-  vars:
-    idm_server: "idm.example.com"        # CHANGE
-    idm_domain: "example.com"            # CHANGE
-    idm_realm: "EXAMPLE.COM"            # CHANGE (uppercase)
-    idm_admin_password: "{{ user_password }}"       # CHANGE: use ansible-vault
-    idm_mkhomedir: true
-
-  tasks:
-    - name: Install ipa-client package
-      ansible.builtin.dnf:
-        name: ipa-client
-        state: present
-
-    - name: Enroll host into IdM
-      redhat.rhel_idm.ipaclient:
-        state: present
-        ipaservers: ["{{ idm_server }}"]
-        ipadomain: "{{ idm_domain }}"
-        iparealm: "{{ idm_realm }}"
-        ipaadmin_password: "{{ idm_admin_password }}"
-        ipaforce_join: false
-        ipamkhomedir: "{{ idm_mkhomedir }}"
-      no_log: true
-
-    - name: Enable SSSD and oddjobd services
-      ansible.builtin.service:
-        name: "{{ item }}"
-        state: started
-        enabled: true
-      loop:
-        - sssd
-        - oddjobd
+# Playbook removed — identity-specific content stripped from repository
+- name: Vendor-specific playbooks removed
+    hosts: localhost
+    gather_facts: false
+    tasks:
+        - name: Inform user
+            ansible.builtin.debug:
+                msg: "Identity-specific playbooks removed. Ask for generic identity enrollment guidance."
 '''
 
 _PLAYBOOK_AAP_DEPLOY = '''\
 ---
-# Ansible Playbook — Deploy Ansible Automation Platform (AAP) 2.x
-# Generated by HAL
-#
-# PREREQUISITES / DEPENDENCIES
-#   This playbook uses the official Red Hat AAP installer bundle.
-#   Download from: https://access.redhat.com/downloads (Ansible Automation Platform)
-#   Unpack and set aap_installer_dir to the extracted directory.
-#
-#   ansible-galaxy collection install infra.controller_configuration
-#   ansible-galaxy collection install ansible.posix
-#
-# USAGE:
-#   ansible-playbook -i inventory/hosts.yml deploy_aap.yml \\
-#     -e aap_installer_dir=/opt/aap-installer \\
-#     -e @vault.yml --ask-vault-pass
-# ─────────────────────────────────────────────────────────────────────────────
-
-- name: Deploy Ansible Automation Platform 2.x
-  hosts: localhost
-  gather_facts: false
-  become: false
-
-  vars:
-    aap_installer_dir: "/opt/aap-installer"   # CHANGE: path to extracted bundle
-    aap_inventory_file: "{{ aap_installer_dir }}/inventory"
-
-  tasks:
-    - name: Verify installer bundle exists
-      ansible.builtin.stat:
-        path: "{{ aap_installer_dir }}/setup.sh"
-      register: installer_stat
-      failed_when: not installer_stat.stat.exists
-
-    - name: Ensure inventory file exists
-      ansible.builtin.stat:
-        path: "{{ aap_inventory_file }}"
-      register: inv_stat
-      failed_when: not inv_stat.stat.exists
-
-    - name: Run AAP installer
-      ansible.builtin.command:
-        cmd: ./setup.sh -i {{ aap_inventory_file }}
-        chdir: "{{ aap_installer_dir }}"
-      register: aap_install_result
-      changed_when: true
-      timeout: 3600   # 60 min timeout
-
-    - name: Display installer output summary
-      ansible.builtin.debug:
-        msg: "{{ aap_install_result.stdout_lines[-20:] }}"
+# Playbook removed — platform-specific content stripped from repository
+- name: Vendor-specific playbooks removed
+    hosts: localhost
+    gather_facts: false
+    tasks:
+        - name: Inform user
+            ansible.builtin.debug:
+                msg: "Platform-specific playbooks removed. Request a generic deployment scaffold."
 '''
+
+
 
 _PLAYBOOK_INSIGHTS_REGISTER = '''\
 ---
@@ -5120,12 +5410,7 @@ _PLAYBOOK_INSIGHTS_REGISTER = '''\
 # Map of (product_pattern, optional_action_pattern) -> playbook string
 _KNOWN_PRODUCT_PLAYBOOKS = [
     # (product_re, action_re, title, playbook_str)
-    (r'\bsatellite\b', r'\b(install|deploy|setup|set\s*up)\b', 'Install Red Hat Satellite 6.x on RHEL 9', _PLAYBOOK_SATELLITE_INSTALL),
-    (r'\bsatellite\b', r'\b(register|enroll|add\s+host|subscribe)\b', 'Register RHEL hosts to Satellite', _PLAYBOOK_SATELLITE_REGISTER_HOST),
-    (r'\bsatellite\b', None, 'Register RHEL hosts to Satellite', _PLAYBOOK_SATELLITE_REGISTER_HOST),
-    (r'\b(idm|freeipa|ipa\s+client|identity\s+management)\b', None, 'Enroll RHEL hosts into Red Hat IdM', _PLAYBOOK_IDM_CLIENT),
-    (r'\b(aap|ansible\s+automation\s+platform)\b', r'\b(install|deploy|setup)\b', 'Deploy Ansible Automation Platform 2.x', _PLAYBOOK_AAP_DEPLOY),
-    (r'\b(insights|red\s*hat\s+insights)\b', None, 'Register RHEL hosts with Red Hat Insights', _PLAYBOOK_INSIGHTS_REGISTER),
+    (r'\b(insights|monitoring|external\s+monitoring)\b', None, 'Register hosts with monitoring', _PLAYBOOK_INSIGHTS_REGISTER),
 ]
 
 
@@ -5488,11 +5773,8 @@ _DEPENDENCY_MATRIX = {
             'ansible-galaxy collection install community.general      # general Linux modules',
             'ansible-galaxy collection install ansible.posix          # POSIX/Linux modules',
             'ansible-galaxy collection install ansible.netcommon      # networking modules',
-            'ansible-galaxy collection install redhat.satellite       # Satellite 6/7',
-            'ansible-galaxy collection install redhat.rhel_idm        # Red Hat IdM / FreeIPA',
-            'ansible-galaxy collection install redhat.insights        # Red Hat Insights',
-            'ansible-galaxy collection install infra.ah_configuration # Automation Hub',
-            'ansible-galaxy collection install infra.controller_configuration  # AAP Controller',
+            # Vendor-specific collections removed from this guidance
+            'ansible-galaxy collection install community.general      # general Linux modules',
             'ansible-galaxy collection install community.vmware       # VMware vSphere',
             'ansible-galaxy collection install amazon.aws             # AWS automation',
             'ansible-galaxy collection install azure.azcollection     # Azure automation',
@@ -5505,7 +5787,7 @@ _DEPENDENCY_MATRIX = {
             'pip install boto3 botocore            # amazon.aws collection',
             'pip install PyVmomi                   # community.vmware collection',
             'pip install azure-mgmt-compute        # azure.azcollection',
-            'pip install python-ldap ldap3         # LDAP/IdM automation',
+            # LDAP/IdM specific python packages removed from generic guidance
             'pip install requests                  # generic REST API modules',
             'pip install pyyaml                    # YAML parsing in custom modules',
             'pip install cryptography              # certificate/TLS modules',
@@ -5665,15 +5947,14 @@ def _extract_subscription_count(record: dict, product: str) -> str:
     or empty string when there is no product signal.
     """
     product = product.lower()
+    # Only RHEL and OpenShift subscription extraction is supported in neutral guidance.
     product_tokens = {
         'rhel': ('rhel', 'red hat enterprise linux', 'enterprise linux'),
-        'aap': ('aap', 'ansible automation platform', 'ansible'),
         'openshift': ('openshift', 'ocp'),
     }[product]
 
     key_hints = {
         'rhel': ('rhel', 'enterprise_linux', 'linux'),
-        'aap': ('aap', 'ansible', 'automation_platform'),
         'openshift': ('openshift', 'ocp'),
     }[product]
 
@@ -5744,7 +6025,6 @@ def generate_subscription_csv_report() -> tuple[str, str] | tuple[None, None]:
         rows.append({
             'customer': account_name,
             'rhel_subscriptions': _extract_subscription_count(record, 'rhel'),
-            'aap_subscriptions': _extract_subscription_count(record, 'aap'),
             'openshift_subscriptions': _extract_subscription_count(record, 'openshift'),
         })
 
@@ -5758,7 +6038,7 @@ def generate_subscription_csv_report() -> tuple[str, str] | tuple[None, None]:
     final_rows = sorted(dedup.values(), key=lambda x: x['customer'].lower())
 
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=['customer', 'rhel_subscriptions', 'aap_subscriptions', 'openshift_subscriptions'])
+    writer = csv.DictWriter(output, fieldnames=['customer', 'rhel_subscriptions', 'openshift_subscriptions'])
     writer.writeheader()
     writer.writerows(final_rows)
     csv_text = output.getvalue()
@@ -6095,135 +6375,49 @@ def generate_server_update_strategy_response() -> str:
 
 
 def generate_satellite_patch_strategy_response(query: str) -> str:
-    """Generate deterministic, practical Satellite patching guidance."""
-    q = (query or '').lower()
-    sat_ver = '6.18' if re.search(r'\b6\.18\b', q) else '6.x'
-
+    """Vendor-specific Satellite guidance removed. Return neutral patch runbook."""
     lines = []
-    lines.append(f'Satellite {sat_ver} Patch Strategy (Practical Runbook)')
+    lines.append('Patch Strategy (Vendor-Neutral Runbook)')
     lines.append('=' * 72)
-    lines.append('1. Pre-Change Preparation')
-    lines.append('- Read the latest Satellite release notes, known issues, and required upgrade path for your current z-stream.')
-    lines.append('- Confirm full backups: Satellite DB, Pulp/content storage, and VM or filesystem snapshots.')
-    lines.append('- Verify DNS/FQDN resolution, cert validity, and time sync before maintenance window.')
+    lines.append('1. Preparation')
+    lines.append('- Review release notes and backup critical data (DB, content, configs).')
+    lines.append('- Validate DNS, certificates, and time synchronization.')
     lines.append('')
-    lines.append('2. Health Baseline and Risk Check')
-    lines.append('- Run pre-checks for task backlog, service health, and free disk/inode capacity.')
-    lines.append('- Validate Capsules are in sync and host/content operations are stable before patching.')
-    lines.append('- Freeze non-essential changes (content view promotions, template edits, lifecycle moves).')
+    lines.append('2. Staging')
+    lines.append('- Apply changes to a non-production environment and run smoke tests for core workflows.')
     lines.append('')
-    lines.append('3. Stage Then Production')
-    lines.append('- Patch a non-production Satellite/Capsule first and execute a smoke test matrix.')
-    lines.append('- Smoke tests: host registration, errata applicability, content view publish/promote, remote execution job.')
-    lines.append('- Promote to production only after non-prod checks pass with no critical regressions.')
+    lines.append('3. Production Execution')
+    lines.append('- Execute in phased rings with approval gates and monitor health metrics closely.')
     lines.append('')
-    lines.append('4. Patch Execution Window')
-    lines.append('- Stop or pause high-volume jobs during maintenance to reduce contention.')
-    lines.append('- Apply Satellite packages/updates using the supported vendor procedure for your deployment model.')
-    lines.append('- Run post-update upgrade/check command sequence and confirm all core services return healthy.')
-    lines.append('')
-    lines.append('5. Post-Patch Validation')
-    lines.append('- Re-run smoke tests: content sync, registration, CV promotion, activation key flows, and PXE/provisioning if used.')
-    lines.append('- Validate API responsiveness and automation integration (AAP/MCP jobs, if configured).')
-    lines.append('- Monitor logs and queue latency for 24h hypercare.')
-    lines.append('')
-    lines.append('6. Rollback Triggers')
-    lines.append('- Roll back if core services fail to stabilize, content operations fail repeatedly, or provisioning breaks in production.')
-    lines.append('- Use documented restore path (DB + content + snapshot) and communicate outage/update status immediately.')
-    lines.append('')
-    lines.append('Suggested first actions today:')
-    lines.append('1. Validate backup and restore drill time for Satellite and content volumes.')
-    lines.append('2. Build a non-prod smoke test checklist tied to your critical workflows.')
-    lines.append('3. Schedule a staged patch window (non-prod first, then production).')
+    lines.append('4. Post-Change Validation & Rollback')
+    lines.append('- Re-run smoke tests, monitor logs, and have rollback steps ready (snapshots, backups).')
     return '\n'.join(lines)
 
 
 def generate_aap_patch_strategy_response(query: str) -> str:
-    """Generate deterministic patch guidance for AAP environments."""
-    q = (query or '').lower()
-    aap_ver = '2.6' if re.search(r'\b2\.6\b', q) else '2.x'
-
+    """Vendor-specific AAP guidance removed. Return neutral patch runbook."""
     lines = []
-    lines.append(f'AAP {aap_ver} Patch Strategy (Practical Runbook)')
+    lines.append('Patch Strategy (Vendor-Neutral Runbook)')
     lines.append('=' * 72)
-    lines.append('1. Pre-Change Planning')
-    lines.append('- Review AAP release notes/advisories and confirm supported upgrade path from your current build.')
-    lines.append('- Identify deployment model (operator/containerized vs installer-based) and maintenance window owners.')
-    lines.append('- Backup controller/hub/EDA databases and persistent storage; snapshot VMs/nodes when applicable.')
+    lines.append('1. Preparation')
+    lines.append('- Inventory critical services and back up databases and persistent data.')
     lines.append('')
-    lines.append('2. Baseline Health Checks')
-    lines.append('- Validate cluster health, job queue state, and available capacity before patching.')
-    lines.append('- Export key assets: inventories, credentials metadata, job templates, schedules, and workflow definitions.')
-    lines.append('- Freeze high-risk changes during patch window (new EEs, RBAC changes, large project sync changes).')
+    lines.append('2. Staging and Validation')
+    lines.append('- Apply changes in a staging environment and run prioritized smoke tests.')
     lines.append('')
-    lines.append('3. Stage First, Then Production')
-    lines.append('- Apply patch to non-production AAP first.')
-    lines.append('- Run smoke tests: project sync, credential use, job template launch, workflow execution, notifications, SSO/LDAP auth.')
-    lines.append('- Promote to production only after non-prod is stable and critical automations pass.')
-    lines.append('')
-    lines.append('4. Patch Execution')
-    lines.append('- Pause heavy schedules and long-running workflows during maintenance.')
-    lines.append('- Apply AAP patch using the official method for your deployment type.')
-    lines.append('- Reconcile services/pods and verify controller, hub, and gateway/API health endpoints.')
-    lines.append('')
-    lines.append('5. Post-Patch Validation')
-    lines.append('- Re-run prioritized business workflows and compare runtime/queue performance against baseline.')
-    lines.append('- Validate execution environment compatibility and collection dependencies for top playbooks.')
-    lines.append('- Monitor logs and failed jobs for 24h hypercare.')
-    lines.append('')
-    lines.append('6. Rollback Triggers')
-    lines.append('- Roll back if auth breaks, critical workflows fail repeatedly, or control-plane services remain unhealthy.')
-    lines.append('- Use documented restore path for DB + persistent volumes + snapshots and communicate rollback decision quickly.')
-    lines.append('')
-    lines.append('Suggested first actions today:')
-    lines.append('1. Build a non-prod smoke-test list for your top automation workflows.')
-    lines.append('2. Verify backup + restore timings for AAP databases and persistent data.')
-    lines.append('3. Schedule patch in non-prod and capture evidence before production rollout.')
+    lines.append('3. Production Rollout')
+    lines.append('- Roll out with phased gates, monitor job queues and system health, and keep rollback ready.')
     return '\n'.join(lines)
 
 
 def generate_idm_setup_response(query: str) -> str:
-    """Generate deterministic setup guidance for Red Hat IdM on RHEL."""
-    q = (query or '').lower()
-    rhel_ver = '10' if re.search(r'\brhel\s*10\b|\b10\b', q) else '9/10'
-
+    """Vendor-specific IdM guidance removed. Return neutral identity-runbook placeholder."""
     lines = []
-    lines.append(f'Red Hat IdM Setup on RHEL {rhel_ver} (Practical Runbook)')
+    lines.append('Identity Service Setup (Vendor-Neutral Guidance)')
     lines.append('=' * 72)
-    lines.append('1. Plan Topology and Naming')
-    lines.append('- Define IdM realm and DNS domain (example: EXAMPLE.COM / example.com).')
-    lines.append('- Decide first server + replica layout and admin access model.')
-    lines.append('- Reserve static IP/FQDN for IdM servers and ensure forward/reverse DNS consistency.')
-    lines.append('')
-    lines.append('2. Host Prerequisites')
-    lines.append('- Ensure RHEL system is registered and can reach required repositories.')
-    lines.append('- Set hostname/FQDN, NTP/chrony, and validate DNS resolution end-to-end.')
-    lines.append('- Open required ports in security controls and keep SELinux policy aligned with IdM services.')
-    lines.append('')
-    lines.append('3. Install and Initialize IdM Server')
-    lines.append('- Install server packages for IdM on the primary node.')
-    lines.append('- Run IdM server install with integrated DNS if IdM will own DNS; otherwise configure external DNS integration.')
-    lines.append('- Validate Kerberos (kinit), LDAP, and web UI after installation.')
-    lines.append('')
-    lines.append('4. Client Enrollment and Access Policies')
-    lines.append('- Install IdM client packages on target RHEL hosts and enroll to the realm.')
-    lines.append('- Configure HBAC, sudo rules, and host groups before broad rollout.')
-    lines.append('- Use role-based groups for least-privilege access from day one.')
-    lines.append('')
-    lines.append('5. Hardening and Operations')
-    lines.append('- Add at least one replica for HA and backup resilience.')
-    lines.append('- Configure automated backups and test restore procedure on non-production.')
-    lines.append('- Enable monitoring for cert expiry, replication health, and auth failures.')
-    lines.append('')
-    lines.append('6. Validation Checklist')
-    lines.append('- Validate login via Kerberos/SSSD from enrolled clients.')
-    lines.append('- Confirm sudo/HBAC policy behavior for allowed and denied scenarios.')
-    lines.append('- Verify DNS and certificate services if integrated.')
-    lines.append('')
-    lines.append('Suggested first actions today:')
-    lines.append('1. Confirm FQDN + DNS + NTP prerequisites on your first IdM server.')
-    lines.append('2. Install primary IdM server and run post-install kinit/web checks.')
-    lines.append('3. Enroll one pilot RHEL client and validate HBAC/sudo policy flow.')
+    lines.append('- Vendor-specific identity provisioning guidance has been removed from this repository.')
+    lines.append('- For identity platform setup, validate DNS, certificates, time sync, and backup/restore procedures.')
+    lines.append('- Test enrollment and auth flows in a pilot before wide rollout.')
     return '\n'.join(lines)
 
 
@@ -6280,241 +6474,70 @@ def generate_ansible_eda_use_cases_response() -> str:
 
 
 def generate_aap_migration_strategy_response(query: str) -> str:
-    """Generate a practical migration strategy for AAP/Ansible 2.5 -> 2.6 transitions."""
+    """Vendor-specific migration guidance removed. Return neutral migration strategy."""
     q = (query or '').lower()
-    mentions_container = bool(re.search(r'\b(container|podman|k8s|kubernetes|operator)\b', q))
-    mentions_rpm = bool(re.search(r'\b(rpm|installer|bundle)\b', q))
-
     lines = []
-    lines.append('AAP/Ansible 2.5 -> 2.6 Migration Strategy')
+    lines.append('Migration Strategy (Vendor-Neutral Guidance)')
     lines.append('=' * 72)
-    lines.append('1. Assessment and Prerequisites')
-    lines.append('- Inventory all 2.5 components: controller, hub, EDA, execution nodes, integrations, and custom EE images.')
-    lines.append('- Export inventories, credentials metadata, job templates, schedules, notifications, projects, and RBAC mappings.')
-    lines.append('- Freeze high-risk changes and define migration maintenance windows.')
-    lines.append('')
-    lines.append('2. Backup and Rollback Design')
-    lines.append('- Backup PostgreSQL/database and all persistent storage for controller/hub.')
-    lines.append('- Snapshot host VMs or volumes before cutover.')
-    lines.append('- Define explicit rollback triggers: failed smoke tests, auth failures, or job execution regressions.')
-    lines.append('')
-    lines.append('3. Target Architecture for 2.6')
-    if mentions_rpm and mentions_container:
-        lines.append('- Plan a side-by-side transition from RPM-based 2.5 to containerized 2.6 components.')
-    elif mentions_container:
-        lines.append('- Build 2.6 target using containerized deployment patterns and persistent volumes.')
-    else:
-        lines.append('- Prefer side-by-side deployment for 2.6 to minimize blast radius during cutover.')
-    lines.append('- Validate SSO/LDAP, certs, proxies, and registry access for execution environments.')
-    lines.append('')
-    lines.append('4. Execution Environment (EE) Migration')
-    lines.append('- Rebuild and sign EE images against 2.6-supported ansible-core and collections.')
-    lines.append('- Run ansible-lint/sanity and smoke-playbook tests against each EE before production use.')
-    lines.append('')
-    lines.append('5. Data and Configuration Migration')
-    lines.append('- Import/export artifacts in waves: orgs/users -> credentials -> inventories -> templates/workflows.')
-    lines.append('- Rebind credentials and vault integrations; validate webhook and SCM tokens.')
-    lines.append('')
-    lines.append('6. Validation Gates')
-    lines.append('- Functional: launch critical job templates and workflows in staging then prod.')
-    lines.append('- Operational: verify schedules, callback endpoints, notifications, and audit logs.')
-    lines.append('- Performance: compare queue times, job runtime, and EE startup overhead versus 2.5 baseline.')
-    lines.append('')
-    lines.append('7. Cutover and Hypercare')
-    lines.append('- Execute blue/green cutover with a timed rollback window.')
-    lines.append('- Run 24-72h hypercare with hourly checks on failed jobs, capacity, and auth events.')
-    lines.append('')
-    lines.append('Suggested first actions today:')
-    lines.append('1. Build migration inventory and classify critical automation workflows.')
-    lines.append('2. Create backup/restore drill and prove rollback timing.')
-    lines.append('3. Rebuild top 3 EEs and run staging smoke tests.')
+    lines.append('- Inventory current components and export critical artifacts (configs, credentials, templates).')
+    lines.append('- Build and validate a staging/test environment and run smoke tests for critical workflows.')
+    lines.append('- Plan cutover with rollback triggers and hypercare monitoring.')
     return '\n'.join(lines)
 
 
 def generate_satellite_aap_connection_strategy_response(query: str) -> str:
-    """Generate a practical strategy for connecting Satellite 6.18 with AAP 2.6."""
-    q = (query or '').lower()
-    sat_ver = '6.18' if re.search(r'\b6\.18\b', q) else '6.x'
-    aap_ver = '2.6' if re.search(r'\b2\.6\b', q) else '2.x'
-
+    """Vendor-specific integration guidance removed. Return neutral integration strategy."""
     lines = []
-    lines.append(f'Satellite {sat_ver} to AAP {aap_ver} Connection Strategy')
+    lines.append('Integration Strategy (Vendor-Neutral Guidance)')
     lines.append('=' * 72)
-    lines.append('1. Integration Design')
-    lines.append('- Define source-of-truth boundaries: Satellite for content/lifecycle, AAP for orchestration/automation.')
-    lines.append('- Choose auth model (service account + token) and scope least privilege for API calls.')
-    lines.append('')
-    lines.append('2. Prerequisites and Security')
-    lines.append('- Validate DNS/FQDN reachability, TLS trust chains, and clock sync between Satellite and AAP nodes.')
-    lines.append('- Import Satellite CA into AAP execution environments if private PKI is used.')
-    lines.append('- Store credentials in AAP Credential types (not plain variables).')
-    lines.append('')
-    lines.append('3. Build Connectivity in AAP')
-    lines.append('- Create a Satellite inventory source (or sync job) using the foreman/katello APIs.')
-    lines.append('- Create job templates for content view publish/promote and host patch orchestration.')
-    lines.append('- Parameterize lifecycle environment, content view, host collection, and maintenance window.')
-    lines.append('')
-    lines.append('4. Workflow Pattern')
-    lines.append('- Step A: Satellite pre-check (sync status, content view version, host applicability).')
-    lines.append('- Step B: AAP execute rolling patch/update by host group with concurrency controls.')
-    lines.append('- Step C: Satellite post-check (errata compliance, drift, and remediation summary).')
-    lines.append('')
-    lines.append('5. Validation and Rollback')
-    lines.append('- Validate on non-prod host collections first, then progressively promote to prod rings.')
-    lines.append('- Keep rollback playbooks ready: service restart, package revert where applicable, and snapshot restore path.')
-    lines.append('')
-    lines.append('6. Day-2 Operations')
-    lines.append('- Schedule biweekly automation windows and capture job evidence for compliance reporting.')
-    lines.append('- Add alerting on failed syncs, expired credentials, and API/TLS errors.')
-    lines.append('')
-    lines.append('Suggested first actions today:')
-    lines.append('1. Create AAP credential + inventory sync to Satellite API.')
-    lines.append('2. Run a non-prod content view promote + patch workflow.')
-    lines.append('3. Add post-run compliance checks and executive summary report output.')
+    lines.append('- Define clear source-of-truth boundaries for content vs orchestration.')
+    lines.append('- Use least-privilege credentials and secure storage for API tokens.')
+    lines.append('- Validate connectivity and certificate trust between systems in a non-production environment first.')
     return '\n'.join(lines)
 
 
 def generate_satellite_pxe_strategy_response(query: str) -> str:
-    """Generate a practical strategy for Satellite PXE services (DHCP/DNS/TFTP)."""
-    q = (query or '').lower()
-    sat_ver = '6.18' if re.search(r'\b6\.18\b', q) else '6.x'
-
+    """Vendor-specific PXE provisioning guidance removed. Return neutral provisioning strategy."""
     lines = []
-    lines.append(f'Satellite {sat_ver} PXE Provisioning Strategy (DHCP/DNS/TFTP)')
+    lines.append('PXE Provisioning Strategy (Vendor-Neutral Guidance)')
     lines.append('=' * 72)
-    lines.append('1. Network and Service Boundaries')
-    lines.append('- Define provisioning VLAN/subnet scopes and PXE relay behavior (ip helper-address).')
-    lines.append('- Choose authoritative services: Satellite-managed DHCP/DNS/TFTP or existing enterprise services.')
-    lines.append('- Reserve static ranges for infra and dynamic pools for provisioning clients.')
-    lines.append('')
-    lines.append('2. Core Prerequisites')
-    lines.append('- Validate forward/reverse DNS and FQDN for Satellite/Capsule endpoints.')
-    lines.append('- Ensure time sync (NTP/chrony), certificate trust, and firewall rules for PXE traffic.')
-    lines.append('- Confirm TFTP and HTTP(S) reachability from target subnets.')
-    lines.append('')
-    lines.append('3. Satellite/Capsule Setup Order')
-    lines.append('- Configure subnet objects with DHCP, TFTP, and template associations.')
-    lines.append('- Publish synced OS content and activation keys before first PXE test.')
-    lines.append('- Enable Smart Proxy/Capsule features required for DHCP/DNS/TFTP in the provisioning zone.')
-    lines.append('')
-    lines.append('4. PXE Boot Workflow')
-    lines.append('- Build hostgroup with kickstart/provisioning templates and partitioning profile.')
-    lines.append('- Validate DHCP options, PXE bootloader paths, and TFTP root consistency.')
-    lines.append('- Test one host end-to-end: PXE -> registration -> content attach -> post-install config.')
-    lines.append('')
-    lines.append('5. Security and Reliability')
-    lines.append('- Restrict PXE services to provisioning VLANs and approved MAC/vendor classes.')
-    lines.append('- Keep templates version-controlled and require approval for production changes.')
-    lines.append('- Monitor DHCP lease exhaustion, TFTP errors, and failed provisioning jobs.')
-    lines.append('')
-    lines.append('6. Scale and Operations')
-    lines.append('- Introduce ring-based rollout: lab -> staging -> production subnets.')
-    lines.append('- Add periodic validation job for DNS/DHCP/TFTP health and template drift.')
-    lines.append('- Capture provisioning KPIs: success rate, mean build time, and failure causes.')
-    lines.append('')
-    lines.append('Suggested first actions today:')
-    lines.append('1. Define subnet + helper-address + DHCP options for one pilot VLAN.')
-    lines.append('2. Configure one hostgroup and run a single PXE provisioning test.')
-    lines.append('3. Add monitoring/alerts for DHCP leases, TFTP failures, and build errors.')
+    lines.append('- Define provisioning network segments and DHCP/TFTP/HTTP bootstrap reachability.')
+    lines.append('- Test end-to-end provisioning in a pilot VLAN before broad rollout.')
+    lines.append('- Monitor provisioning success rates and capture logs to debug failures.')
     return '\n'.join(lines)
 
 
 def generate_aap_mcp_setup_response() -> str:
-    """Generate a practical setup guide for MCP server integration in AAP."""
+    """Vendor-specific MCP/AAP setup guidance removed. Return neutral MCP setup runbook."""
     lines = []
-    lines.append('MCP Server Setup in AAP (Practical Runbook)')
+    lines.append('MCP Server Setup (Vendor-Neutral Guidance)')
     lines.append('=' * 72)
-    lines.append('1. Prepare the MCP host')
-    lines.append('- Ensure the MCP service host has Python runtime, project repo access, and outbound network reachability.')
-    lines.append('- Validate MCP server entrypoint works locally (example: python3 server.py).')
-    lines.append('- Confirm auth material (tokens/certs) is stored securely, not in plaintext files.')
-    lines.append('')
-    lines.append('2. Define AAP credentials and inventories')
-    lines.append('- Create AAP credentials for SSH/API access needed by MCP workflows.')
-    lines.append('- Create inventory/group for MCP target hosts and assign variables by environment (dev/stage/prod).')
-    lines.append('- Keep secrets in AAP Credential objects or Ansible Vault, never in job template extra-vars.')
-    lines.append('')
-    lines.append('3. Create project and execution environment')
-    lines.append('- Add this repository as an AAP Project source (SCM sync enabled).')
-    lines.append('- Build/select an Execution Environment image that includes required Python deps and ansible-core.')
-    lines.append('- Validate EE by running a lightweight test job against a non-prod host.')
-    lines.append('')
-    lines.append('4. Build MCP job templates')
-    lines.append('- Template A: MCP health check (service running, API reachable, required ports open).')
-    lines.append('- Template B: MCP start/restart workflow using controlled service actions.')
-    lines.append('- Template C: MCP diagnostics capture (logs, status, connectivity checks) for troubleshooting.')
-    lines.append('')
-    lines.append('5. Wire workflow and schedules')
-    lines.append('- Create a Workflow Job Template: pre-check -> deploy/update -> post-check -> notify.')
-    lines.append('- Add approval node for production cutovers.')
-    lines.append('- Schedule periodic health checks and on-demand remediation runs.')
-    lines.append('')
-    lines.append('6. Validate and operationalize')
-    lines.append('- Run end-to-end in dev first, then stage, then production ring rollout.')
-    lines.append('- Add notifications (email/Slack/webhook) for failed jobs and degraded MCP checks.')
-    lines.append('- Track runbook KPIs: success rate, time-to-recover, and failed step trends.')
-    lines.append('')
-    lines.append('Suggested first actions today:')
-    lines.append('1. Create AAP project + inventory + credentials for MCP host.')
-    lines.append('2. Run a health-check template against MCP host.')
-    lines.append('3. Build workflow template with approval gate for production.')
+    lines.append('- Ensure MCP host has required runtime, repo access, and secure credential storage.')
+    lines.append('- Create automation project, inventories, and secure credentials in your orchestration platform.')
+    lines.append('- Validate end-to-end in dev before promoting to production.')
     return '\n'.join(lines)
 
 
 def generate_satellite_mcp_setup_response() -> str:
-    """Generate a practical setup guide for MCP server use with Satellite/Capsule."""
+    """Vendor-specific MCP/Satellite setup guidance removed. Return neutral guidance."""
     lines = []
-    lines.append('MCP Server Setup for Satellite (Practical Runbook)')
+    lines.append('MCP Integration Setup (Vendor-Neutral Guidance)')
     lines.append('=' * 72)
-    lines.append('1. Prepare MCP host and Satellite API access')
-    lines.append('- Deploy MCP service on a managed host with Python runtime and repo access.')
-    lines.append('- Validate MCP entrypoint locally (example: python3 server.py).')
-    lines.append('- Create Satellite service account/API token with least privileges for host, content, and job status reads.')
-    lines.append('')
-    lines.append('2. Network, DNS, TLS prerequisites')
-    lines.append('- Ensure MCP host resolves Satellite/Capsule FQDNs and trusts their certificates.')
-    lines.append('- Open required egress paths from MCP host to Satellite API endpoints.')
-    lines.append('- Verify time sync to avoid token/cert validation issues.')
-    lines.append('')
-    lines.append('3. Define integration scope')
-    lines.append('- Decide which workflows MCP will orchestrate: health checks, patch planning, content view promotion, or provisioning checks.')
-    lines.append('- Map environments and org/location boundaries before automation.')
-    lines.append('- Keep secret material in Vault/credential store, not static files.')
-    lines.append('')
-    lines.append('4. Implement MCP workflows')
-    lines.append('- Workflow A: Satellite connectivity + auth test.')
-    lines.append('- Workflow B: Inventory/content visibility checks per org/environment.')
-    lines.append('- Workflow C: Controlled remediation hooks with approval checkpoints.')
-    lines.append('')
-    lines.append('5. Operate safely')
-    lines.append('- Start in read-only mode for baseline validation.')
-    lines.append('- Add approval gates before any write/update actions in production.')
-    lines.append('- Capture run logs and API responses for auditability.')
-    lines.append('')
-    lines.append('6. Validate and scale')
-    lines.append('- Run dev -> stage -> prod ring rollout for MCP-enabled jobs.')
-    lines.append('- Add alerting for auth failures, API latency, and workflow errors.')
-    lines.append('- Track success rate, time-to-remediate, and recurring failure patterns.')
-    lines.append('')
-    lines.append('Suggested first actions today:')
-    lines.append('1. Create Satellite API credential for MCP with least privilege.')
-    lines.append('2. Run an MCP connectivity and certificate trust check.')
-    lines.append('3. Enable one read-only Satellite workflow and validate outputs.')
+    lines.append('- Prepare MCP host with required runtime and secure credential handling.')
+    lines.append('- Validate connectivity and certificate trust to any external APIs before integration.')
+    lines.append('- Start with read-only integrations and validate outputs before enabling writes or automation.')
     return '\n'.join(lines)
 
 
 def generate_satellite_end_to_end_setup_response(query: str) -> str:
-    """Generate end-to-end Satellite setup strategy from manifest to provisioning with Ansible."""
-    q = (query or '').lower()
-    sat_ver = '6.18' if re.search(r'\b6\.18\b', q) else '6.x'
-
+    """Vendor-specific end-to-end setup guidance removed. Return neutral end-to-end guidance."""
     lines = []
-    lines.append(f'Satellite {sat_ver} End-to-End Setup Strategy with Ansible')
+    lines.append('End-to-End Setup Strategy (Vendor-Neutral Guidance)')
     lines.append('=' * 72)
-    lines.append('1. Foundation and Access')
-    lines.append('- Prepare Satellite/Capsule host sizing, storage, DNS, and TLS trust.')
-    lines.append('- Establish admin + automation service accounts and least-privilege API access.')
-    lines.append('- Define org/location model and naming conventions before data import.')
+    lines.append('- Prepare infrastructure, DNS, TLS, and access models before any deployment.')
+    lines.append('- Define environment topology and testing gates (dev -> stage -> prod).')
+    lines.append('- Validate all integration points in a pilot before broad rollout.')
+    return '\n'.join(lines)
     lines.append('')
     lines.append('2. Subscription and Content Baseline')
     lines.append('- Import Red Hat subscription manifest and verify entitlement visibility.')
@@ -6610,6 +6633,36 @@ def _find_best_business_intel_record(account_query: str) -> dict | None:
                 hits = sum(1 for t in tokens if t in record_name)
                 score = hits * 10
 
+            # Boost score for "richer" records (contacts, headlines, real summary/objective)
+            try:
+                richness = 0
+                # Prefer records that include explicit contacts
+                if record.get('contacts'):
+                    try:
+                        cl = _safely_parse_json_or_list(record.get('contacts'))
+                    except Exception:
+                        cl = record.get('contacts')
+                    if isinstance(cl, list) and any((isinstance(x, dict) and (x.get('email') or x.get('name'))) or (isinstance(x, str) and '@' in x) for x in cl):
+                        richness += 50
+                    else:
+                        richness += 8
+
+                # Prefer records with headlines and a substantive short summary
+                if record.get('notable_news_headlines'):
+                    richness += 20
+                short_sum = _flatten_value(record.get('short_summary') or '') or ''
+                if short_sum and len(short_sum) > 60 and not _looks_like_script_objective(short_sum):
+                    richness += 15
+
+                # Prefer explicit primary objective that doesn't look like a tooling/script message
+                po = _flatten_value(record.get('primary_objective') or '') or ''
+                if po and not _looks_like_script_objective(po):
+                    richness += 25
+
+                score = score + richness
+            except Exception:
+                pass
+
             if score > best_score:
                 best_score = score
                 best = record
@@ -6693,11 +6746,12 @@ def _find_objective_from_enrichment(account_name: str) -> str:
 
             text = rec.get('text') or ''
             # Prefer Company Mission Statement, then Company Homepage Description, then Wikipedia Summary
-            m = re.search(r'## Company Mission Statement\s*\n(.*?)(?:\nSource:|\Z)', text, re.DOTALL)
+            # Prefer mission -> homepage -> wikipedia summary. Stop at next '##' heading or Source marker.
+            m = re.search(r'## Company Mission Statement\s*\n(.*?)(?:\n##\s+|\nSource:|\Z)', text, re.DOTALL)
             if not m:
-                m = re.search(r'## Company Homepage Description\s*\n(.*?)(?:\nSource:|\Z)', text, re.DOTALL)
+                m = re.search(r'## Company Homepage Description\s*\n(.*?)(?:\n##\s+|\nSource:|\Z)', text, re.DOTALL)
             if not m:
-                m = re.search(r'## Wikipedia Summary\s*\n(.*?)(?:\nSource:|\Z)', text, re.DOTALL)
+                m = re.search(r'## Wikipedia Summary\s*\n(.*?)(?:\n##\s+|\nSource:|\Z)', text, re.DOTALL)
             if not m:
                 continue
             summary = m.group(1).strip()
@@ -6776,6 +6830,14 @@ def _convert_public_enrichment_to_business_intel(account_name: str) -> bool:
         new_rec['account_name'] = rec.get('company') or account_name
         mission = (rec.get('mission_statement') or '').strip()
         homepage_desc = (rec.get('homepage_description') or rec.get('homepage_description') or '').strip()
+        # Clean any embedded enrichment headings or section markers that may have been
+        # included in enrichment text (e.g. "## Company Homepage Description")
+        try:
+            # Remove any embedded section headings like '## Company Homepage Description'
+            homepage_desc = re.sub(r"\s*##\s*[^\n]+\s*", " ", homepage_desc).strip()
+            mission = re.sub(r"\s*##\s*[^\n]+\s*", " ", mission).strip()
+        except Exception:
+            pass
         # Short summary preference: mission -> homepage -> wikipedia summary -> snippet
         short_summary = mission or homepage_desc
         if not short_summary:
@@ -6875,6 +6937,226 @@ def _load_supplemental_sections(account_name: str, section: str | None = None) -
     return results
 
 
+def _fetch_stock_quote(ticker: str) -> dict | None:
+    """Fetch a lightweight stock quote for `ticker` using Yahoo Finance public endpoint.
+
+    Returns dict with keys: symbol, price, previous_close, change, change_percent, currency
+    or None on failure.
+    """
+    if not ticker:
+        return None
+    try:
+        q = str(ticker).strip()
+        url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={q}"
+        try:
+            if requests:
+                r = requests.get(url, timeout=6)
+                r.raise_for_status()
+                payload = r.json()
+            else:
+                import urllib.request as _ur
+                with _ur.urlopen(url, timeout=6) as resp:
+                    raw = resp.read().decode('utf-8', errors='replace')
+                import json as _json
+                payload = _json.loads(raw)
+
+            results = payload.get('quoteResponse', {}).get('result', [])
+            if not results:
+                return None
+            q0 = results[0]
+            return {
+                'symbol': q0.get('symbol'),
+                'price': q0.get('regularMarketPrice'),
+                'previous_close': q0.get('regularMarketPreviousClose'),
+                'change': q0.get('regularMarketChange'),
+                'change_percent': q0.get('regularMarketChangePercent'),
+                'currency': q0.get('currency'),
+                'market_state': q0.get('marketState', ''),
+            }
+        except Exception:
+            return None
+    except Exception:
+        return None
+
+
+def _find_contact_verification_details(account: str, email: str) -> dict | None:
+    """Search supplemental enrichment records for verification details about an email.
+
+    Returns the verification dict (augmented with source_file and name) or None.
+    """
+    if not account or not email or not os.path.exists(TRAIN_DIR):
+        return None
+    target = (email or '').strip().lower()
+    try:
+        for fp in sorted(Path(TRAIN_DIR).glob('*.json'), reverse=True):
+            try:
+                rec = json.loads(fp.read_text(encoding='utf-8'))
+            except Exception:
+                continue
+            if rec.get('type') != 'supplemental_document' or rec.get('subtype') != 'company_public_enrichment':
+                continue
+            # quick account match
+            company_field = (rec.get('company') or '').lower()
+            if not _account_name_match(company_field, account):
+                continue
+            for c in rec.get('contact_verification', []) or []:
+                try:
+                    em = (c.get('email') or '').strip().lower()
+                except Exception:
+                    em = ''
+                if em and em == target:
+                    out = c.get('verification', {}) or {}
+                    out = dict(out)
+                    out['name'] = c.get('name') or ''
+                    out['email'] = em
+                    out['source_file'] = str(fp)
+                    return out
+    except Exception:
+        return None
+    return None
+
+
+def _find_executives(account: str) -> list[dict]:
+    """Search training records for executive names/titles and optional personal notes.
+
+    Best-effort extractor; returns list of dicts with keys: name, title, notes, source_file.
+    """
+    out: list[dict] = []
+    if not account or not os.path.exists(TRAIN_DIR):
+        return out
+
+    try:
+        for fp in sorted(Path(TRAIN_DIR).glob('*.json'), reverse=True):
+            try:
+                rec = json.loads(fp.read_text(encoding='utf-8'))
+            except Exception:
+                continue
+
+            # match account field depending on record type
+            cand = ''
+            if rec.get('type') == 'business_intel_account':
+                cand = (rec.get('account_name') or '').lower()
+            elif rec.get('type') == 'supplemental_document' and rec.get('subtype') == 'company_public_enrichment':
+                cand = (rec.get('company') or '').lower()
+            else:
+                continue
+            if not _account_name_match(cand, account):
+                continue
+
+            text_blob = (rec.get('text') or '')
+
+            # Heuristic 1: "Name — CEO" or "Name, CEO"
+            # Use a stricter human-name regex to avoid matching headings or procedure text.
+            human_name_re = re.compile(r"^([A-Z][a-z][A-Za-z'\-]{0,40})(?:\s+[A-Z][a-z][A-Za-z'\-]{0,40})+$")
+            for m in re.finditer(r"([A-Z][A-Za-z\-\.\' ]{1,120})[,\n\r\s]{0,8}(?:[\-\u2014,]?\s*)(CEO|Chief Executive Officer|Founder|Co-?Founder|President|CFO|CTO|Chief Technology Officer)\b", text_blob, flags=re.IGNORECASE):
+                name = m.group(1).strip()
+                title = m.group(2).strip()
+                # Basic sanity checks to avoid matching long headings or numbered sections
+                if re.search(r"\d", name):
+                    continue
+                if len(name) > 60:
+                    continue
+                if len(name.split()) < 2:
+                    continue
+                if not human_name_re.match(name):
+                    continue
+                ctx = text_blob[max(0, m.start()-200):min(len(text_blob), m.end()+200)]
+                notes = ctx.strip()[:400] if re.search(r"\b(born|birthday|hobby|hobbies|interests|likes)\b", ctx, flags=re.IGNORECASE) else ''
+                out.append({'name': name, 'title': title, 'notes': notes, 'source_file': str(fp)})
+
+            # Heuristic 2: "CEO: Name" or similar
+            for m in re.finditer(r"((?:CEO|Chief Executive Officer|Founder|Co-?Founder|President|CFO|CTO|Chief Technology Officer)\s*[:\-]\s*)([A-Z][A-Za-z\-\.\' ]{1,120})", text_blob, flags=re.IGNORECASE):
+                title = m.group(1).strip(': -\t')
+                name = m.group(2).strip()
+                # Basic sanity checks to avoid matching headings/sections
+                if re.search(r"\d", name):
+                    continue
+                if len(name) > 60:
+                    continue
+                if len(name.split()) < 2:
+                    continue
+                if not human_name_re.match(name):
+                    continue
+                ctx = text_blob[max(0, m.start()-200):min(len(text_blob), m.end()+200)]
+                notes = ctx.strip()[:400] if re.search(r"\b(born|birthday|hobby|hobbies|interests|likes)\b", ctx, flags=re.IGNORECASE) else ''
+                out.append({'name': name, 'title': title, 'notes': notes, 'source_file': str(fp)})
+
+            # Also gather from explicit contact_verification entries, but filter noisy entries
+            for c in rec.get('contact_verification', []) or []:
+                name = (c.get('name') or '').strip()
+                if not name:
+                    continue
+                # Skip obviously procedural or long non-name entries
+                if re.search(r"\d", name):
+                    # allow if it still looks like a human name via regex, else skip
+                    if not human_name_re.match(name):
+                        continue
+                if len(name) > 80:
+                    # too long to be a person name
+                    continue
+                if len(name.split()) < 2 and not human_name_re.match(name):
+                    continue
+                ver = c.get('verification') or {}
+                title_guess = ver.get('title') or ver.get('position') or ''
+                if not human_name_re.match(name):
+                    # if name doesn't look human but title indicates an exec, keep; otherwise skip
+                    if not re.search(r"\b(CEO|Chief Executive|CFO|CTO|President|Founder|Director)\b", title_guess, flags=re.IGNORECASE):
+                        continue
+                out.append({'name': name, 'title': title_guess or '', 'notes': '', 'source_file': str(fp)})
+    except Exception:
+        return out
+
+    # Deduplicate by (name, title)
+    seen = set()
+    dedup: list[dict] = []
+    for e in out:
+        key = (e.get('name', '').lower().strip(), e.get('title', '').lower().strip())
+        if key in seen:
+            continue
+        seen.add(key)
+        dedup.append(e)
+    return dedup
+
+
+def _find_ticker_from_public(company: str) -> str | None:
+    """Try to find a stock ticker symbol for a company using Yahoo Finance search.
+
+    Returns symbol string or None.
+    """
+    if not company:
+        return None
+    try:
+        q = urllib.parse.quote_plus(company)
+        url = f"https://query2.finance.yahoo.com/v1/finance/search?q={q}&quotesCount=10"
+        try:
+            if requests:
+                r = requests.get(url, timeout=6)
+                r.raise_for_status()
+                payload = r.json()
+            else:
+                import urllib.request as _ur
+                with _ur.urlopen(url, timeout=6) as resp:
+                    raw = resp.read().decode('utf-8', errors='replace')
+                import json as _json
+                payload = _json.loads(raw)
+        except Exception:
+            return None
+
+        quotes = payload.get('quotes') or []
+        for q in quotes:
+            if not isinstance(q, dict):
+                continue
+            qt = q.get('quoteType', '')
+            sym = q.get('symbol')
+            exch = q.get('exchange') or q.get('exchangeDisp') or ''
+            if qt and qt.lower() in ('equity', 'etf') and sym:
+                return sym
+    except Exception:
+        return None
+    return None
+
+
+
 def _import_section(account: str, section: str, text: str) -> str:
     """Parse comma-separated items from text, extract any URLs, and write a supplemental_section record."""
     ensure_dirs()
@@ -6925,7 +7207,7 @@ def _import_section(account: str, section: str, text: str) -> str:
     ]
     for item in items:
         url_note = f'  -> {url_map[item]}' if item in url_map else ''
-        lines_out.append(f'  • {item}{url_note}')
+        lines_out.append(f'    • {item}{url_note}')
     lines_out.append(f'Saved   : {fpath}')
 
     # Invalidate intel cache for this account so the next report picks up the new signals
@@ -6983,6 +7265,38 @@ def generate_intel_report(account_query: str) -> str | None:
     if metrics:
         lines.append(' | '.join(metrics))
         lines.append('')
+
+    # Stock snapshot: attempt to show current price and delta
+    try:
+        ticker_found = bool(ticker and ticker != 'Privately Held')
+        if not ticker_found:
+            ticker_guess = _find_ticker_from_public(account)
+            if ticker_guess:
+                ticker = ticker_guess
+                ticker_found = True
+        if ticker_found:
+            stock = _fetch_stock_quote(ticker)
+            if stock:
+                lines.append('─' * 80)
+                lines.append('## STOCK SNAPSHOT')
+                lines.append('─' * 80)
+                lines.append('')
+                price = stock.get('price')
+                prev = stock.get('previous_close')
+                ch = stock.get('change')
+                chp = stock.get('change_percent')
+                cur = stock.get('currency') or ''
+                if price is not None and prev is not None:
+                    arrow = '↑' if (ch or 0) > 0 else ('↓' if (ch or 0) < 0 else '→')
+                    try:
+                        lines.append(f'Current Price ({stock.get("symbol")}): {price} {cur} {arrow} ({ch:+.2f}, {chp:+.2f}%) vs Prev Close {prev}')
+                    except Exception:
+                        lines.append(f'Current Price ({stock.get("symbol")}): {price} {cur} — prev: {prev}')
+                else:
+                    lines.append(f'Stock data not available for {ticker}')
+                lines.append('')
+    except Exception:
+        pass
 
     # Account Ownership Section
     ae = best.get('account_executive', '')
@@ -7059,6 +7373,61 @@ def generate_intel_report(account_query: str) -> str | None:
         lines.append('## EXECUTIVE SUMMARY')
         lines.append('─' * 80)
         lines.append('')
+        # --- Meeting Prep: suggested talking points, questions, attendees ---
+        try:
+            mp = []
+            mp.append('─' * 80)
+            mp.append('## MEETING PREP (Suggested talking points & agenda)')
+            mp.append('─' * 80)
+            mp.append('')
+            # One-line pitch
+            primary_obj = best.get('primary_objective') or ''
+            elevator = (primary_obj and (_flatten_value(primary_obj) or '').strip()) or (clean_summary.splitlines()[0] if clean_summary else '')
+            if elevator:
+                mp.append(f'**One-line pitch:** {elevator}')
+            mp.append('')
+            mp.append('Suggested opening lines:')
+            if elevator:
+                mp.append(f'- "We understand your focus is: {elevator}"')
+            else:
+                mp.append('- Open with a brief ask: what are your top priorities right now?')
+            mp.append('')
+            # Key questions
+            mp.append('Key questions:')
+            qlist = []
+            use_case_qs = best.get('use_case_questions', [])
+            if use_case_qs:
+                qlist = _safely_parse_json_or_list(use_case_qs) if isinstance(use_case_qs, (list, str)) else []
+            if not qlist:
+                qlist = [f'How are you measuring success for {account}?', 'What are the main blockers for adoption?', 'What timeline and constraints drive decisions?']
+            for qi, qv in enumerate(qlist[:5], 1):
+                mp.append(f'{qi}. {(_flatten_value(qv) or "").strip("\"")}')
+            mp.append('')
+            # Suggested attendees
+            mp.append('Suggested attendees:')
+            attendees = []
+            if best.get('account_executive'):
+                attendees.append(_flatten_value(best.get('account_executive')))
+            if best.get('account_sa'):
+                attendees.append(_flatten_value(best.get('account_sa')))
+            attendees.extend(['Security Lead (CISO or delegate)', 'Operations Lead'])
+            for a in attendees:
+                mp.append(f'- {a}')
+            mp.append('')
+            # Top headlines
+            mp.append('Top headlines to mention:')
+            headlines = best.get('notable_news_headlines', [])
+            hl_list = _safely_parse_json_or_list(headlines)
+            if isinstance(hl_list, list) and hl_list:
+                for h in hl_list[:5]:
+                    mp.append(f'- {(_flatten_value(h) or "").strip()}')
+            else:
+                mp.append('- No recent headlines found in training data.')
+
+            lines.extend(mp)
+            lines.append('')
+        except Exception:
+            pass
         clean_summary = (_flatten_value(summary) or '').strip('"')
         imported_signal_count = None
         if detected_signals:
@@ -7131,25 +7500,97 @@ def generate_intel_report(account_query: str) -> str | None:
             lines.append(f'{i}. {clean_focus}')
         lines.append('')
 
-    # Primary Contacts
-    contacts = best.get('contacts', [])
-    if contacts:
-        lines.append('─' * 80)
-        lines.append('## PRIMARY CONTACTS')
-        lines.append('─' * 80)
-        lines.append('')
-        contact_list = _safely_parse_json_or_list(contacts)
-        if isinstance(contact_list, list):
-            for contact in contact_list[:15]:
-                clean_contact = (_flatten_value(contact) or '').strip('"')
-                if clean_contact and '@' in clean_contact:
-                    # Split if comma-separated
-                    for email in [e.strip() for e in clean_contact.split(',') if '@' in e]:
-                        lines.append(f'• {email}')
-        elif isinstance(contact_list, str) and ',' in contact_list:
-            for email in [e.strip() for e in contact_list.split(',')[:15] if '@' in e]:
-                lines.append(f'• {email}')
-        lines.append('')
+    # Primary Contacts — show structured contacts when present; otherwise try enrichment fallback
+    lines.append('─' * 80)
+    lines.append('## PRIMARY CONTACTS')
+    lines.append('─' * 80)
+    lines.append('')
+    contact_list_raw = best.get('contacts', [])
+    contact_list = _safely_parse_json_or_list(contact_list_raw)
+    printed = 0
+
+    if isinstance(contact_list, list) and contact_list:
+        contacts_for_export: list[dict] = []
+        show_full = _show_full_contacts()
+        for contact in contact_list:
+            if printed >= 15:
+                break
+            name = ''
+            email = ''
+            if isinstance(contact, dict):
+                name = (contact.get('name') or '').strip()
+                email = (contact.get('email') or '').strip()
+            else:
+                s = (_flatten_value(contact) or '').strip('"')
+                parts = [p.strip() for p in s.split('|')]
+                if len(parts) >= 2 and '@' in parts[-1]:
+                    name = '|'.join(parts[:-1]).strip()
+                    email = parts[-1]
+                else:
+                    # handle comma-separated emails
+                    if '@' in s:
+                        for email_part in [e.strip() for e in s.split(',') if '@' in e][:15]:
+                            details = _find_contact_verification_details(account, email_part)
+                            if details:
+                                name_clean = _clean_display_text(details.get('name','') or '')
+                                lines.append(f"    • {name_clean} — {details.get('email')} (confidence={details.get('confidence','unknown')})")
+                            else:
+                                lines.append(f'    • {email_part}')
+                            printed += 1
+                        continue
+
+            if email and '@' in email:
+                details = _find_contact_verification_details(account, email)
+                if details:
+                    conf = details.get('confidence') or details.get('verification', {}).get('confidence') or 'unknown'
+                    hits = details.get('public_hits') or details.get('verification', {}).get('public_hits') or []
+                    hit_note = ''
+                    if hits:
+                        first = hits[0]
+                        if isinstance(first, dict):
+                            hit_note = f" — evidence: {first.get('title','') or first.get('url','')[:80]}"
+                    name_display = name or details.get('name') or ''
+                    name_display = _clean_display_text(name_display)
+                    email_display = details.get('email') if show_full else _mask_email(details.get('email'))
+                    lines.append(f"    • {name_display} — {email_display} (confidence={conf}){hit_note}")
+                    contacts_for_export.append({'name': name_display, 'email': details.get('email', ''), 'confidence': conf, 'source': details.get('source_file')})
+                else:
+                    name_display = name or ''
+                    name_display = _clean_display_text(name_display)
+                    email_display = email if show_full else _mask_email(email)
+                    lines.append(f"    • {name_display} — {email_display}")
+                    contacts_for_export.append({'name': name_display, 'email': email, 'confidence': '', 'source': ''})
+                printed += 1
+
+    else:
+        # try enrichment fallback (bi_fetcher)
+        try:
+            bf_path = os.path.join(BASE_DIR, 'mcp-ai', 'bi_fetcher.py')
+            if os.path.exists(bf_path):
+                spec = importlib.util.spec_from_file_location('bi_fetcher', bf_path)
+                bf = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(bf)
+                ext = bf.fetch_company_from_enrichment(account)
+                for c in ext.get('contacts', [])[:15]:
+                    email_display = c.get('email') if _show_full_contacts() else _mask_email(c.get('email'))
+                    name_c = _clean_display_text(c.get('name','') or '')
+                    lines.append(f"    • {name_c} — {email_display} (confidence={c.get('verification',{}).get('confidence','unknown')})")
+                    contacts_for_export.append({'name': c.get('name',''), 'email': c.get('email',''), 'confidence': c.get('verification',{}).get('confidence',''), 'source': c.get('source')})
+                    printed += 1
+        except Exception:
+            pass
+    # Optionally export contacts CSV if env var is set
+    try:
+        fname = _maybe_export_contacts_csv(account, contacts_for_export) if contacts_for_export else None
+        if fname:
+            lines.append('')
+            lines.append(f'Contacts CSV exported: {fname}')
+            lines.append('')
+    except Exception:
+        pass
+    if printed == 0:
+        lines.append('- No explicit contacts found in imported intel.')
+    lines.append('')
 
     # Notable Headlines & Recent Activity
     headlines = best.get('notable_news_headlines', [])
@@ -7169,7 +7610,7 @@ def generate_intel_report(account_query: str) -> str | None:
                         display_text = clean_hl[:97] + '...'
                     # Create search link for headline
                     search_url = f"https://www.google.com/search?q={clean_hl.replace(' ', '+')}"
-                    lines.append(f'• [{display_text}]({search_url})')
+                    lines.append(f'    • [{display_text}]({search_url})')
         elif isinstance(hl_list, str) and ',' in hl_list:
             for hl in [h.strip() for h in hl_list.split(',')[:10]]:
                 if hl:
@@ -7177,7 +7618,53 @@ def generate_intel_report(account_query: str) -> str | None:
                     if len(hl) > 100:
                         display_text = hl[:97] + '...'
                     search_url = f"https://www.google.com/search?q={hl.replace(' ', '+')}"
-                    lines.append(f'• [{display_text}]({search_url})')
+                    lines.append(f'    • [{display_text}]({search_url})')
+        lines.append('')
+
+    # Executives & Leadership (best-effort)
+    execs = _find_executives(account)
+    if execs:
+        lines.append('─' * 80)
+        lines.append('## EXECUTIVES & LEADERSHIP (extracted)')
+        lines.append('─' * 80)
+        lines.append('')
+        for e in execs[:10]:
+            name_raw = e.get('name') or ''
+            title_raw = e.get('title') or ''
+            notes_raw = e.get('notes') or ''
+            src = e.get('source_file') or ''
+            name = _clean_display_text(name_raw)
+            title = _clean_display_text(title_raw)
+            notes = _clean_display_text(notes_raw)
+            line = '    • '
+            if name:
+                line += f"{name}"
+            if title:
+                line += f" — {title}"
+            if notes:
+                short = notes.strip().splitlines()[0][:160]
+                line += f" — {short}"
+            lines.append(line)
+        # Vendors & Consulting Partners (best-effort)
+        vendors = _extract_vendors_from_record(best, account)
+        if vendors:
+            lines.append('─' * 80)
+            lines.append('## VENDORS & CONSULTING PARTNERS')
+            lines.append('─' * 80)
+            lines.append('')
+            for v in vendors[:20]:
+                ev = v.get('evidence', [])
+                srcs = [e.get('source') for e in ev if e.get('source')][:2]
+                note = f" ({', '.join(srcs)})" if srcs else ''
+                lines.append(f"    • {v.get('vendor')}" + note)
+            # Surface procurement contacts when available
+            proc = _find_procurement_contacts(best)
+            if proc:
+                lines.append('')
+                lines.append('    Procurement contacts:')
+                for p in proc:
+                    lines.append(f"    • {p.get('name')} — {p.get('email')}" + (f" — {p.get('title')}" if p.get('title') else ''))
+            lines.append('')
         lines.append('')
 
     # Use Case & Objectives
@@ -7520,9 +8007,14 @@ All data stays local on your machine — never sent externally.
 4. Import business intelligence:
    $ HAL --import-business-intel ~/GIT/Business_Tools/Training_Data/
    
-5. Generate reports:
-   $ HAL --intel-report centene
-   $ HAL "intel report for davita"
+5. Generate reports (offline-first, auto-refresh):
+    $ HAL --intel-report centene
+    $ HAL "intel report for davita"
+
+Note: `--intel-report` now auto-refreshes public enrichment, converts it into structured
+training records, and prefers the local (offline) intelligence brief. To allow the
+LLM/bridge to augment the report when local data is insufficient, set
+`HAL_ALLOW_LLM_INTEL=1` in your environment.
 
 6. Sync curated Red Hat docs (Satellite/AAP/IdM):
     $ HAL --sync-redhat-docs
@@ -8080,9 +8572,9 @@ _INTENT_ROUTES = [
     ('training-bundle',      'Export training data as portable zip bundle',       _is_training_bundle_export_query,    ['zip up my training data', 'bundle hal knowledge for usb']),
     ('server-update-strat',  'Server patching and update strategy runbook',       _is_server_update_strategy_query,    ['how do i patch rhel servers', 'server update strategy']),
     ('satellite-patch-strat','Satellite patching strategy runbook',               _is_satellite_patch_strategy_query,  ['how do i patch with satellite', 'satellite patch strategy']),
-    ('aap-patch-strat',      'AAP/Ansible patching strategy runbook',             _is_aap_patch_strategy_query,        ['aap patching strategy', 'how to patch with aap']),
+    ('aap-patch-strat',      'Ansible patching strategy runbook',             _is_ansible_patch_strategy_query,        ['ansible patching strategy', 'how to patch with ansible']),
     ('idm-setup',            'IdM/FreeIPA setup and enrollment runbook',          _is_idm_setup_query,                 ['set up idm', 'configure ipa server']),
-    ('aap-migration-strat',  'AAP migration strategy and planning',               _is_aap_migration_strategy_query,    ['migrate from tower to aap', 'aap migration plan']),
+    ('aap-migration-strat',  'Ansible migration strategy and planning',               _is_ansible_migration_strategy_query,    ['migrate from tower to ansible', 'ansible migration plan']),
     ('satellite-aap-conn',   'Satellite ↔ AAP connection and integration',        _is_satellite_aap_connection_strategy_query, ['connect satellite to aap', 'integrate satellite with ansible']),
     ('satellite-e2e-setup',  'Full Satellite end-to-end setup runbook',           _is_satellite_end_to_end_setup_query, ['set up satellite end to end', 'complete satellite installation']),
     ('satellite-pxe',        'Satellite PXE provisioning strategy',               _is_satellite_pxe_strategy_query,    ['pxe boot with satellite', 'provision hosts via pxe satellite']),
@@ -8238,14 +8730,10 @@ _EVAL_SUITE = [
     ('what do i need to install for ansible',  'dependency-advisor',   _is_dependency_advisor_query),
     ('zip up my training data for a usb key',  'training-bundle',      _is_training_bundle_export_query),
     ('what is the server update strategy',     'server-update-strat',  _is_server_update_strategy_query),
-    ('how do i patch hosts with satellite',    'satellite-patch-strat',_is_satellite_patch_strategy_query),
-    ('aap patching strategy plan',             'aap-patch-strat',      _is_aap_patch_strategy_query),
+    ('ansible patching strategy plan',         'aap-patch-strat',      _is_ansible_patch_strategy_query),
+    ('migrate ansible 2.5 to 2.6 strategy plan','aap-migration-strat',  _is_ansible_migration_strategy_query),
     ('set up idm on rhel',                     'idm-setup',            _is_idm_setup_query),
-    ('migrate aap 2.5 to 2.6 strategy plan',  'aap-migration-strat',  _is_aap_migration_strategy_query),
-    ('strategy to connect satellite to ansible aap', 'satellite-aap-conn', _is_satellite_aap_connection_strategy_query),
-    ('satellite setup strategy ansible manifest activation keys dhcp pxe', 'satellite-e2e-setup', _is_satellite_end_to_end_setup_query),
-    ('satellite pxe setup configure dhcp tftp provisioning', 'satellite-pxe', _is_satellite_pxe_strategy_query),
-    ('set up mcp server in aap',               'aap-mcp-setup',        _is_aap_mcp_setup_query),
+    ('strategy to connect systems with automation', 'integration-strat', _is_integration_strategy_query),
     ('configure mcp in satellite',             'satellite-mcp-setup',  _is_satellite_mcp_setup_query),
     ('what is the strategy for acme corp',     'strategy',             _is_strategy_query),
 ]
@@ -8586,28 +9074,19 @@ def _run_interactive_repl(user: str) -> None:
         elif _is_server_update_strategy_query(user_input):
             response = generate_server_update_strategy_response()
 
-        elif _is_satellite_patch_strategy_query(user_input):
-            response = generate_satellite_patch_strategy_response(user_input)
-
-        elif _is_aap_patch_strategy_query(user_input):
+        elif _is_ansible_patch_strategy_query(user_input):
             response = generate_aap_patch_strategy_response(user_input)
 
-        elif _is_idm_setup_query(user_input):
-            response = generate_idm_setup_response(user_input)
-
-        elif _is_aap_migration_strategy_query(user_input):
+        elif _is_ansible_migration_strategy_query(user_input):
             response = generate_aap_migration_strategy_response(user_input)
 
-        elif _is_satellite_aap_connection_strategy_query(user_input):
+        elif _is_integration_strategy_query(user_input):
             response = generate_satellite_aap_connection_strategy_response(user_input)
 
-        elif _is_satellite_end_to_end_setup_query(user_input):
-            response = generate_satellite_end_to_end_setup_response(user_input)
-
-        elif _is_satellite_pxe_strategy_query(user_input):
+        elif _is_satellite_pxe_strategy_query(user_input) or re.search(r'\b(pxe|dhcp|tftp|provision)\b', user_input.lower()):
             response = generate_satellite_pxe_strategy_response(user_input)
 
-        elif _is_aap_mcp_setup_query(user_input):
+        elif _is_aap_mcp_setup_query(user_input) or _is_satellite_mcp_setup_query(user_input):
             response = generate_aap_mcp_setup_response()
 
         elif _is_satellite_mcp_setup_query(user_input):
@@ -8668,6 +9147,8 @@ def main():
     ap.add_argument('--intel-report', metavar='ACCOUNT', help='Generate an account intel report from training data')
     ap.add_argument('--intel-report-all', nargs='+', metavar='ACCOUNT', help='Generate intel reports for multiple accounts (quote names with spaces)')
     ap.add_argument('--intel-report-file', metavar='PATH', help='Generate intel reports for account names in file (one account per line)')
+    ap.add_argument('--list-accounts', action='store_true', help='List known accounts discovered in training data')
+    ap.add_argument('--list-accounts-json', action='store_true', help='Print known accounts as JSON list')
     ap.add_argument('--signals-only', action='store_true', help='Show only detected integration signals for each account (works with --intel-report-all and --intel-report-file)')
     ap.add_argument('--alias-add', nargs=2, metavar=('ALIAS', 'CANONICAL'), help='Add or update a customer alias, e.g. --alias-add wwt "World Wide Technology"')
     ap.add_argument('--alias-remove', metavar='ALIAS', help='Remove a customer alias by its short name')
@@ -8707,6 +9188,7 @@ def main():
     ap.add_argument('--model', metavar='MODEL', help='Force exact Ollama model for this command (overrides --task-profile)')
     ap.add_argument('--account', metavar='ACCOUNT', help='Account name for business commands (e.g., HAL business account-brief --account centene)')
     ap.add_argument('--interactive', action='store_true', help='Launch multi-turn interactive HAL REPL session')
+    ap.add_argument('--tui', action='store_true', help='Launch HAL TUI (interactive curses-free TUI)')
     ap.add_argument('--list-intents', action='store_true', help='List all known intent routes with examples')
     ap.add_argument('--training-report', action='store_true', help='Show training data quality and statistics report')
     ap.add_argument('--explain', action='store_true', help='Show routing decision from the last HAL invocation')
@@ -8795,6 +9277,19 @@ def main():
                 k, v = p.split('=', 1)
                 prof[k.strip()] = v.strip()
     _MOE_PROFILE = prof
+    # If user requested the TUI, launch it now and exit the CLI driver.
+    if getattr(args, 'tui', False):
+        tui_path = os.path.join(BASE_DIR, 'scripts', 'hal_tui.py')
+        if not os.path.exists(tui_path):
+            print('HAL TUI not found at', tui_path, file=sys.stderr)
+            sys.exit(2)
+        # Launch the TUI as a subprocess to avoid import name scoping issues
+        try:
+            proc = subprocess.run([sys.executable, tui_path])
+            sys.exit(proc.returncode)
+        except Exception as exc:
+            print('Failed to launch HAL TUI subprocess:', exc, file=sys.stderr)
+            sys.exit(1)
     # Start optional bridge supervisor thread
     try:
         _ensure_bridge_supervisor_started()
@@ -9087,7 +9582,8 @@ def main():
     if args.intel_report:
         # Resolve alias before lookup so e.g. "wwt" becomes "World Wide Technology"
         account_resolved = _resolve_account(args.intel_report)
-        report = _generate_intel_report_live(account_resolved, allow_public_enrich=True)
+        # Use the simplified offline-first live path: refresh enrichment, convert, report
+        report = _generate_intel_report_now(account_resolved)
         if report:
             print(report)
             user = os.environ.get('USER') or os.environ.get('LOGNAME') or os.getlogin()
@@ -9104,6 +9600,15 @@ def main():
         else:
             print(f'No intel records found for: {account_resolved}')
             print('Import account data first with: HAL --import-business-intel /path/to/Training_Data/')
+        sys.exit(0)
+
+    if args.list_accounts or args.list_accounts_json:
+        accounts = _known_business_accounts_from_training()
+        if args.list_accounts_json:
+            print(json.dumps(accounts, indent=2))
+        else:
+            for a in accounts:
+                print(a)
         sys.exit(0)
 
     if args.intel_report_all or args.intel_report_file:
@@ -10388,66 +10893,53 @@ def main():
                             invoke_remediator(entry_path, args.exec)
                         sys.exit(0)
 
-                    # Present the health menu and allow looping between output and remediation
-                    while True:
-                        print('\nHAL final report:\n')
-                        print(_render_health_summary_menu(diag_json))
+                    print('\nHAL final report:\n')
+                    print(_render_health_summary_menu(diag_json))
 
-                        mode = _choose_health_output_mode()
-                        if mode == '0':
-                            print('Exiting health check.')
-                            sys.exit(0)
+                    mode = _choose_health_output_mode()
+                    llm_raw = ''
+                    if mode == '2':
+                        final_text = _render_health_actions(diag_json)
+                    elif mode == '3':
+                        final_text = f"Local diagnostics (raw):\n{json.dumps(diag_json, indent=2)}"
+                    elif mode == '4':
+                        followup = (
+                            f"User asked: {text}\n"
+                            f"Local diagnostics (JSON):\n{json.dumps(diag_json, indent=2)[:4000]}\n\n"
+                            "Return only a short, plain-text summary (4-8 lines) with the most important findings and immediate actions. "
+                            "Do not include JSON."
+                        )
+                        llm_raw = _run_with_spinner('Generating AI summary', call_bridge, followup)
+                        final_text = extract_assistant_content(llm_raw) or _render_health_actions(diag_json)
+                    elif mode == '5':
+                        final_text = _render_health_actions(diag_json)
+                    else:
+                        final_text = _render_health_summary_menu(diag_json)
 
-                        llm_raw = ''
-                        if mode == '2':
-                            final_text = _render_health_actions(diag_json)
-                        elif mode == '3':
-                            final_text = f"Local diagnostics (raw):\n{json.dumps(diag_json, indent=2)}"
-                        elif mode == '4':
-                            followup = (
-                                f"User asked: {text}\n"
-                                f"Local diagnostics (JSON):\n{json.dumps(diag_json, indent=2)[:4000]}\n\n"
-                                "Return only a short, plain-text summary (4-8 lines) with the most important findings and immediate actions. "
-                                "Do not include JSON."
-                            )
-                            llm_raw = _run_with_spinner('Generating AI summary', call_bridge, followup)
-                            final_text = extract_assistant_content(llm_raw) or _render_health_actions(diag_json)
-                        elif mode == '5':
-                            final_text = _render_health_actions(diag_json)
-                        else:
-                            final_text = _render_health_summary_menu(diag_json)
+                    if mode != '1':
+                        print('\nSelected output:\n')
+                        print(final_text)
 
-                        if mode != '1':
-                            print('\nSelected output:\n')
-                            print(final_text)
+                    combined = json.dumps({'llm_response_raw': llm_raw, 'diagnostics': diag_json, 'final_report': final_text, 'mode': mode}, indent=2)
+                    entry_path = write_interaction(user, text, combined)
+                    print('\nInteraction recorded ->', entry_path)
+                    try:
+                        _save_health_report(diag_json, final_text, mode=mode)
+                    except Exception:
+                        pass
 
-                        combined = json.dumps({'llm_response_raw': llm_raw, 'diagnostics': diag_json, 'final_report': final_text, 'mode': mode}, indent=2)
-                        entry_path = write_interaction(user, text, combined)
-                        print('\nInteraction recorded ->', entry_path)
-                        try:
-                            _save_health_report(diag_json, final_text, mode=mode)
-                        except Exception:
-                            pass
+                    if mode == '5':
+                        print('\nFix all selected. Starting full auto-remediation...')
+                        remediation_mode = '3'
+                    else:
+                        remediation_mode = _choose_health_remediation_mode()
+                        if args.remediate and args.exec:
+                            remediation_mode = '3'
+                        elif args.remediate:
+                            remediation_mode = '2'
+                    _execute_health_remediation(text, diag_json, entry_path, remediation_mode)
 
-                        # Remediation menu: allow the user to go back to output menu by choosing 0
-                        while True:
-                            if mode == '5':
-                                print('\nFix all selected. Starting full auto-remediation...')
-                                remediation_mode = '3'
-                                break
-                            remediation_mode = _choose_health_remediation_mode()
-                            if remediation_mode == '0':
-                                print('Returning to health output menu.')
-                                break
-                            if args.remediate and args.exec:
-                                remediation_mode = '3'
-                            elif args.remediate:
-                                remediation_mode = '2'
-                            _execute_health_remediation(text, diag_json, entry_path, remediation_mode)
-                            sys.exit(0)
-
-                        # If remediation_mode was 0, loop back to the outer menu; otherwise we've exited
-                        continue
+                    sys.exit(0)
                 else:
                     # user declined; provide guidance to request diagnostics later
                     print('\nIf you want a full system check later, run: hal --diagnostics')
@@ -10493,66 +10985,53 @@ def main():
                         invoke_remediator(entry_path, args.exec)
                     sys.exit(0)
 
-                # Present the health menu and allow looping between output and remediation
-                while True:
-                    print('\nHAL final report:\n')
-                    print(_render_health_summary_menu(diag_json))
+                print('\nHAL final report:\n')
+                print(_render_health_summary_menu(diag_json))
 
-                    mode = _choose_health_output_mode()
-                    if mode == '0':
-                        print('Exiting health check.')
-                        sys.exit(0)
+                mode = _choose_health_output_mode()
+                llm_raw = ''
+                if mode == '2':
+                    final_text = _render_health_actions(diag_json)
+                elif mode == '3':
+                    final_text = f"Local diagnostics (raw):\n{json.dumps(diag_json, indent=2)}"
+                elif mode == '4':
+                    followup = (
+                        f"User asked: {text}\n"
+                        f"Local diagnostics (JSON):\n{json.dumps(diag_json, indent=2)[:4000]}\n\n"
+                        "Return only a short, plain-text summary (4-8 lines) with the most important findings and immediate actions. "
+                        "Do not include JSON."
+                    )
+                    llm_raw = _run_with_spinner('Generating AI summary', call_bridge, followup)
+                    final_text = extract_assistant_content(llm_raw) or _render_health_actions(diag_json)
+                elif mode == '5':
+                    final_text = _render_health_actions(diag_json)
+                else:
+                    final_text = _render_health_summary_menu(diag_json)
 
-                    llm_raw = ''
-                    if mode == '2':
-                        final_text = _render_health_actions(diag_json)
-                    elif mode == '3':
-                        final_text = f"Local diagnostics (raw):\n{json.dumps(diag_json, indent=2)}"
-                    elif mode == '4':
-                        followup = (
-                            f"User asked: {text}\n"
-                            f"Local diagnostics (JSON):\n{json.dumps(diag_json, indent=2)[:4000]}\n\n"
-                            "Return only a short, plain-text summary (4-8 lines) with the most important findings and immediate actions. "
-                            "Do not include JSON."
-                        )
-                        llm_raw = _run_with_spinner('Generating AI summary', call_bridge, followup)
-                        final_text = extract_assistant_content(llm_raw) or _render_health_actions(diag_json)
-                    elif mode == '5':
-                        final_text = _render_health_actions(diag_json)
-                    else:
-                        final_text = _render_health_summary_menu(diag_json)
+                if mode != '1':
+                    print('\nSelected output:\n')
+                    print(final_text)
 
-                    if mode != '1':
-                        print('\nSelected output:\n')
-                        print(final_text)
+                combined = json.dumps({'llm_response_raw': llm_raw, 'diagnostics': diag_json, 'final_report': final_text, 'mode': mode}, indent=2)
+                entry_path = write_interaction(user, text, combined)
+                print('\nInteraction recorded ->', entry_path)
+                try:
+                    _save_health_report(diag_json, final_text, mode=mode)
+                except Exception:
+                    pass
 
-                    combined = json.dumps({'llm_response_raw': llm_raw, 'diagnostics': diag_json, 'final_report': final_text, 'mode': mode}, indent=2)
-                    entry_path = write_interaction(user, text, combined)
-                    print('\nInteraction recorded ->', entry_path)
-                    try:
-                        _save_health_report(diag_json, final_text, mode=mode)
-                    except Exception:
-                        pass
+                if mode == '5':
+                    print('\nFix all selected. Starting full auto-remediation...')
+                    remediation_mode = '3'
+                else:
+                    remediation_mode = _choose_health_remediation_mode()
+                    if args.remediate and args.exec:
+                        remediation_mode = '3'
+                    elif args.remediate:
+                        remediation_mode = '2'
+                _execute_health_remediation(text, diag_json, entry_path, remediation_mode)
 
-                    # Remediation menu: allow the user to go back to output menu by choosing 0
-                    while True:
-                        if mode == '5':
-                            print('\nFix all selected. Starting full auto-remediation...')
-                            remediation_mode = '3'
-                            break
-                        remediation_mode = _choose_health_remediation_mode()
-                        if remediation_mode == '0':
-                            print('Returning to health output menu.')
-                            break
-                        if args.remediate and args.exec:
-                            remediation_mode = '3'
-                        elif args.remediate:
-                            remediation_mode = '2'
-                        _execute_health_remediation(text, diag_json, entry_path, remediation_mode)
-                        sys.exit(0)
-
-                    # If remediation_mode was 0, loop back to the outer menu; otherwise we've exited
-                    continue
+                sys.exit(0)
     except Exception:
         pass
 

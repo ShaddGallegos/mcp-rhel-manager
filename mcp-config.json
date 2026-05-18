@@ -1,15 +1,15 @@
 {
   "mcpServers": {
     "architect": {
-      "command": "/home/sgallego/GIT/mcp-rhel-manager/.venv/bin/python",
+      "command": "<REPO_ROOT>/.venv/bin/python",
       "args": [
-        "/home/sgallego/GIT/mcp-rhel-manager/server.py"
+        "<REPO_ROOT>/server.py"
       ],
       "settings": {
         "configVersion": 2,
         "environment": "prod",
         "defaultCommandTimeoutSec": 60,
-        "auditLogPath": "/home/sgallego/.mcp-ai/reports/mcp-server-audit.jsonl",
+        "auditLogPath": "<HOME>/.mcp-ai/reports/mcp-server-audit.jsonl",
         "redactSecretsInAudit": true,
         "audit": {
           "maxAuditFileMB": 25,
@@ -34,7 +34,7 @@
           "bridgeHost": "127.0.0.1",
           "bridgePort": 1776,
           "ollamaHost": "127.0.0.1",
-          "ollamaPort": 11434,
+          "ollamaPort": 11434
           "bridgeServiceName": "mcp-bridge.service",
           "ollamaServiceName": "ollama.service"
         }

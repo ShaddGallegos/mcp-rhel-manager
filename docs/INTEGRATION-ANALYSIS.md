@@ -28,9 +28,6 @@
 
 ### Tier 3: Red Hat Services
 
-- **Red Hat Satellite** — Strategy guides only, NO API integration
-- **Ansible Automation Platform** — Strategy guides only, NO API integration
-- **Red Hat IdM** — Strategy guides only, NO API integration
 - **Red Hat Insights** — Referenced but not integrated
 
 ---
@@ -54,8 +51,6 @@ Fix: Add live market data connector
 Missing:
   - Red Hat Subscription Management API
   - Red Hat Customer Portal API
-  - Red Hat Satellite API (live system data)
-  - Red Hat Ansible API (AAP jobs, inventory)
   - Red Hat Insights API (system health)
 
 Would Enable:

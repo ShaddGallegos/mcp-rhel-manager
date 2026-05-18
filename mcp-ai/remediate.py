@@ -128,6 +128,7 @@ def call_llm(system, user, timeout=60, model=None, max_tokens=None):
         timeout = int(os.environ.get('MCP_AI_TIMEOUT_SEC', str(timeout)))
     except Exception:
         timeout = 60
+
     payload_obj = {
         'model': model,
         'messages': [
@@ -141,15 +142,53 @@ def call_llm(system, user, timeout=60, model=None, max_tokens=None):
             payload_obj['max_tokens'] = int(max_tokens)
         except Exception:
             pass
+
     payload = json.dumps(payload_obj).encode('utf-8')
-    req = urllib.request.Request(OLLAMA_URL, data=payload, headers={'Content-Type': 'application/json'})
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            text = resp.read().decode('utf-8')
-            return text
-    except (urllib.error.URLError, TimeoutError) as e:
-        print('LLM call failed:', e, file=sys.stderr)
-        return None
+
+    # Build a prioritized list of endpoints to try. Support OLLAMA_URLS (comma-separated)
+    candidates = []
+    env_list = os.environ.get('OLLAMA_URLS')
+    if env_list:
+        candidates = [u.strip() for u in env_list.split(',') if u.strip()]
+    else:
+        primary = os.environ.get('OLLAMA_URL', OLLAMA_URL)
+        # ensure primary present first
+        if primary:
+            candidates.append(primary)
+        # add common bridge/ollama fallbacks
+        try:
+            from urllib.parse import urlparse
+            p = urlparse(primary)
+            host = p.hostname or 'localhost'
+        except Exception:
+            host = 'localhost'
+        # Common alternate ports/paths
+        alt_candidates = [f'http://{host}:1776/api/chat', f'http://{host}:1776/chat', f'http://{host}:11434/api/chat', f'http://127.0.0.1:11434/api/chat']
+        for c in alt_candidates:
+            if c not in candidates:
+                candidates.append(c)
+
+    last_err = None
+    for endpoint in candidates:
+        if not endpoint:
+            continue
+        try:
+            print(f'Trying LLM endpoint: {endpoint}', file=sys.stderr)
+            req = urllib.request.Request(endpoint, data=payload, headers={'Content-Type': 'application/json'})
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                text = resp.read().decode('utf-8')
+                return text
+        except Exception as e:
+            last_err = e
+            print(f'LLM call failed for {endpoint}: {e}', file=sys.stderr)
+            try:
+                time.sleep(0.5)
+            except Exception:
+                pass
+
+    if last_err:
+        print('All LLM endpoints failed, returning None', file=sys.stderr)
+    return None
 
 def find_suggestion_for_entry(entry_path):
     # Look for existing suggestion files for this entry in FIXES_DIR

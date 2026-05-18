@@ -1,7 +1,7 @@
 ---
----
+
 # Consolidated Ansible requirements for all MINIRHIS container roles
-# This file includes all collections needed by satellite, idm, and aap builders
+# Collections required for core functionality
 #
 # Usage: ansible-galaxy collection install -r requirements.yml
 
@@ -28,10 +28,6 @@ collections:
 
   # RedHat/Infrastructure collections
   - name: "redhat.rhel_system_roles"
-    version: "*"
-  - name: "redhat.satellite"
-    version: "*"
-  - name: "redhat.satellite_operations"
     version: "*"
   - name: "redhat.redhat_csp_download"
     version: "*"

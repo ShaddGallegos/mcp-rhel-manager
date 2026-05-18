@@ -4,15 +4,21 @@ After=network.target
 
 [Service]
 Type=simple
-User=mcp
-Group=mcp
+Group=mcp-ai
+User=mcp-ai
 Environment=PATH=/opt/mcp-rhel-manager/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WorkingDirectory=/opt/mcp-rhel-manager
 # Run the dashboard script directly under the venv Python to avoid FLASK_APP import issues
 ExecStart=/opt/mcp-rhel-manager/venv/bin/python /opt/mcp-rhel-manager/mcp-ai/dashboard.py
 Restart=on-failure
 RestartSec=5s
+StartLimitIntervalSec=60
+StartLimitBurst=5
+TimeoutStartSec=30
+Environment=MCP_DASH_PORT=8080
 LimitNOFILE=4096
+ProtectSystem=full
+PrivateTmp=yes
 
 [Install]
 WantedBy=multi-user.target

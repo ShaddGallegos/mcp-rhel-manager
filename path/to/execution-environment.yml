@@ -1,0 +1,84 @@
+version: 3
+# execution-environment.yml for mcp-rhel-manager (Ansible Builder v3)
+# NOTE: keep metadata like project name/version in repo docs; the
+# EE schema doesn't accept arbitrary metadata fields.
+
+dependencies:
+  # Python requirements file (pip) relative to this manifest
+  python: ../../requirements.txt
+  # Ansible Galaxy requirements (collection lists) relative to this manifest
+  galaxy: ../../ansible/requirements.yml
+  # System packages required at build time (rpm/dnf/apt names)
+  system:
+    - gcc
+    - make
+    - python3-devel
+    - python3-pip
+    - libffi-devel
+    - openssl-devel
+    - redhat-rpm-config
+    # packages useful for building small local LLM runtimes (llama.cpp)
+    - git
+    - cmake
+    - gcc-c++
+    - wget
+    - xz
+    - tar
+
+  ansible_core:
+    package_pip: "ansible-core==2.17.9"
+  ansible_runner:
+    package_pip: "ansible-runner==2.4.2"
+
+additional_build_steps:
+  prepend_builder:
+    - "RUN /bin/bash -c 'if command -v microdnf >/dev/null 2>&1; then microdnf -y install python3-pip || true; elif command -v dnf >/dev/null 2>&1; then dnf -y install python3-pip || true; fi'"
+    - "ENV PYCMD=python3"
+    - "RUN /bin/bash -c '$PYCMD -m pip install --upgrade pip || true'"
+    - "COPY scripts/pkgmgr.sh /build/scripts/pkgmgr.sh"
+    - "RUN /bin/bash -c 'install -m 0755 /build/scripts/pkgmgr.sh /usr/local/bin/pkgmgr || true'"
+    - "ENV PKGMGR=/usr/local/bin/pkgmgr"
+    - "COPY mcp-ai/runtime/runtime.py /usr/local/bin/mcp-runtime"
+    - "RUN /bin/bash -c 'chmod +x /usr/local/bin/mcp-runtime || true'"
+    - "COPY scripts/download_llm.sh /usr/local/bin/download_llm"
+    - "RUN /bin/bash -c 'chmod +x /usr/local/bin/download_llm || true'"
+    - "COPY scripts/apply_lora.sh /usr/local/bin/apply_lora"
+    - "RUN /bin/bash -c 'chmod +x /usr/local/bin/apply_lora || true'"
+  append_final:
+    - "RUN /bin/bash -c 'if command -v microdnf >/dev/null 2>&1; then microdnf -y install python3-pip || true; elif command -v dnf >/dev/null 2>&1; then dnf -y install python3-pip || true; fi'"
+    - "RUN /bin/bash -c 'if command -v pip3 >/dev/null 2>&1; then pip3 install --upgrade --no-cache-dir pip setuptools wheel || true; fi'"
+    - "RUN /bin/bash -c 'if command -v pip3 >/dev/null 2>&1; then pip3 install --no-cache-dir -r /output/requirements.txt || true; fi'"
+    - "RUN /bin/bash -c 'if command -v pip3 >/dev/null 2>&1; then pip3 install --no-cache-dir -r /output/ansible/requirements.yml || true; fi'"
+    - "RUN /bin/bash -c 'rm -rf /var/cache/dnf /var/cache/yum || true'"
+    - "RUN /bin/bash -c 'mkdir -p /var/lib/mcp-llms && chown 0:0 /var/lib/mcp-llms || true'"
+
+options:
+  skip_pip_install: true
+
+additional_build_files:
+  - src: ../../scripts/pkgmgr.sh
+    dest: scripts/pkgmgr.sh
+  - src: ../../mcp-ai/runtime/runtime.py
+    dest: mcp-ai/runtime/runtime.py
+  - src: ../../mcp-ai/runtime/README.md
+    dest: mcp-ai/runtime/README.md
+  - src: ../../scripts/download_llm.sh
+    dest: scripts/download_llm.sh
+  - src: ../../scripts/apply_lora.sh
+    dest: scripts/apply_lora.sh
+
+
+# Container image selection. Replace the base image with your RHEL/UBI10 image
+# (requires Red Hat registry credentials) or an alternate GPU-enabled base.
+images:
+  base_image:
+    # Default to a community-friendly base so builds don't require Red Hat registry
+    name: quay.io/centos/centos:stream9
+    # For production RHEL/UBI10 builds, use registry.redhat.io/ubi10/ubi:10.0
+    # (requires Red Hat registry credentials on the host). If you do not have
+    # credentials, keep quay.io/centos/centos:stream9 as a development fallback.
+    # Use a public Fedora image for development builds when Red Hat registry
+    # access is not available. Fedora provides dnf and commonly includes pip.
+    # Use Fedora 40 to provide Python 3.12 for newer ansible-core compatibility.
+    name: fedora:40
+    # For GPU images use an NVIDIA base, but note many NVIDIA images lack dnf/microdnf.

@@ -19,6 +19,7 @@ Contact handling:
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import hashlib
 import html
 import json
@@ -333,7 +334,118 @@ def verify_contacts_publicly(company: str, contacts: list[dict[str, str]], offic
     return verified
 
 
-def build_text_blob(company: str, wiki: dict[str, Any] | None, links: dict[str, Any], headlines: list[dict[str, str]], verified_contacts: list[dict[str, Any]], search_results: list[dict[str, str]]) -> str:
+def fetch_homepage_description(url: str, timeout: int = 12) -> str:
+    """Fetch the company homepage and return a short description.
+
+    Tries in order:
+    1. <meta name="description"> content
+    2. <meta property="og:description"> content
+    3. First <p> tag with >= 60 chars and no HTML
+    Returns an empty string on any failure.
+    """
+    if not url or not url.startswith("http"):
+        return ""
+    try:
+        body = http_get(url, timeout=timeout)
+    except Exception:
+        return ""
+
+    # meta description
+    for pat in (
+        r'<meta\s+name=["\']description["\'][^>]*content=["\'](.*?)["\']',
+        r'<meta\s+content=["\'](.*?)["\'][^>]*name=["\']description["\']',
+        r'<meta\s+property=["\']og:description["\'][^>]*content=["\'](.*?)["\']',
+        r'<meta\s+content=["\'](.*?)["\'][^>]*property=["\']og:description["\']',
+    ):
+        m = re.search(pat, body, re.IGNORECASE | re.DOTALL)
+        if m:
+            text = html.unescape(m.group(1)).strip()
+            if len(text) >= 30:
+                return text[:400]
+
+    # first substantial <p> paragraph
+    for m in re.finditer(r'<p[^>]*>(.*?)</p>', body, re.IGNORECASE | re.DOTALL):
+        text = html.unescape(re.sub(r'<[^>]+>', '', m.group(1))).strip()
+        # skip nav/cookie/legal noise
+        if len(text) >= 60 and len(text) <= 600 and '\n' not in text[:60]:
+            if not re.search(r'\b(cookie|privacy|copyright|accept|terms)\b', text, re.IGNORECASE):
+                return text[:400]
+
+    return ""
+
+
+def fetch_mission_statement(company: str, links: dict[str, Any], search_results: list[dict[str, str]], timeout: int = 12) -> str:
+    """Try to discover a company's mission statement from public pages.
+
+    Strategy:
+    - Probe common 'about' URLs on the official site.
+    - Use DuckDuckGo search results for "<company> mission statement" and inspect hits.
+    - Look for headings or paragraphs containing 'mission' / 'our mission' / 'mission statement'.
+    Returns short cleaned text or empty string.
+    """
+    candidates: list[str] = []
+    official = (links.get("official_website") or "").rstrip("/")
+    if official and official.startswith("http"):
+        for suffix in ("/about", "/about-us", "/about/", "/company/about", "/about-us/mission", "/mission"):
+            candidates.append(official + suffix)
+
+    # Add search-derived candidates that likely contain mission content
+    try:
+        mission_search = ddg_search(f"{company} mission statement", max_results=6)
+    except Exception:
+        mission_search = []
+    for r in mission_search:
+        u = r.get("url")
+        if u and u not in candidates:
+            candidates.append(u)
+
+    # Also inspect combined search results (if supplied)
+    for r in (search_results or []):
+        u = r.get("url")
+        if u and u not in candidates:
+            if any(k in u.lower() for k in ("about", "mission", "company", "about-us")):
+                candidates.append(u)
+
+    seen: set[str] = set()
+    for url in candidates:
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        try:
+            body = http_get(url, timeout=timeout)
+        except Exception:
+            continue
+
+        # 1) Look for a heading that mentions mission and return the following paragraph
+        m = re.search(r'(?s)<h[1-6][^>]*>[^<]{0,60}mission[^<]*</h[1-6]>.*?<p[^>]*>(.*?)</p>', body, re.IGNORECASE)
+        if m:
+            text = html.unescape(re.sub(r'<[^>]+>', '', m.group(1))).strip()
+            if len(text) >= 30:
+                return text[:500]
+
+        # 2) Look for inline mentions like 'Our mission' and capture surrounding paragraph
+        m2 = re.search(r'(?i)(?:our\s+mission|mission\s+statement|mission:|purpose:|our purpose)([\s\S]{0,400})', body)
+        if m2:
+            txt = html.unescape(re.sub(r'<[^>]+>', '', m2.group(1))).strip()
+            txt = re.sub(r'\s+', ' ', txt)
+            if len(txt) >= 30:
+                return txt[:500]
+
+        # 3) Meta description fallback
+        for pat in (
+            r'<meta\s+name=["\']description["\'][^>]*content=["\'](.*?)["\']',
+            r'<meta\s+property=["\']og:description["\'][^>]*content=["\'](.*?)["\']',
+        ):
+            mm = re.search(pat, body, re.IGNORECASE | re.DOTALL)
+            if mm:
+                txt = html.unescape(mm.group(1)).strip()
+                if len(txt) >= 30:
+                    return txt[:500]
+
+    return ""
+
+
+def build_text_blob(company: str, wiki: dict[str, Any] | None, links: dict[str, Any], headlines: list[dict[str, str]], verified_contacts: list[dict[str, Any]], search_results: list[dict[str, str]], homepage_desc: str = "", mission_statement: str = "") -> str:
     lines: list[str] = []
     lines.append(f"# Company Public Enrichment: {company}")
     lines.append("")
@@ -342,6 +454,17 @@ def build_text_blob(company: str, wiki: dict[str, Any] | None, links: dict[str, 
         lines.append("## Wikipedia Summary")
         lines.append(wiki.get("summary", ""))
         lines.append(f"Source: {wiki.get('source', '')}")
+        lines.append("")
+
+    if mission_statement:
+        lines.append("## Company Mission Statement")
+        lines.append(mission_statement)
+        lines.append("")
+
+    if homepage_desc:
+        lines.append("## Company Homepage Description")
+        lines.append(homepage_desc)
+        lines.append(f"Source: {links.get('official_website', '')}")
         lines.append("")
 
     lines.append("## Public Profiles")
@@ -415,7 +538,51 @@ def enrich_one_company(company: str) -> tuple[str, Path | None, str]:
     contacts = extract_contacts_for_company(company)
     verified = verify_contacts_publicly(company, contacts, links.get("official_website", ""))
 
-    text_blob = build_text_blob(company, wiki, links, headlines, verified, combined_results)
+    # Optionally augment with locally collected enrichment/scraper outputs
+    try:
+        if os.environ.get('HAL_ENRICH_USE_SCRAPERS', '').lower() in ('1', 'true', 'yes'):
+            bf_path = Path(__file__).resolve().parents[0] / 'bi_fetcher.py'
+            if bf_path.exists():
+                spec = importlib.util.spec_from_file_location('bi_fetcher', str(bf_path))
+                bf = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(bf)
+                ext = bf.fetch_company_from_enrichment(company)
+                # merge contacts (avoid duplicates)
+                if ext.get('contacts'):
+                    emails_seen = { (c.get('email') or '').lower() for c in verified }
+                    for c in ext.get('contacts'):
+                        try:
+                            em = (c.get('email') or '').strip()
+                        except Exception:
+                            em = ''
+                        if not em:
+                            continue
+                        if em.lower() in emails_seen:
+                            continue
+                        emails_seen.add(em.lower())
+                        verified.append(c)
+                # merge headlines
+                if ext.get('news_headlines'):
+                    existing_titles = { (h.get('title') if isinstance(h, dict) else str(h)).strip() for h in headlines }
+                    for h in ext.get('news_headlines'):
+                        if h and h not in existing_titles:
+                            headlines.append({'title': h})
+                # merge links (concat lists)
+                for k, v in (ext.get('links') or {}).items():
+                    if not v:
+                        continue
+                    old = links.get(k) or []
+                    if isinstance(old, list):
+                        links[k] = sorted(dict.fromkeys(old + (v if isinstance(v, list) else [v])))
+                    else:
+                        links[k] = v
+    except Exception:
+        # best-effort augmentation; failures should not abort enrichment
+        pass
+
+    homepage_desc = fetch_homepage_description(links.get("official_website", ""))
+    mission_statement = fetch_mission_statement(company, links, combined_results)
+    text_blob = build_text_blob(company, wiki, links, headlines, verified, combined_results, homepage_desc=homepage_desc, mission_statement=mission_statement)
 
     rec = {
         "type": "supplemental_document",
@@ -428,6 +595,8 @@ def enrich_one_company(company: str) -> tuple[str, Path | None, str]:
         "content_length": len(text_blob),
         "company": company,
         "links": links,
+        "homepage_description": homepage_desc,
+        "mission_statement": mission_statement,
         "news_headlines": headlines,
         "contact_verification": verified,
         "search_results": combined_results[:40],

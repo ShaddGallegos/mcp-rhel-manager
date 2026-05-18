@@ -11,7 +11,7 @@ HAL now includes a complete predictive system with trending metrics, health scor
 ### 1. Initial Setup (First Run)
 
 ```bash
-cd /home/sgallego/GIT/mcp-rhel-manager
+cd <REPO_ROOT>
 python3 scripts/hal.py --inventory
 ```
 
@@ -171,7 +171,7 @@ Currently in development:
 - Machine learning recommendations
 - Custom threshold configuration per user
 
-## Troubleshooting
+### Troubleshooting
 
 ### No metrics showing
 
@@ -182,7 +182,7 @@ Currently in development:
 
 ### Import errors
 
-- Ensure: Running from `/home/sgallego/GIT/mcp-rhel-manager/` directory
+- Ensure: Running from `<REPO_ROOT>` directory
 - Check: All `.py` files are executable (`chmod +x hal*.py`)
 - Try: `python3 -m py_compile scripts/hal-metrics.py`
 

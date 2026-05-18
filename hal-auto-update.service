@@ -1,13 +1,13 @@
 [Unit]
 Description=HAL Auto-Update Service (DNF, Flatpak, SELinux, Firewall)
-Documentation=file:///home/sgallego/GIT/mcp-rhel-manager/README.md
+Documentation=file://<REPO_ROOT>/README.md
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=oneshot
 User=root
-ExecStart=/home/sgallego/GIT/mcp-rhel-manager/scripts/hal-auto-update.sh
+ExecStart=<REPO_ROOT>/scripts/hal-auto-update.sh
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=hal-auto-update

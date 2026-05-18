@@ -27,31 +27,11 @@ The CLI automatically routes user queries to the most appropriate handler. Below
 | `operational-howto`   | Operational how-to runbooks (RHEL/Linux/Ansible) | "how do I configure ntp", "how to add a user in RHEL"   |
 | `server-update-strat` | Server patching and update strategy runbook      | "how do I patch RHEL servers", "server update strategy" |
 
-### Ansible Automation Platform (AAP)
+### Automation Platform
 
-| Intent                  | Description                                  | Example Commands                                               |
-| ----------------------- | -------------------------------------------- | -------------------------------------------------------------- |
-| `ansible-codegen`       | Generate Ansible playbooks/roles/collections | "write a playbook to install nginx", "create a role for users" |
-| `ansible-eda-use-cases` | List practical Event-Driven Ansible uses     | "what is ansible EDA used for", "list ansible eda use cases"   |
-| `aap-patch-strat`       | AAP/Ansible patching strategy runbook        | "AAP patching strategy", "how to patch with AAP"               |
-| `aap-migration-strat`   | AAP migration strategy and planning          | "migrate from Tower to AAP", "AAP migration plan"              |
-| `aap-mcp-setup`         | MCP server setup in AAP                      | "set up MCP in AAP", "configure MCP server for AAP"            |
+*Vendor-specific automation platform guidance removed from this repository.*
 
-### Red Hat Satellite
 
-| Intent                  | Description                                | Example Commands                                                 |
-| ----------------------- | ------------------------------------------ | ---------------------------------------------------------------- |
-| `satellite-patch-strat` | Satellite patching strategy runbook        | "how do I patch with Satellite", "Satellite patch strategy"      |
-| `satellite-aap-conn`    | Satellite ↔ AAP connection and integration | "connect Satellite to AAP", "integrate Satellite with Ansible"   |
-| `satellite-e2e-setup`   | Full Satellite end-to-end setup runbook    | "set up Satellite end to end", "complete Satellite installation" |
-| `satellite-pxe`         | Satellite PXE provisioning strategy        | "PXE boot with Satellite", "provision hosts via PXE Satellite"   |
-| `satellite-mcp-setup`   | MCP server setup in Satellite              | "Satellite MCP setup", "configure MCP for Satellite"             |
-
-### Identity Management (IdM/FreeIPA)
-
-| Intent      | Description                              | Example Commands                     |
-| ----------- | ---------------------------------------- | ------------------------------------ |
-| `idm-setup` | IdM/FreeIPA setup and enrollment runbook | "set up IdM", "configure IPA server" |
 
 ### Code Generation & Infrastructure Automation
 
@@ -59,7 +39,7 @@ The CLI automatically routes user queries to the most appropriate handler. Below
 | ---------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `jinja2-codegen` | Generate Jinja2 templates                                 | "write a Jinja2 template for hosts", "create a J2 config template"                                                 |
 | `python-codegen` | Generate Python scripts or modules                        | "write a Python script to parse JSON", "create a Python module"                                                    |
-| `ee-de-builder`  | Build execution/decision environments with vendor support | "create an EE for VMware automation", "build a DE with satellite collections", "generate EE YAML with AWS modules" |
+| `ee-de-builder`  | Build execution/decision environments with vendor support | "create an EE for VMware automation", "generate EE YAML with AWS modules" |
 
 ### Training Data Management
 
@@ -148,9 +128,9 @@ Generates and optionally builds execution/decision environments (EE/DE) with ven
 
 **Parameters:**
 
-- `name`: Environment name (e.g., "vmware-ee", "satellite-de")
+- `name`: Environment name (e.g., "vmware-ee", "vendor-de")
 - `ee_type`: Type of environment ("execution" or "decision")
-- `base_image`: Optional custom base image (defaults to AAP minimal images)
+- `base_image`: Optional custom base image (defaults to minimal base images)
 - `vendors`: List of vendor collections to include (see Vendor Support below)
 - `python_packages`: List of Python packages (e.g., ["requests", "pyyaml"])
 - `system_packages`: List of system packages (e.g., ["git", "rsync"])
@@ -166,11 +146,11 @@ Automatically configures collections for specified vendors:
 | ------------ | --------------------------------------------------------- | --------------------------- |
 | `ansible`    | ansible.utils, ansible.posix, ansible.netcommon           | Core POSIX/networking tasks |
 | `community`  | community.general, community.vmware, community.postgresql | General Linux + specialized |
-| `redhat`     | redhat.satellite, redhat.rhel_idm, redhat.insights        | Red Hat products            |
+| `redhat`     | redhat.rhel_system_roles, redhat.redhat_csp_download       | Red Hat product system roles |
 | `vmware`     | community.vmware, vmware.vmware_rest                      | VMware vSphere automation   |
 | `aws`        | amazon.aws                                                | AWS cloud automation        |
 | `azure`      | azure.azcollection                                        | Azure cloud automation      |
-| `satellite`  | redhat.satellite, redhat.rhel_idm                         | Satellite provisioning      |
+
 | `nutanix`    | community.general (Nutanix AHV)                           | Nutanix infrastructure      |
 | `postgresql` | community.postgresql                                      | Database automation         |
 | `kubernetes` | kubernetes.core, community.general                        | K8s cluster management      |
@@ -216,7 +196,7 @@ Automatically configures collections for specified vendors:
 
 - Wraps the [Base_EE-DE_Builder](https://github.com/reference-user/Base_EE-DE_Builder) reference implementation
 - Uses `ansible-builder` under the hood for containerized builds
-- Generates version 3 `execution-environment.yml` format (AAP 2.5+)
+- Generates version 3 `execution-environment.yml` format (EE v3 compatible)
 - Supports both EE (runtime) and DE (development) environment types
 
 ---
@@ -566,8 +546,8 @@ hal "create an Ansible role for user management"
 ### Get Patching Strategy
 
 ```bash
-hal "how do I patch servers with AAP"
-hal "Satellite patching strategy"
+hal "how do I patch servers"
+hal "patching strategy"
 ```
 
 ### Import Training Data
@@ -588,7 +568,7 @@ hal "who are the stakeholders at Centene"
 
 ```bash
 hal "how do I configure NTP"
-hal "how to set up SSO with IdM"
+hal "how to set up SSO"
 ```
 
 ### Build Execution/Decision Environments
@@ -597,8 +577,8 @@ hal "how to set up SSO with IdM"
 # Generate EE for VMware automation (no build yet)
 hal "create an execution environment for VMware with ansible.utils and vmware collections"
 
-# Build a Decision Environment with Satellite + AAP collections
-hal "build a decision environment with satellite and redhat collections, also include git and rsync"
+# Build a Decision Environment with vendor collections
+hal "build a decision environment with vendor collections and include git and rsync"
 
 # Create AWS-ready EE with custom Python packages
 hal "generate execution environment for AWS with amazon.aws collection, add boto3 and requests packages"
@@ -624,10 +604,10 @@ hal "execution environment for vmware with community.vmware and vmware.vmware_re
 hal "create ee for aws and azure cloud automation"
 ```
 
-#### Satellite Infrastructure
+#### Vendor-specific Infrastructure
 
 ```bash
-hal "build decision environment with satellite and rhel_idm for satellite provisioning"
+hal "build decision environment with vendor collections and rhel support"
 ```
 
 #### Database + Kubernetes
@@ -668,7 +648,7 @@ version: 3
 
 images:
   base_image:
-    name: registry.redhat.io/ansible-automation-platform-25/ee-minimal-rhel9:latest
+    name: registry.example/ee-minimal:latest
     options:
       pull_policy: missing
       tls_verify: false
@@ -743,7 +723,7 @@ The `build_execution_environment()` tool integrates with the Base_EE-DE_Builder 
 
 ### Version 3 YAML Generation
 
-- Creates `execution-environment.yml` v3 (AAP 2.5+) compatible manifests
+- Creates `execution-environment.yml` v3 compatible manifests
 - Auto-configures `microdnf` package manager for minimal images
 - Generates `requirements.yml`, `requirements.txt`, and `bindep.txt`
 

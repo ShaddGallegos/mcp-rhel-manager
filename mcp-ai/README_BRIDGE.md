@@ -14,7 +14,7 @@ The MCP Bridge is a lightweight HTTP proxy that connects HAL to your local Ollam
 ### Start the Bridge
 
 ```bash
-cd /home/sgallego/GIT/mcp-rhel-manager
+cd <REPO_ROOT>
 bash mcp-ai/start-bridge.sh
 ```
 
@@ -107,7 +107,7 @@ HAL "your question here"
 
 ### Option 2: systemd Service (Recommended for Production)
 
-Create `/etc/systemd/system/hal-bridge.service`:
+Create `/etc/systemd/system/hal-bridge.service` (replace placeholders):
 
 ```ini
 [Unit]
@@ -116,9 +116,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=sgallego
-WorkingDirectory=/home/sgallego/GIT/mcp-rhel-manager
-ExecStart=/bin/bash -c 'source .venv/bin/activate && python3 mcp-ai/bridge.py'
+User=<SERVICE_USER>
+WorkingDirectory=<REPO_ROOT>
+ExecStart=/bin/bash -c 'source <VENV_DIR>/bin/activate && python3 mcp-ai/bridge.py'
 Restart=on-failure
 RestartSec=5
 
