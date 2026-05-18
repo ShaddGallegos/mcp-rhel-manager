@@ -1,0 +1,14 @@
+[Unit]
+Description=MCP Code Fix Watcher (inotify)
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/default/mcp-code-fix
+ExecStart=/usr/local/bin/watch_and_fix.sh
+Restart=on-failure
+RestartSec=10
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
