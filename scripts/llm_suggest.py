@@ -16,9 +16,18 @@ import json
 import os
 import sys
 from pathlib import Path
+from importlib import util
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from mcp_ai import llm_bridge as _bridge  # type: ignore
+# Load mcp-ai/llm_bridge.py as a module regardless of the package name (hyphen)
+repo_root = Path(__file__).resolve().parents[1]
+bridge_path = repo_root / "mcp-ai" / "llm_bridge.py"
+if not bridge_path.exists():
+    print(f"llm_bridge.py not found at {bridge_path}", file=sys.stderr)
+    raise SystemExit(2)
+spec = util.spec_from_file_location("mcp_ai.llm_bridge", str(bridge_path))
+llm_mod = util.module_from_spec(spec)
+spec.loader.exec_module(llm_mod)
+_bridge = llm_mod
 
 
 def build_prompt_from_file(path: str) -> str:

@@ -44,6 +44,34 @@ run_cmd(){
 
 has_cmd(){ command -v "$1" >/dev/null 2>&1; }
 
+# script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# LLM suggestion configuration (disabled by default)
+ENABLE_LLM=${ENABLE_LLM:-0}
+LLM_EXPERT_CODE=${LLM_EXPERT_CODE:-code_fixer}
+LLM_EXPERT_SHELL=${LLM_EXPERT_SHELL:-shell_fixer}
+LLM_EXPERT_ANSIBLE=${LLM_EXPERT_ANSIBLE:-code_fixer}
+
+run_llm_suggest(){
+  local file="$1"
+  local expert="$2"
+  local outdir="$LOGDIR/suggestions"
+  mkdir -p "$outdir"
+  local outfile="$outdir/$(basename "$file").${expert}.json"
+  if [[ $DRY_RUN -eq 1 ]]; then
+    echo "DRY-RUN: would run llm_suggest for $file as $expert -> $outfile" >>"$REPORT"
+    return 0
+  fi
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "skip: python3 not found for llm_suggest" >>"$REPORT"
+    return 0
+  fi
+  echo "LLM: running suggestion for $file (expert=$expert)" >>"$REPORT"
+  # Allow external config via LLM_EXPERTS_CONFIG env var; llm_suggest loads it
+  env LLM_EXPERTS_CONFIG="${LLM_EXPERTS_CONFIG:-}" python3 "$SCRIPT_DIR/llm_suggest.py" --expert "$expert" --file "$file" --out "$outfile" >>"$REPORT" 2>&1 || echo "LLM suggestion failed for $file" >>"$REPORT"
+}
+
 format_python(){
   local path="$1"
   echo "--- python: $path" | tee -a "$REPORT"
@@ -134,6 +162,24 @@ for p in "${PATHS[@]}"; do
     [[ -f "$yf" ]] || continue
     lint_yaml "$yf"
   done < <(find "$p" -type f \( -name '*.yml' -o -name '*.yaml' \) -print0 2>/dev/null || true)
+
+  # Optional: run LLM suggestions for files (controlled via ENABLE_LLM env var)
+  if [[ "${ENABLE_LLM:-0}" -eq 1 ]]; then
+    while IFS= read -r -d $'\0' f; do
+      [[ -f "$f" ]] || continue
+      case "$f" in
+        *.py)
+          e="$LLM_EXPERT_CODE" ;;
+        *.sh|*.bash)
+          e="$LLM_EXPERT_SHELL" ;;
+        *.yml|*.yaml)
+          e="$LLM_EXPERT_ANSIBLE" ;;
+        *)
+          e="$LLM_EXPERT_CODE" ;;
+      esac
+      run_llm_suggest "$f" "$e"
+    done < <(find "$p" -type f \( -name '*.py' -o -name '*.sh' -o -name '*.bash' -o -name '*.yml' -o -name '*.yaml' \) -print0 2>/dev/null || true)
+  fi
 
   summary_total=$((summary_total+1))
 done
