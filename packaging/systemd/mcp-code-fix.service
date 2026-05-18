@@ -1,0 +1,13 @@
+[Unit]
+Description=MCP Code Fix Runner (oneshot)
+After=network.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/default/mcp-code-fix
+ExecStart=/usr/local/bin/scan_and_fix_git_dirs.sh
+Nice=10
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target
