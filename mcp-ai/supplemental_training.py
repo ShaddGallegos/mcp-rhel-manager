@@ -98,6 +98,11 @@ def fetch_url(url: str, outdir: Path) -> Optional[Path]:
 
 def try_clamscan(path: Path) -> bool:
     # return True if clean, False if infected or scan inconclusive
+    # Allow tests or operators to skip clamscan by setting SUPPLEMENTAL_SKIP_CLAMS=1
+    if os.environ.get('SUPPLEMENTAL_SKIP_CLAMS', '').lower() in ('1', 'true', 'yes'):
+        LOG.info('SUPPLEMENTAL_SKIP_CLAMS set; skipping malware scan for %s', path)
+        return True
+
     clamscan = shutil.which('clamscan') or shutil.which('clamdscan')
     if not clamscan:
         LOG.info('clamscan not available; skipping malware scan for %s', path)
