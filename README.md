@@ -198,6 +198,28 @@ If the bridge is down, HAL will:
 Description=HAL MCP Bridge
 After=network.target
 
+Pre-commit hook
+---------------
+
+This repository provides a lightweight `pre-commit` configuration that runs the
+local secret scanner before commits. To enable it in your environment run:
+
+```bash
+./scripts/install_precommit.sh
+```
+
+The hook executes `mcp-ai/secret_scan.py` and will block commits if likely
+secrets are detected (false positives are possible). Use `pre-commit run --all-files`
+to scan the repo immediately.
+
+GGUF conversion helper
+----------------------
+
+A small wrapper `mcp-ai/gguf_converter.py` detects available external GGUF
+conversion tools (`gguf-convert`, `convert-gguf`, etc.) and invokes them when
+requested. A smoke test that skips if no converter is present is included in
+`tests/test_gguf_converter_smoke.py`.
+
 [Service]
 Type=simple
 ExecStart=bash <REPO_ROOT>/mcp-ai/start-bridge.sh  # replace <REPO_ROOT> with your repository path
