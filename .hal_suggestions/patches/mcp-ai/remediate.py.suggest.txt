@@ -1,0 +1,48 @@
+Suggestions for mcp-ai/remediate.py
+- line 34: missing_docstring - ensure_cache_dir
+- line 37: missing_docstring - load_attempts
+- line 47: missing_docstring - save_attempts
+- line 52: missing_docstring - find_latest_entry
+- line 58: missing_docstring - load_entry
+- line 62: missing_docstring - build_prompt
+- line 125: missing_docstring - call_llm
+- line 193: missing_docstring - find_suggestion_for_entry
+- line 207: missing_docstring - audit_event
+- line 217: missing_docstring - ensure_backup_dir
+- line 225: missing_docstring - create_etc_backup
+- line 239: missing_docstring - metrics_inc
+- line 256: missing_docstring - extract_json
+- line 269: missing_docstring - normalize_solutions
+- line 290: missing_docstring - write_suggestion
+- line 307: missing_docstring - attempt_execute
+- line 342: missing_docstring - mark_attempt
+- line 352: missing_docstring - datetime_now_iso
+- line 356: missing_docstring - main
+- line 470: missing_docstring - validate_remediation_schema
+- line 493: missing_docstring - write_plan_file
+- line 451: print_usage - consider using logging instead of print()
+- line 190: print_usage - consider using logging instead of print()
+- line 370: print_usage - consider using logging instead of print()
+- line 573: print_usage - consider using logging instead of print()
+- line 692: print_usage - consider using logging instead of print()
+- line 176: print_usage - consider using logging instead of print()
+- line 410: print_usage - consider using logging instead of print()
+- line 443: print_usage - consider using logging instead of print()
+- line 448: print_usage - consider using logging instead of print()
+- line 519: print_usage - consider using logging instead of print()
+- line 526: print_usage - consider using logging instead of print()
+- line 527: print_usage - consider using logging instead of print()
+- line 533: print_usage - consider using logging instead of print()
+- line 604: print_usage - consider using logging instead of print()
+- line 631: print_usage - consider using logging instead of print()
+- line 669: print_usage - consider using logging instead of print()
+- line 673: print_usage - consider using logging instead of print()
+- line 686: print_usage - consider using logging instead of print()
+- line 183: print_usage - consider using logging instead of print()
+- line 521: print_usage - consider using logging instead of print()
+- line 523: print_usage - consider using logging instead of print()
+- line 540: print_usage - consider using logging instead of print()
+- line 587: print_usage - consider using logging instead of print()
+- line 592: print_usage - consider using logging instead of print()
+- line 599: print_usage - consider using logging instead of print()
+- line 659: print_usage - consider using logging instead of print()

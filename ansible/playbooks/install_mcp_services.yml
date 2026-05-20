@@ -1,0 +1,86 @@
+- name: Install MCP model management and services
+  hosts: all
+  become: true
+  vars:
+    mcp_install_paths:
+      - src: packaging/tmpfiles.d/mcp-llms.conf
+        dest: /etc/tmpfiles.d/mcp-llms.conf
+      - src: packaging/systemd/mcp-model-cleanup.service
+        dest: /etc/systemd/system/mcp-model-cleanup.service
+      - src: packaging/systemd/mcp-model-cleanup.timer
+        dest: /etc/systemd/system/mcp-model-cleanup.timer
+    scripts:
+      - scripts/manage_models.py
+      - scripts/download_model.sh
+      - scripts/ee_smoke_test.sh
+      - scripts/prune_podman_cache.sh
+
+  tasks:
+    - name: Ensure Python and pip present
+      package:
+        name:
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Ensure mcp-ai system user exists
+      user:
+        name: mcp-ai
+        system: yes
+        create_home: yes
+        shell: /sbin/nologin
+
+    - name: Ensure /home/mcp-ai/.mcp-ai exists
+      file:
+        path: /home/mcp-ai/.mcp-ai
+        state: directory
+        owner: mcp-ai
+        group: mcp-ai
+        mode: '0750'
+
+    - name: Ensure /var/lib/mcp-llms exists
+      file:
+        path: /var/lib/mcp-llms
+        state: directory
+        owner: mcp-ai
+        group: mcp-ai
+        mode: '0750'
+
+    - name: Copy tmpfiles and systemd unit files
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: '0644'
+      loop: "{{ mcp_install_paths }}"
+
+    - name: Copy scripts to /usr/local/bin
+      copy:
+        src: "{{ item }}"
+        dest: "/usr/local/bin/{{ item | basename }}"
+        owner: root
+        group: root
+        mode: '0755'
+      loop: "{{ scripts }}"
+
+    - name: Reload systemd
+      command: systemctl daemon-reload
+
+    - name: Create tmpfiles entries
+      command: systemd-tmpfiles --create /etc/tmpfiles.d/mcp-llms.conf
+
+    - name: Enable and start model cleanup timer
+      systemd:
+        name: mcp-model-cleanup.timer
+        enabled: yes
+        state: started
+
+    - name: Show status of mcp-model-cleanup.timer
+      command: systemctl status mcp-model-cleanup.timer --no-pager
+      register: timer_status
+      ignore_errors: true
+
+    - name: Print timer status
+      debug:
+        var: timer_status.stdout_lines

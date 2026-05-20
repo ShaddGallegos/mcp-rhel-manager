@@ -1,0 +1,11 @@
+Suggestions for mcp-ai/ingest_history.py
+- line 19: missing_docstring - redact
+- line 31: missing_docstring - find_latest_transcript
+- line 41: missing_docstring - parse_transcript
+- line 76: missing_docstring - write_jsonl
+- line 87: missing_docstring - main
+- line 100: print_usage - consider using logging instead of print()
+- line 110: print_usage - consider using logging instead of print()
+- line 97: print_usage - consider using logging instead of print()
+- line 103: print_usage - consider using logging instead of print()
+- line 106: print_usage - consider using logging instead of print()

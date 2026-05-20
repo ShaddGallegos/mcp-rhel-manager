@@ -1,6 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "EE smoke test: check python and ansible imports"
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "python3 not found" >&2
+  exit 2
+fi
+
+python3 - <<'PY'
+import sys, platform
+print('python:', platform.python_version())
+if sys.version_info < (3,12):
+    print('WARNING: python < 3.12 (required by some builds)')
+try:
+    import ansible
+    print('ansible import OK')
+except Exception as e:
+    print('ansible import failed:', e)
+try:
+    import ansible_runner
+    print('ansible_runner import OK')
+except Exception as e:
+    print('ansible_runner import failed:', e)
+PY
+
+if command -v ansible-playbook >/dev/null 2>&1; then
+  ansible-playbook --version || true
+fi
+
+echo "EE smoke test complete"
+exit 0
+#!/usr/bin/env bash
+set -euo pipefail
+
 usage() {
   cat <<EOF
 Usage: $0 [IMAGE]

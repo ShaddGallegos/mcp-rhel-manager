@@ -1,0 +1,12 @@
+Suggestions for mcp-ai/build_account_embeddings.py
+- line 22: missing_docstring - load_hal_for_train_dir
+- line 35: missing_docstring - gather_account_docs
+- line 71: missing_docstring - build_embeddings_sentence_transformer
+- line 78: missing_docstring - build_embeddings_sklearn
+- line 94: missing_docstring - try_build_faiss_index
+- line 106: missing_docstring - main
+- line 140: print_usage - consider using logging instead of print()
+- line 116: print_usage - consider using logging instead of print()
+- line 145: print_usage - consider using logging instead of print()
+- line 147: print_usage - consider using logging instead of print()
+- line 133: print_usage - consider using logging instead of print()

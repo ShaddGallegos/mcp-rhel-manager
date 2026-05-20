@@ -1,0 +1,16 @@
+Suggestions for mcp-ai/ingest_redhat_docs.py
+- line 23: missing_docstring - parse_args
+- line 33: missing_docstring - main
+- line 45: missing_docstring - _url_to_docset
+- line 70: print_usage - consider using logging instead of print()
+- line 73: print_usage - consider using logging instead of print()
+- line 74: print_usage - consider using logging instead of print()
+- line 75: print_usage - consider using logging instead of print()
+- line 76: print_usage - consider using logging instead of print()
+- line 77: print_usage - consider using logging instead of print()
+- line 88: print_usage - consider using logging instead of print()
+- line 89: print_usage - consider using logging instead of print()
+- line 59: print_usage - consider using logging instead of print()
+- line 60: print_usage - consider using logging instead of print()
+- line 72: print_usage - consider using logging instead of print()
+- line 38: print_usage - consider using logging instead of print()

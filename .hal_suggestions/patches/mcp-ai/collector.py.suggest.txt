@@ -1,0 +1,7 @@
+Suggestions for mcp-ai/collector.py
+- line 24: missing_docstring - ensure_dirs
+- line 28: missing_docstring - run_cmd
+- line 35: missing_docstring - collect_once
+- line 80: missing_docstring - main
+- line 76: print_usage - consider using logging instead of print()
+- line 77: print_usage - consider using logging instead of print()

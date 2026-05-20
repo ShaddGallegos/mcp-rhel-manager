@@ -1,0 +1,15 @@
+Suggestions for mcp-ai/dashboard.py
+- line 40: missing_docstring - load_config
+- line 50: missing_docstring - save_config
+- line 59: missing_docstring - append_chat
+- line 68: missing_docstring - read_chat
+- line 84: missing_docstring - get_stats
+- line 105: missing_docstring - index
+- line 245: missing_docstring - api_config
+- line 256: missing_docstring - api_chat
+- line 267: missing_docstring - api_stats
+- line 271: missing_docstring - sse_stream
+- line 281: missing_docstring - stream
+- line 289: missing_docstring - health
+- line 297: missing_docstring - plan_view
+- line 311: missing_docstring - approve

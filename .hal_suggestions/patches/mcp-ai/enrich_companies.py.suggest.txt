@@ -1,0 +1,24 @@
+Suggestions for mcp-ai/enrich_companies.py
+- line 44: missing_docstring - utc_ts
+- line 48: missing_docstring - sha12
+- line 52: missing_docstring - http_get
+- line 58: missing_docstring - norm_company
+- line 66: missing_docstring - from_training_companies
+- line 114: missing_docstring - ddg_search
+- line 157: missing_docstring - wiki_summary
+- line 177: missing_docstring - google_news_headlines
+- line 204: missing_docstring - classify_links
+- line 236: missing_docstring - extract_contacts_for_company
+- line 273: missing_docstring - domain_from_url
+- line 283: missing_docstring - verify_contacts_publicly
+- line 448: missing_docstring - build_text_blob
+- line 513: missing_docstring - write_training_record
+- line 522: missing_docstring - enrich_one_company
+- line 610: missing_docstring - parse_args
+- line 618: missing_docstring - main
+- line 632: print_usage - consider using logging instead of print()
+- line 649: print_usage - consider using logging instead of print()
+- line 629: print_usage - consider using logging instead of print()
+- line 641: print_usage - consider using logging instead of print()
+- line 644: print_usage - consider using logging instead of print()
+- line 647: print_usage - consider using logging instead of print()

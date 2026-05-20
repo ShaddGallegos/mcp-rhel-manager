@@ -1,0 +1,2 @@
+Suggestions for mcp-ai/bridge.py
+- line 117: missing_docstring - main

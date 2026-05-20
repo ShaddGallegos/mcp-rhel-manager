@@ -1,0 +1,4 @@
+Suggestions for scripts/hal_eval.py
+- line 19: missing_docstring - main
+- line 37: missing_docstring - _fake_bridge
+- line 42: print_usage - consider using logging instead of print()

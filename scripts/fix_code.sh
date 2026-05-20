@@ -187,4 +187,48 @@ done
 echo "Finished. processed directories: $summary_total" | tee -a "$REPORT"
 echo "Report saved: $REPORT"
 
+# Optionally create a PR from LLM suggestions if enabled
+if [[ "${ENABLE_LLM:-0}" -eq 1 && "${ENABLE_AUTO_PR:-0}" -eq 1 ]]; then
+  SUG_DIR="$LOGDIR/suggestions"
+  if [[ -d "$SUG_DIR" ]]; then
+    # Convert any LLM JSON outputs into .diff patches when possible
+    shopt -s nullglob
+    for jf in "$SUG_DIR"/*.json; do
+      # extract 'output' field into a .diff file
+      outp="${jf%.json}.diff"
+      python3 - <<PY > "$outp" 2>/dev/null || true
+import json,sys
+try:
+    j=json.load(open(sys.argv[1]))
+    print(j.get('output',''))
+except Exception:
+    pass
+PY
+      # if file doesn't look like a diff, remove it
+      if ! grep -qE "(^diff --git|^--- |^\+\+\+ )" "$outp" 2>/dev/null; then
+        rm -f "$outp"
+      fi
+    done
+
+    # If diffs exist, prefer to apply patches and create PRs
+    mapfile -t DIFFS < <(find "$SUG_DIR" -type f -name '*.diff' -print 2>/dev/null || true)
+    if [[ ${#DIFFS[@]} -gt 0 ]]; then
+      if [[ -x "$(pwd)/scripts/apply_patches_and_create_pr.sh" || -f "$(pwd)/scripts/apply_patches_and_create_pr.sh" ]]; then
+        echo "Applying patches and creating PR from LLM suggestions..."
+        bash "$(pwd)/scripts/apply_patches_and_create_pr.sh" --repo "$(pwd)" --patch-dir "$SUG_DIR" --create-pr || true
+      else
+        echo "apply_patches_and_create_pr.sh not found; skipping patch apply"
+      fi
+    else
+      if [[ -x "$(pwd)/scripts/create_pr_from_suggestions.sh" || -f "$(pwd)/scripts/create_pr_from_suggestions.sh" ]]; then
+        echo "Creating PR from LLM suggestions..."
+        bash "$(pwd)/scripts/create_pr_from_suggestions.sh" --repo "$(pwd)" --src-dir "$SUG_DIR" --create-pr || true
+      else
+        echo "create_pr_from_suggestions.sh not found; skipping PR creation"
+      fi
+    fi
+    shopt -u nullglob
+  fi
+fi
+
 exit 0

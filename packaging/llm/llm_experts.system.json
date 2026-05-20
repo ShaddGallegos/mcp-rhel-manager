@@ -1,0 +1,7 @@
+{
+  "code_fixer": {
+    "description": "Code-fix suggestions via local llama-cpp-python",
+    "model": "/var/lib/mcp-llms/ggml-coder.bin",
+    "cmd": "python3 /usr/local/bin/llama_invoke.py --model /var/lib/mcp-llms/ggml-coder.bin --prompt-file {prompt_file}"
+  }
+}

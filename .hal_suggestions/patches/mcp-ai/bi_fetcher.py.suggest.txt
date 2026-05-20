@@ -1,0 +1,5 @@
+Suggestions for mcp-ai/bi_fetcher.py
+- line 28: missing_docstring - _norm_company_tokens
+- line 130: missing_docstring - main
+- line 142: print_usage - consider using logging instead of print()
+- line 144: print_usage - consider using logging instead of print()

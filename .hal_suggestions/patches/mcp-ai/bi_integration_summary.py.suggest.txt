@@ -1,0 +1,4 @@
+Suggestions for mcp-ai/bi_integration_summary.py
+- line 13: missing_docstring - find_docs
+- line 37: missing_docstring - main
+- line 51: print_usage - consider using logging instead of print()

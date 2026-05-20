@@ -1,0 +1,6 @@
+Suggestions for mcp-ai/redact_training.py
+- line 25: missing_docstring - redact_text
+- line 38: missing_docstring - redact_obj
+- line 55: missing_docstring - process
+- line 75: missing_docstring - main
+- line 83: print_usage - consider using logging instead of print()

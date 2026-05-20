@@ -1,9 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # HAL Auto-Update Script: Runs daily at 7 AM
 # Performs: DNF upgrade, flatpak updates, SELinux fixes, firewall updates
 # No reboot required; logs all actions
 
-set -o pipefail
+set -euo pipefail
+# Send stdout/stderr to systemd journal if available
+if command -v systemd-cat >/dev/null 2>&1; then
+  exec 1> >(systemd-cat -t hal-auto-update) 2>&1 || true
+fi
 
 LOG_DIR="/var/log/hal-updates"
 LOG_FILE="${LOG_DIR}/hal-auto-update-$(date +%Y%m%d).log"
@@ -12,6 +16,8 @@ LOCK_FILE="/run/hal-auto-update.lock"
 # Ensure log directory exists
 mkdir -p "$LOG_DIR"
 chmod 755 "$LOG_DIR"
+touch "$LOG_FILE" 2>/dev/null || true
+chmod 644 "$LOG_FILE" 2>/dev/null || true
 
 # Function to log with timestamp
 log_msg() {
@@ -29,7 +35,7 @@ if [ -f "$LOCK_FILE" ]; then
     exit 0
 fi
 
-trap "rm -f '$LOCK_FILE'" EXIT
+trap 'rc=$?; rm -f "$LOCK_FILE"; exit $rc' EXIT
 touch "$LOCK_FILE"
 
 log_msg "=== HAL Auto-Update Started ==="

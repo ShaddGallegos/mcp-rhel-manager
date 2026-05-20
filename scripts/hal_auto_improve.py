@@ -107,6 +107,59 @@ def main():
     print(f'Analyzed {scanned} Python files; suggestions written to {out_fp}')
     if args.apply:
         print(f'Suggestion files created under {patches_dir}')
+        # Optionally generate unified patch files using LLM and apply them + create PR
+        if os.environ.get('HAL_AUTO_IMPROVE_GENERATE_PATCHES', '').lower() in ('1', 'true', 'yes'):
+            try:
+                print('Generating patches via LLM for suggested files...')
+                for rel in list(report.keys()):
+                    target = root.joinpath(rel)
+                    if not target.exists():
+                        continue
+                    tmp_out = patches_dir.joinpath(rel + '.llm.json')
+                    tmp_out.parent.mkdir(parents=True, exist_ok=True)
+                    cmd = [sys.executable, str(root.joinpath('scripts', 'llm_suggest.py')), '--expert', 'code_fixer', '--file', str(target), '--out', str(tmp_out)]
+                    try:
+                        import subprocess, json
+                        subprocess.run(cmd, check=False)
+                        if tmp_out.exists():
+                            data = json.loads(tmp_out.read_text(encoding='utf-8'))
+                            out = data.get('output', '')
+                            if out and (out.strip().startswith('diff --git') or out.strip().startswith('***') or out.strip().startswith('---')):
+                                patch_fp = patches_dir.joinpath(rel + '.diff')
+                                patch_fp.parent.mkdir(parents=True, exist_ok=True)
+                                patch_fp.write_text(out)
+                                print('Wrote patch:', patch_fp)
+                    except Exception as e:
+                        print('LLM patch generation failed for', rel, e)
+            except Exception as e:
+                print('Patch generation step failed:', e)
+
+        # If requested, apply any generated patches and create a PR
+        if os.environ.get('HAL_AUTO_IMPROVE_APPLY_PATCHES', '').lower() in ('1', 'true', 'yes'):
+            try:
+                apply_script = root.joinpath('scripts', 'apply_patches_and_create_pr.sh')
+                if apply_script.exists():
+                    print('Applying patches and creating PR (auto-enabled)')
+                    import subprocess
+                    create_pr_flag = ['--create-pr'] if os.environ.get('HAL_AUTO_IMPROVE_CREATE_PR', '').lower() in ('1', 'true', 'yes') else []
+                    subprocess.run([str(apply_script), '--repo', str(root), '--patch-dir', str(patches_dir), '--title', 'HAL auto-improve patches'] + create_pr_flag, check=False)
+                else:
+                    print('apply_patches_and_create_pr.sh not found; skipping auto-apply')
+            except Exception as e:
+                print('Failed to apply patches:', e)
+
+        # Optionally create a PR from suggestion files when explicitly enabled via env var
+        if os.environ.get('HAL_AUTO_IMPROVE_CREATE_PR', '').lower() in ('1', 'true', 'yes'):
+            try:
+                cp_script = root.joinpath('scripts', 'create_pr_from_suggestions.sh')
+                if cp_script.exists():
+                    print('Creating PR from suggestions (auto-enabled)')
+                    import subprocess
+                    subprocess.run([str(cp_script), '--repo', str(root), '--src-dir', str(patches_dir), '--create-pr'], check=False)
+                else:
+                    print('create_pr_from_suggestions.sh not found; skipping PR creation')
+            except Exception as e:
+                print('Failed to create PR from suggestions:', e)
 
 
 if __name__ == '__main__':

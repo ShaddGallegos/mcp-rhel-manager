@@ -576,15 +576,22 @@ UNITEOF
   cat >"$t" <<UNITEOF
 [Unit]
 Description=MCP AI Dashboard (Flask)
-After=network.target
+After=network-online.target
+Wants=network-online.target
 [Service]
 Type=simple
 User=$AI_USER
 Group=$AI_USER
 Environment=HOME=$MCP_HOME
+Environment=PATH=$VENV_DIR/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+RuntimeDirectory=mcp-ai
 WorkingDirectory=$BASE_DIR/mcp-ai
+# Pre-check Python deps to fail fast if venv or deps are missing
+ExecStartPre=$VENV_DIR/bin/python $BASE_DIR/mcp-ai/dashboard.py --check-deps >/dev/null 2>&1 || true
 ExecStart=$VENV_DIR/bin/python $BASE_DIR/mcp-ai/dashboard.py
 Restart=on-failure
+RestartSec=5
+LimitNOFILE=4096
 [Install]
 WantedBy=multi-user.target
 UNITEOF

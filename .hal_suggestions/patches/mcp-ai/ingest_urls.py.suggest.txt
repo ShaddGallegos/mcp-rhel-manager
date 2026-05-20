@@ -1,0 +1,14 @@
+Suggestions for mcp-ai/ingest_urls.py
+- line 37: missing_docstring - normalize_url
+- line 50: missing_docstring - extract_text
+- line 68: missing_docstring - find_links
+- line 97: missing_docstring - save_page
+- line 124: missing_docstring - _is_allowed_url
+- line 141: missing_docstring - crawl
+- line 195: missing_docstring - main
+- line 231: print_usage - consider using logging instead of print()
+- line 218: print_usage - consider using logging instead of print()
+- line 233: print_usage - consider using logging instead of print()
+- line 160: print_usage - consider using logging instead of print()
+- line 158: print_usage - consider using logging instead of print()
+- line 187: print_usage - consider using logging instead of print()

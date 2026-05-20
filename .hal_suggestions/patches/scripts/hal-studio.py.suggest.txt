@@ -1,0 +1,188 @@
+Suggestions for scripts/hal-studio.py
+- line 30: missing_docstring - _now_utc
+- line 34: missing_docstring - _require_pillow
+- line 42: missing_docstring - list_capabilities
+- line 61: missing_docstring - _have_python_module
+- line 68: missing_docstring - print_capabilities
+- line 77: missing_docstring - _fetch_quote
+- line 125: missing_docstring - stock_quote
+- line 154: missing_docstring - stock_watch
+- line 188: missing_docstring - image_describe
+- line 240: missing_docstring - image_resize
+- line 258: missing_docstring - image_poster
+- line 303: missing_docstring - text_to_image
+- line 368: missing_docstring - _get_ollama_url
+- line 372: missing_docstring - _ollama_refine_prompt
+- line 403: missing_docstring - _diffusers_pipeline
+- line 425: missing_docstring - ai_image_generate
+- line 475: missing_docstring - text_to_music
+- line 532: missing_docstring - text_to_speech
+- line 564: missing_docstring - mix_music_and_vocals
+- line 599: missing_docstring - _safe_slug
+- line 604: missing_docstring - prompt_pipeline
+- line 678: missing_docstring - video_info
+- line 706: missing_docstring - video_trim
+- line 859: missing_docstring - _has_flatpak_app
+- line 869: missing_docstring - _obs_command
+- line 878: missing_docstring - _libreoffice_command
+- line 890: missing_docstring - _default_obs_recordings_dir
+- line 894: missing_docstring - _v4l2_name_for_device
+- line 938: missing_docstring - _list_video_devices
+- line 974: missing_docstring - obsbot_status
+- line 998: missing_docstring - obsbot_list_controls
+- line 1024: missing_docstring - obsbot_set_control
+- line 1047: missing_docstring - obs_status
+- line 1067: missing_docstring - obs_launch
+- line 1086: missing_docstring - obs_recordings
+- line 1114: missing_docstring - libreoffice_convert
+- line 1153: missing_docstring - run_menu
+- line 1300: missing_docstring - build_parser
+- line 1429: missing_docstring - main
+- line 70: print_usage - consider using logging instead of print()
+- line 71: print_usage - consider using logging instead of print()
+- line 139: print_usage - consider using logging instead of print()
+- line 140: print_usage - consider using logging instead of print()
+- line 141: print_usage - consider using logging instead of print()
+- line 142: print_usage - consider using logging instead of print()
+- line 143: print_usage - consider using logging instead of print()
+- line 148: print_usage - consider using logging instead of print()
+- line 149: print_usage - consider using logging instead of print()
+- line 150: print_usage - consider using logging instead of print()
+- line 160: print_usage - consider using logging instead of print()
+- line 161: print_usage - consider using logging instead of print()
+- line 184: print_usage - consider using logging instead of print()
+- line 209: print_usage - consider using logging instead of print()
+- line 210: print_usage - consider using logging instead of print()
+- line 254: print_usage - consider using logging instead of print()
+- line 299: print_usage - consider using logging instead of print()
+- line 364: print_usage - consider using logging instead of print()
+- line 471: print_usage - consider using logging instead of print()
+- line 528: print_usage - consider using logging instead of print()
+- line 560: print_usage - consider using logging instead of print()
+- line 595: print_usage - consider using logging instead of print()
+- line 669: print_usage - consider using logging instead of print()
+- line 670: print_usage - consider using logging instead of print()
+- line 671: print_usage - consider using logging instead of print()
+- line 672: print_usage - consider using logging instead of print()
+- line 673: print_usage - consider using logging instead of print()
+- line 674: print_usage - consider using logging instead of print()
+- line 702: print_usage - consider using logging instead of print()
+- line 978: print_usage - consider using logging instead of print()
+- line 979: print_usage - consider using logging instead of print()
+- line 980: print_usage - consider using logging instead of print()
+- line 981: print_usage - consider using logging instead of print()
+- line 982: print_usage - consider using logging instead of print()
+- line 1018: print_usage - consider using logging instead of print()
+- line 1019: print_usage - consider using logging instead of print()
+- line 1020: print_usage - consider using logging instead of print()
+- line 1043: print_usage - consider using logging instead of print()
+- line 1056: print_usage - consider using logging instead of print()
+- line 1057: print_usage - consider using logging instead of print()
+- line 1058: print_usage - consider using logging instead of print()
+- line 1059: print_usage - consider using logging instead of print()
+- line 1060: print_usage - consider using logging instead of print()
+- line 1061: print_usage - consider using logging instead of print()
+- line 1062: print_usage - consider using logging instead of print()
+- line 1063: print_usage - consider using logging instead of print()
+- line 1103: print_usage - consider using logging instead of print()
+- line 1104: print_usage - consider using logging instead of print()
+- line 1149: print_usage - consider using logging instead of print()
+- line 73: print_usage - consider using logging instead of print()
+- line 128: print_usage - consider using logging instead of print()
+- line 145: print_usage - consider using logging instead of print()
+- line 147: print_usage - consider using logging instead of print()
+- line 156: print_usage - consider using logging instead of print()
+- line 190: print_usage - consider using logging instead of print()
+- line 242: print_usage - consider using logging instead of print()
+- line 245: print_usage - consider using logging instead of print()
+- line 260: print_usage - consider using logging instead of print()
+- line 305: print_usage - consider using logging instead of print()
+- line 477: print_usage - consider using logging instead of print()
+- line 480: print_usage - consider using logging instead of print()
+- line 545: print_usage - consider using logging instead of print()
+- line 557: print_usage - consider using logging instead of print()
+- line 566: print_usage - consider using logging instead of print()
+- line 569: print_usage - consider using logging instead of print()
+- line 575: print_usage - consider using logging instead of print()
+- line 593: print_usage - consider using logging instead of print()
+- line 680: print_usage - consider using logging instead of print()
+- line 683: print_usage - consider using logging instead of print()
+- line 698: print_usage - consider using logging instead of print()
+- line 708: print_usage - consider using logging instead of print()
+- line 711: print_usage - consider using logging instead of print()
+- line 766: print_usage - consider using logging instead of print()
+- line 773: print_usage - consider using logging instead of print()
+- line 776: print_usage - consider using logging instead of print()
+- line 812: print_usage - consider using logging instead of print()
+- line 826: print_usage - consider using logging instead of print()
+- line 848: print_usage - consider using logging instead of print()
+- line 850: print_usage - consider using logging instead of print()
+- line 984: print_usage - consider using logging instead of print()
+- line 994: print_usage - consider using logging instead of print()
+- line 1001: print_usage - consider using logging instead of print()
+- line 1015: print_usage - consider using logging instead of print()
+- line 1027: print_usage - consider using logging instead of print()
+- line 1041: print_usage - consider using logging instead of print()
+- line 1070: print_usage - consider using logging instead of print()
+- line 1079: print_usage - consider using logging instead of print()
+- line 1089: print_usage - consider using logging instead of print()
+- line 1106: print_usage - consider using logging instead of print()
+- line 1110: print_usage - consider using logging instead of print()
+- line 1117: print_usage - consider using logging instead of print()
+- line 1120: print_usage - consider using logging instead of print()
+- line 1130: print_usage - consider using logging instead of print()
+- line 1142: print_usage - consider using logging instead of print()
+- line 1155: print_usage - consider using logging instead of print()
+- line 1156: print_usage - consider using logging instead of print()
+- line 1157: print_usage - consider using logging instead of print()
+- line 1158: print_usage - consider using logging instead of print()
+- line 1159: print_usage - consider using logging instead of print()
+- line 1160: print_usage - consider using logging instead of print()
+- line 1161: print_usage - consider using logging instead of print()
+- line 1162: print_usage - consider using logging instead of print()
+- line 1163: print_usage - consider using logging instead of print()
+- line 1164: print_usage - consider using logging instead of print()
+- line 1165: print_usage - consider using logging instead of print()
+- line 1166: print_usage - consider using logging instead of print()
+- line 1167: print_usage - consider using logging instead of print()
+- line 1168: print_usage - consider using logging instead of print()
+- line 1169: print_usage - consider using logging instead of print()
+- line 1170: print_usage - consider using logging instead of print()
+- line 1171: print_usage - consider using logging instead of print()
+- line 1172: print_usage - consider using logging instead of print()
+- line 1173: print_usage - consider using logging instead of print()
+- line 1174: print_usage - consider using logging instead of print()
+- line 1175: print_usage - consider using logging instead of print()
+- line 1176: print_usage - consider using logging instead of print()
+- line 1177: print_usage - consider using logging instead of print()
+- line 1178: print_usage - consider using logging instead of print()
+- line 1179: print_usage - consider using logging instead of print()
+- line 181: print_usage - consider using logging instead of print()
+- line 213: print_usage - consider using logging instead of print()
+- line 217: print_usage - consider using logging instead of print()
+- line 458: print_usage - consider using logging instead of print()
+- line 543: print_usage - consider using logging instead of print()
+- line 555: print_usage - consider using logging instead of print()
+- line 770: print_usage - consider using logging instead of print()
+- line 783: print_usage - consider using logging instead of print()
+- line 986: print_usage - consider using logging instead of print()
+- line 989: print_usage - consider using logging instead of print()
+- line 991: print_usage - consider using logging instead of print()
+- line 1008: print_usage - consider using logging instead of print()
+- line 1034: print_usage - consider using logging instead of print()
+- line 1082: print_usage - consider using logging instead of print()
+- line 1144: print_usage - consider using logging instead of print()
+- line 1146: print_usage - consider using logging instead of print()
+- line 167: print_usage - consider using logging instead of print()
+- line 170: print_usage - consider using logging instead of print()
+- line 461: print_usage - consider using logging instead of print()
+- line 988: print_usage - consider using logging instead of print()
+- line 231: print_usage - consider using logging instead of print()
+- line 233: print_usage - consider using logging instead of print()
+- line 235: print_usage - consider using logging instead of print()
+- line 173: print_usage - consider using logging instead of print()
+- line 176: print_usage - consider using logging instead of print()
+- line 1218: print_usage - consider using logging instead of print()
+- line 1278: print_usage - consider using logging instead of print()
+- line 1286: print_usage - consider using logging instead of print()
+- line 1297: print_usage - consider using logging instead of print()

@@ -1,0 +1,7 @@
+Suggestions for scripts/search_index.py
+- line 36: missing_docstring - _load_index
+- line 61: missing_docstring - _dot
+- line 65: missing_docstring - _norm
+- line 69: missing_docstring - _cosine
+- line 77: missing_docstring - search_index
+- line 19: missing_docstring - _hash_vector

@@ -1,0 +1,3 @@
+Suggestions for scripts/load_ansble_env.py
+- line 31: print_usage - consider using logging instead of print()
+- line 14: print_usage - consider using logging instead of print()

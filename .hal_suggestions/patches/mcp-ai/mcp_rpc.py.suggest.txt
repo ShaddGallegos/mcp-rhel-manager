@@ -1,0 +1,4 @@
+Suggestions for mcp-ai/mcp_rpc.py
+- line 14: print_usage - consider using logging instead of print()
+- line 23: print_usage - consider using logging instead of print()
+- line 26: print_usage - consider using logging instead of print()

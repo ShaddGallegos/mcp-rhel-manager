@@ -1,0 +1,48 @@
+Suggestions for scripts/hal-stocks.py
+- line 26: missing_docstring - _load_hal_studio_module
+- line 45: missing_docstring - _utc_now
+- line 49: missing_docstring - _normalize_symbol
+- line 53: missing_docstring - _validate_symbol
+- line 63: missing_docstring - _get_quote_data
+- line 73: missing_docstring - _ollama_generate
+- line 94: missing_docstring - _ai_stock_advice
+- line 113: missing_docstring - _quote
+- line 167: missing_docstring - _watch
+- line 267: missing_docstring - _advisor
+- line 300: missing_docstring - _stock_menu
+- line 332: missing_docstring - build_parser
+- line 360: missing_docstring - main
+- line 163: print_usage - consider using logging instead of print()
+- line 256: print_usage - consider using logging instead of print()
+- line 31: print_usage - consider using logging instead of print()
+- line 36: print_usage - consider using logging instead of print()
+- line 117: print_usage - consider using logging instead of print()
+- line 144: print_usage - consider using logging instead of print()
+- line 171: print_usage - consider using logging instead of print()
+- line 178: print_usage - consider using logging instead of print()
+- line 181: print_usage - consider using logging instead of print()
+- line 184: print_usage - consider using logging instead of print()
+- line 271: print_usage - consider using logging instead of print()
+- line 284: print_usage - consider using logging instead of print()
+- line 291: print_usage - consider using logging instead of print()
+- line 292: print_usage - consider using logging instead of print()
+- line 302: print_usage - consider using logging instead of print()
+- line 303: print_usage - consider using logging instead of print()
+- line 304: print_usage - consider using logging instead of print()
+- line 305: print_usage - consider using logging instead of print()
+- line 306: print_usage - consider using logging instead of print()
+- line 245: print_usage - consider using logging instead of print()
+- line 277: print_usage - consider using logging instead of print()
+- line 279: print_usage - consider using logging instead of print()
+- line 294: print_usage - consider using logging instead of print()
+- line 296: print_usage - consider using logging instead of print()
+- line 231: print_usage - consider using logging instead of print()
+- line 313: print_usage - consider using logging instead of print()
+- line 131: print_usage - consider using logging instead of print()
+- line 132: print_usage - consider using logging instead of print()
+- line 133: print_usage - consider using logging instead of print()
+- line 198: print_usage - consider using logging instead of print()
+- line 199: print_usage - consider using logging instead of print()
+- line 200: print_usage - consider using logging instead of print()
+- line 325: print_usage - consider using logging instead of print()
+- line 329: print_usage - consider using logging instead of print()

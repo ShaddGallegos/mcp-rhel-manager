@@ -1,0 +1,4 @@
+Suggestions for tests/test_privileged_allowlist.py
+- line 5: missing_docstring - _import_hal_with_home
+- line 15: missing_docstring - test_allowlist_match
+- line 33: missing_docstring - test_allowlist_no_match

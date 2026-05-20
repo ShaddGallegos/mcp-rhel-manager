@@ -1,0 +1,10 @@
+Suggestions for scripts/hal_auto_improve.py
+- line 8: todo - bare except:, and TODO comments) and writes suggestion reports to
+- line 35: todo - # TODO comments
+- line 37: todo - if 'TODO' in line.upper():
+- line 38: todo - suggestions.append({'lineno': i, 'type': 'todo', 'detail': line.strip()})
+- line 20: missing_docstring - should_skip
+- line 27: missing_docstring - analyze_file
+- line 63: missing_docstring - main
+- line 107: print_usage - consider using logging instead of print()
+- line 109: print_usage - consider using logging instead of print()

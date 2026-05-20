@@ -1,0 +1,4 @@
+Suggestions for scripts/hal-notify.py
+- line 90: print_usage - consider using logging instead of print()
+- line 153: print_usage - consider using logging instead of print()
+- line 183: print_usage - consider using logging instead of print()

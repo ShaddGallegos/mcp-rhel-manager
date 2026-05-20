@@ -1,0 +1,4 @@
+Suggestions for tests/test_hal_logging_and_eval.py
+- line 5: missing_docstring - test_log_and_eval
+- line 13: missing_docstring - fake_log
+- line 19: missing_docstring - fake_call_bridge

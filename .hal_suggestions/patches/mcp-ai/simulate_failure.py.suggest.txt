@@ -1,0 +1,4 @@
+Suggestions for mcp-ai/simulate_failure.py
+- line 19: missing_docstring - make_entry
+- line 44: print_usage - consider using logging instead of print()
+- line 45: print_usage - consider using logging instead of print()

@@ -1,0 +1,7 @@
+Suggestions for mcp-ai/merge_supplemental.py
+- line 17: missing_docstring - find_files
+- line 24: missing_docstring - dedup_and_merge
+- line 61: missing_docstring - main
+- line 73: print_usage - consider using logging instead of print()
+- line 75: print_usage - consider using logging instead of print()
+- line 71: print_usage - consider using logging instead of print()

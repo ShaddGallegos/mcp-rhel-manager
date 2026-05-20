@@ -7,6 +7,11 @@ Type=oneshot
 ExecStart=/usr/local/bin/dashboard_healthcheck.sh
 Nice=10
 TimeoutStartSec=60
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=yes
+NoNewPrivileges=yes
+ReadWritePaths=/var/lib/mcp-llms /etc/mcp-ai /var/log/mcp-ai
 
 [Install]
 WantedBy=multi-user.target

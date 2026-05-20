@@ -1,0 +1,6 @@
+Suggestions for scripts/reindex_embeddings.py
+- line 22: missing_docstring - _hash_vector
+- line 38: missing_docstring - iter_training_texts
+- line 67: missing_docstring - build_index
+- line 76: missing_docstring - main
+- line 73: print_usage - consider using logging instead of print()

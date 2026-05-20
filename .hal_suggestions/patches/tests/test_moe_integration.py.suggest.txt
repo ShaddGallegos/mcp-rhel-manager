@@ -1,0 +1,5 @@
+Suggestions for tests/test_moe_integration.py
+- line 9: missing_docstring - load_moe_module
+- line 17: missing_docstring - MoeIntegrationTests
+- line 18: missing_docstring - test_live_moe_rule
+- line 25: missing_docstring - test_live_moe_embedding

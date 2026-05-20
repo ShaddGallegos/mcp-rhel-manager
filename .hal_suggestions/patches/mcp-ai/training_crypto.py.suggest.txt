@@ -1,0 +1,18 @@
+Suggestions for mcp-ai/training_crypto.py
+- line 29: missing_docstring - derive_key
+- line 40: missing_docstring - build_cipher
+- line 45: missing_docstring - should_encrypt
+- line 55: missing_docstring - should_decrypt
+- line 59: missing_docstring - encrypt_file
+- line 82: missing_docstring - decrypt_file
+- line 108: missing_docstring - list_targets
+- line 119: missing_docstring - parse_args
+- line 129: missing_docstring - resolve_password
+- line 139: missing_docstring - main
+- line 157: print_usage - consider using logging instead of print()
+- line 172: print_usage - consider using logging instead of print()
+- line 143: print_usage - consider using logging instead of print()
+- line 154: print_usage - consider using logging instead of print()
+- line 149: print_usage - consider using logging instead of print()
+- line 167: print_usage - consider using logging instead of print()
+- line 170: print_usage - consider using logging instead of print()

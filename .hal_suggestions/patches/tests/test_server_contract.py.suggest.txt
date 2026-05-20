@@ -1,0 +1,9 @@
+Suggestions for tests/test_server_contract.py
+- line 50: missing_docstring - ServerContractTests
+- line 51: missing_docstring - _assert_envelope
+- line 59: missing_docstring - test_capabilities_contract
+- line 68: missing_docstring - test_health_contract
+- line 74: missing_docstring - test_readiness_contract
+- line 84: missing_docstring - test_hardware_contract_with_stubbed_payload
+- line 95: missing_docstring - test_security_contract_with_stubbed_payload
+- line 106: missing_docstring - test_structured_error_fields_present

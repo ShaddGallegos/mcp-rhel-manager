@@ -1,0 +1,25 @@
+Suggestions for scripts/server.py
+- line 76: missing_docstring - _load_server_config
+- line 105: missing_docstring - _utc_now_iso
+- line 109: missing_docstring - _ensure_dirs
+- line 113: missing_docstring - _redact_text
+- line 128: missing_docstring - _audit_event
+- line 147: missing_docstring - _rotate_audit_log_if_needed
+- line 172: missing_docstring - _acquire_command_slot
+- line 190: missing_docstring - _release_command_slot
+- line 196: missing_docstring - _tool_guard
+- line 236: missing_docstring - _resolve_timeout
+- line 268: missing_docstring - _tool_ok
+- line 283: missing_docstring - _tool_err
+- line 300: missing_docstring - _cmd_details
+- line 443: missing_docstring - _check_local_port
+- line 451: missing_docstring - _service_state
+- line 458: missing_docstring - _mcp_health_snapshot
+- line 519: missing_docstring - _read_last_lines
+- line 530: missing_docstring - _issue_counts
+- line 560: missing_docstring - _render_issue_report
+- line 216: missing_docstring - _decorator
+- line 237: missing_docstring - _to_positive_int
+- line 952: missing_docstring - h_add
+- line 1006: missing_docstring - s_add
+- line 218: missing_docstring - _wrapped

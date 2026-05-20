@@ -1,0 +1,6 @@
+Suggestions for tests/test_hal_rag.py
+- line 7: missing_docstring - load_hal_module
+- line 14: missing_docstring - test_search_training_data_for_rag
+- line 36: missing_docstring - test_call_bridge_fallback_uses_training
+- line 53: missing_docstring - BadRequests
+- line 54: missing_docstring - post

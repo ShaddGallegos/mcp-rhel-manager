@@ -1,0 +1,15 @@
+Suggestions for mcp-ai/ingest_business_intel.py
+- line 60: missing_docstring - utc_ts
+- line 64: missing_docstring - sha12
+- line 376: missing_docstring - parse_args
+- line 400: missing_docstring - main
+- line 226: missing_docstring - _normalize_contact_item
+- line 409: print_usage - consider using logging instead of print()
+- line 419: print_usage - consider using logging instead of print()
+- line 406: print_usage - consider using logging instead of print()
+- line 413: print_usage - consider using logging instead of print()
+- line 331: print_usage - consider using logging instead of print()
+- line 366: print_usage - consider using logging instead of print()
+- line 320: print_usage - consider using logging instead of print()
+- line 355: print_usage - consider using logging instead of print()
+- line 371: print_usage - consider using logging instead of print()

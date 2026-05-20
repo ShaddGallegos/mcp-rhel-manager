@@ -1,0 +1,73 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": null,
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "options": {},
+      "targets": [
+        {"expr": "mcp_plans_total", "refId": "A"}
+      ],
+      "title": "Pending Plans",
+      "type": "timeseries"
+    }
+    ,
+    {
+      "datasource": null,
+      "fieldConfig": {"defaults": {"unit": "none", "decimals": 0, "thresholds": {"mode": "absolute", "steps": [{"color":"red","value":null},{"color":"green","value":1}]}}, "overrides": []},
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8},
+      "id": 2,
+      "options": {},
+      "targets": [
+        {"expr": "mcp_ready", "refId": "A"}
+      ],
+      "title": "Readiness (1=ready)",
+      "type": "stat"
+    },
+    {
+      "datasource": null,
+      "fieldConfig": {"defaults": {"unit": "bytes", "decimals": 0, "thresholds": {"mode": "absolute", "steps": [{"color":"red","value":null},{"color":"green","value":104857600}]}}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 6, "y": 8},
+      "id": 3,
+      "options": {},
+      "targets": [
+        {"expr": "mcp_disk_free_bytes", "refId": "A"}
+      ],
+      "title": "Disk Free (bytes)",
+      "type": "timeseries"
+    }
+    ,
+    {
+      "datasource": null,
+      "fieldConfig": {"defaults": {"unit": "none", "decimals": 0, "thresholds": {"mode": "absolute", "steps": [{"color":"red","value":null},{"color":"green","value":1}]}}, "overrides": []},
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 8},
+      "id": 4,
+      "options": {},
+      "targets": [
+        {"expr": "mcp_models_index_status", "refId": "A"}
+      ],
+      "title": "Models Index Status",
+      "type": "stat"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": ["mcp"],
+  "templating": {"list": []},
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "MCP Dashboard",
+  "uid": null,
+  "version": 1
+}

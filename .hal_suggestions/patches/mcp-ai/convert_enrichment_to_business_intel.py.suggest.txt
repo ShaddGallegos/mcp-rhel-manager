@@ -1,0 +1,12 @@
+Suggestions for mcp-ai/convert_enrichment_to_business_intel.py
+- line 29: missing_docstring - find_enrichment_records
+- line 43: missing_docstring - existing_business_accounts
+- line 59: missing_docstring - convert
+- line 115: missing_docstring - main
+- line 122: print_usage - consider using logging instead of print()
+- line 140: print_usage - consider using logging instead of print()
+- line 143: print_usage - consider using logging instead of print()
+- line 154: print_usage - consider using logging instead of print()
+- line 136: print_usage - consider using logging instead of print()
+- line 149: print_usage - consider using logging instead of print()
+- line 152: print_usage - consider using logging instead of print()
