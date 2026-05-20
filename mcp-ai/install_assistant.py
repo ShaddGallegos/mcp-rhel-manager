@@ -27,6 +27,8 @@ import shlex
 import subprocess
 import sys
 from typing import Callable, List, Optional
+import mcp_ai_config as config
+import mcp_ai_utils as utils
 
 HERE = os.path.dirname(__file__)
 REPO_ROOT = os.path.abspath(os.path.join(HERE, '..'))
@@ -45,49 +47,23 @@ choose = _menu.choose
 
 
 def find_venv_python():
-    venv_python = os.path.join(REPO_ROOT, '.venv', 'bin', 'python')
-    if os.path.exists(venv_python):
-        return venv_python
-    return sys.executable
+    return config.get_venv_python()
 
 
 def run_cmd(cmd: List[str], dry_run: bool) -> int:
-    print('>>', shlex.join(cmd))
-    if dry_run:
-        return 0
-    try:
-        r = subprocess.run(cmd, check=True)
-        return r.returncode
-    except subprocess.CalledProcessError as e:
-        print('Command failed with', e.returncode)
-        return e.returncode
+    return utils.run_cmd(cmd, dry_run)
 
 
 def pip_install(packages: List[str], dry_run: bool) -> int:
-    py = find_venv_python()
-    cmd = [py, '-m', 'pip', 'install'] + packages
-    return run_cmd(cmd, dry_run)
+    return utils.pip_install(packages, dry_run=dry_run, venv_python=find_venv_python())
 
 
 def show_text_block(title: str, text: str):
-    print('\n' + title)
-    print('-' * len(title))
-    print(text + '\n')
+    return utils.show_text_block(title, text)
 
 
 def confirm(prompt: str, default: bool, auto_yes: bool) -> bool:
-    if auto_yes:
-        print(f'{prompt} [auto-yes]')
-        return True
-    yn = 'Y/n' if default else 'y/N'
-    try:
-        r = input(f'{prompt} ({yn}): ').strip().lower()
-    except (EOFError, KeyboardInterrupt):
-        print('\nAborted')
-        return False
-    if not r:
-        return default
-    return r[0] == 'y'
+    return utils.confirm(prompt, default, auto_yes)
 
 
 def option_embeddings(dry_run: bool, auto_yes: bool):
@@ -107,16 +83,14 @@ def option_embeddings(dry_run: bool, auto_yes: bool):
         else:
             print('Skipped installing embeddings packages')
     else:
-        distro_hints = (
-            'Debian/Ubuntu:
+        distro_hints = """Debian/Ubuntu:
   sudo apt update && sudo apt install -y build-essential cmake libopenblas-dev libomp-dev
 
 RedHat/CentOS/RHEL:
   sudo yum groupinstall -y "Development Tools" && sudo yum install -y cmake openblas-devel libgomp-devel
 
 If you prefer, use conda to install faiss (recommended on some platforms):
-  conda install -c pytorch faiss-cpu'
-        )
+  conda install -c pytorch faiss-cpu"""
         print(distro_hints)
 
 

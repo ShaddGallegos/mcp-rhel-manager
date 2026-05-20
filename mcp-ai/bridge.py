@@ -17,6 +17,7 @@ import sys
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.request import urlopen, Request
 from urllib.error import URLError
+import mcp_ai_config as config
 import logging
 
 # Configure logging
@@ -26,8 +27,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger('MCPBridge')
 
-OLLAMA_URL = 'http://localhost:11434/api/chat'
-DEFAULT_PORT = 1776
+OLLAMA_BASE = config.get_ollama_url()
+OLLAMA_URL = f"{OLLAMA_BASE}/api/chat"
+DEFAULT_PORT = config.get_bridge_port()
 
 
 class MCPBridgeHandler(BaseHTTPRequestHandler):
