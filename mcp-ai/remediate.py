@@ -22,13 +22,18 @@ import re
 from pathlib import Path
 import getpass
 import time
+import mcp_ai_config as config
+import mcp_ai_utils as utils
 
 HOME = os.path.expanduser('~')
-AI_HOME = os.path.join(HOME, '.mcp-ai')
+AI_HOME = config.get_config('ai_home', os.path.join(HOME, '.mcp-ai'))
 TRAIN_DIR = os.path.join(AI_HOME, 'training')
 FIXES_DIR = os.path.join(AI_HOME, 'fixes')
 REPORTS_DIR = os.path.join(AI_HOME, 'reports')
-OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:1776/api/chat')
+# Default to configured ollama/bridge URL (normalized by config)
+OLLAMA_URL = config.get_config('ollama_url', config.get_ollama_url())
+if not OLLAMA_URL.endswith('/api/chat'):
+    OLLAMA_URL = OLLAMA_URL.rstrip('/') + '/api/chat'
 ATTEMPTS_FILE = os.path.join(AI_HOME, 'cache', 'attempts.json')
 
 def ensure_cache_dir():
@@ -152,25 +157,25 @@ def call_llm(system, user, timeout=60, model=None, max_tokens=None):
     except Exception:
         # Fall back to the previous candidate scanning logic using urllib
         payload = json.dumps(payload_obj).encode('utf-8')
-
-    # Build a prioritized list of endpoints to try. Support OLLAMA_URLS (comma-separated)
+    # Build a prioritized list of endpoints to try. Use config and env overrides.
     candidates = []
-    env_list = os.environ.get('OLLAMA_URLS')
+    env_list = os.environ.get('OLLAMA_URLS') or config.get_config('OLLAMA_URLS')
     if env_list:
         candidates = [u.strip() for u in env_list.split(',') if u.strip()]
     else:
-        primary = os.environ.get('OLLAMA_URL', OLLAMA_URL)
-        # ensure primary present first
+        primary = config.get_config('ollama_url') or OLLAMA_URL
         if primary:
-            candidates.append(primary)
-        # add common bridge/ollama fallbacks
+            if primary.endswith('/api/chat'):
+                candidates.append(primary)
+            else:
+                candidates.append(primary.rstrip('/') + '/api/chat')
+        # add common bridge/ollama fallbacks based on host
         try:
             from urllib.parse import urlparse
             p = urlparse(primary)
             host = p.hostname or 'localhost'
         except Exception:
             host = 'localhost'
-        # Common alternate ports/paths
         alt_candidates = [f'http://{host}:1776/api/chat', f'http://{host}:1776/chat', f'http://{host}:11434/api/chat', f'http://127.0.0.1:11434/api/chat']
         for c in alt_candidates:
             if c not in candidates:

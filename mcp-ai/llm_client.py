@@ -18,6 +18,7 @@ import os
 import time
 import logging
 from typing import Iterable, Iterator, List, Optional
+import mcp_ai_config as config
 
 try:
     import requests
@@ -41,13 +42,18 @@ class LLMClient:
         self.endpoints = list(endpoints or [])
         # Fallback to env OLLAMA_URL(S)
         if not self.endpoints:
-            env_list = os.environ.get('OLLAMA_URLS')
+            # Allow environment or config-file driven list first
+            env_list = os.environ.get('OLLAMA_URLS') or config.get_config('OLLAMA_URLS')
             if env_list:
                 self.endpoints = [u.strip() for u in env_list.split(',') if u.strip()]
             else:
-                primary = os.environ.get('OLLAMA_URL') or os.environ.get('MCP_OLLAMA_URL')
+                # Use configured ollama base URL and normalize to /api/chat
+                primary = config.get_config('ollama_url') or config.get_ollama_url()
                 if primary:
-                    self.endpoints = [primary]
+                    if primary.endswith('/api/chat'):
+                        self.endpoints = [primary]
+                    else:
+                        self.endpoints = [f"{primary.rstrip('/')}/api/chat"]
 
         # Ensure requests available
         if requests is None:
