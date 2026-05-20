@@ -6,7 +6,6 @@ repos:
         entry: python mcp-ai/secret_scan.py
         language: system
         stages: [commit]
-repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
@@ -14,12 +13,3 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-added-large-files
-
-  - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.6.1
-    hooks:
-      - id: detect-secrets
-        # Users should create a baseline with:
-        # detect-secrets scan --update .secrets.baseline
-        # and commit the baseline. CI will run full scans when configured.
-        args: ["--baseline", ".secrets.baseline"]

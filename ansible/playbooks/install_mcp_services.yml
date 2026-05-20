@@ -14,6 +14,7 @@
       - scripts/download_model.sh
       - scripts/ee_smoke_test.sh
       - scripts/prune_podman_cache.sh
+      - mcp-ai/install_git_watcher_service.sh
 
   tasks:
     - name: Ensure Python and pip present
@@ -63,6 +64,29 @@
         group: root
         mode: '0755'
       loop: "{{ scripts }}"
+
+    - name: Install supplemental-training Python dependencies (pip)
+      pip:
+        name:
+          - requests
+          - pypdf
+          - python-docx
+          - beautifulsoup4
+        state: present
+      become: true
+      ignore_errors: true
+
+    - name: Install git-watcher service for mcp-ai user (user-level service)
+      become: true
+      become_user: mcp-ai
+      environment:
+        HOME: /home/mcp-ai
+      command: /usr/local/bin/install_git_watcher_service.sh
+      args:
+        chdir: /home/mcp-ai
+      register: git_watcher_install
+      failed_when: false
+      changed_when: false
 
     - name: Reload systemd
       command: systemctl daemon-reload

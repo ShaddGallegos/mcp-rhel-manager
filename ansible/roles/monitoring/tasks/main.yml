@@ -106,6 +106,17 @@
     mode: '0644'
     recurse: yes
 
+- name: Create monitoring .env file with Grafana credentials (optional)
+  copy:
+    dest: "{{ monitoring_dir }}/.env"
+    content: |
+      GRAFANA_ADMIN_USER={{ grafana_admin_user }}
+      GRAFANA_ADMIN_PASSWORD={{ grafana_admin_password }}
+    owner: root
+    group: root
+    mode: '0600'
+  when: monitoring_install_grafana and (grafana_admin_password is defined and grafana_admin_password != '')
+
 - name: Try to start monitoring via docker compose
   become: yes
   block:

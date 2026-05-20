@@ -5,3 +5,6 @@ monitoring_compose: "{{ monitoring_dir }}/docker-compose.yml"
 monitoring_install_prometheus: true
 monitoring_install_grafana: true
 monitoring_install_docker: false
+# Optional Grafana admin password (if empty, operator must set via env or .env file)
+grafana_admin_user: admin
+grafana_admin_password: ''
