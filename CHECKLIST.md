@@ -13,3 +13,5 @@
  - Encrypt ansible env when ready: `scripts/ansible_vault_encrypt.sh $ANSIBLE_ENV_PATH` (defaults to `~/.ansible/conf/env.yml`)
  - Decrypt ansible env when needed: `scripts/ansible_vault_decrypt.sh $ANSIBLE_ENV_PATH` (defaults to `~/.ansible/conf/env.yml`)
  - Interactive setup: `python3 scripts/configure_ansible_env.py` or `./install_system.sh --reconfigure`
+ - Supplemental training dataset: build and encrypt with `mcp-ai supplemental-training --name <name> --url-file urls.txt` (results in `~/.ansible/.supplementaltraining/<name>`)
+ - On macOS: prefer `./install_system.sh --dry-run` then follow the printed instructions; launchd agents are used instead of systemd units.

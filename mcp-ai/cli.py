@@ -41,6 +41,7 @@ def main():
     sp.add_parser('moe', help='Run moe router ad-hoc (prints aggregation)')
     sp.add_parser('ingest-docs', help='Ingest local documents')
     sp.add_parser('ingest-urls', help='Ingest URLs')
+    sp.add_parser('supplemental-training', help='Prepare supplemental training dataset (fetch, clean, encrypt)')
     sp.add_parser('git', help='Git helper menu')
 
     args, rest = p.parse_known_args()
@@ -61,6 +62,8 @@ def main():
         return _run_module('ingest_documents', rest)
     if cmd == 'ingest-urls':
         return _run_module('ingest_urls', rest)
+    if cmd == 'supplemental-training':
+        return _run_module('supplemental_training', rest)
     if cmd == 'git':
         return _run_module('git_manager', rest)
 

@@ -5,6 +5,8 @@
 A self-evolving, self-healing management framework for RHEL 10 / Fedora workstations.  
 HAL is the primary CLI — an AI-powered assistant that combines a local LLM (via Ollama) with intelligent training data management, live company intelligence, and Red Hat product expertise.
 
+Cross-platform note: The installer and scripts aim to support RHEL / Fedora (dnf/yum), Debian/Ubuntu (apt), and macOS (Homebrew + launchd). On macOS some systemd-specific features (system-level units) are replaced with user launchd agents; run `./install_system.sh --dry-run` to preview platform-specific steps.
+
 ---
 
 ## System Architecture
@@ -99,6 +101,21 @@ Note: HAL can inject your local training data into LLM prompts (RAG). Control be
 | `HAL --encrypt-training`               | Encrypt training files at rest (PBKDF2 + AES-128)                |
 | `HAL --decrypt-training`               | Decrypt training files                                           |
 | `HAL --export-training-bundle`         | Export portable zip bundle of training data                      |
+
+Supplemental training workflow
+------------------------------
+
+Use the `mcp-ai supplemental-training` command to assemble private supplemental datasets from URLs, a file containing URLs, or local directories. The tool will:
+
+- fetch and archive input content (HTTP or local files)
+- run a malware scan with `clamscan` if available
+- transcode HTML/PDF/DOCX to plaintext where possible
+- redact obvious secrets using `mcp-ai/redact_training.py`
+- deduplicate and assemble a `dataset.jsonl` in `~/.ansible/.supplementaltraining/<name>`
+- optionally attempt GGUF conversion when a conversion tool is present
+- encrypt the final artifact using `ansible-vault` (if installed) or the local `mcp-ai/training_crypto.py` fallback that honors `~/.ansible/conf/.vaultpass.txt`.
+
+This keeps imported training artifacts private and scanned before being ingested or used for RAG. See `mcp-ai/supplemental_training.py --help` for usage details.
 
 ### Company Intelligence
 

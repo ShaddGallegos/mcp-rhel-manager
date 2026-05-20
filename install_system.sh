@@ -298,6 +298,8 @@ elif command -v apt-get >/dev/null 2>&1; then
   PKG_CMD="apt-get"; PKG_INSTALL_OPTS="-y"
 elif command -v yum >/dev/null 2>&1; then
   PKG_CMD="yum"; PKG_INSTALL_OPTS="-y"
+elif [[ "$(uname -s)" == "Darwin" ]] && command -v brew >/dev/null 2>&1; then
+  PKG_CMD="brew"; PKG_INSTALL_OPTS=""
 fi
 
 # ===========================================================================
@@ -321,6 +323,13 @@ install_prereqs(){
       disabled) run systemctl disable --now firewalld 2>/dev/null || true ;;
       unchanged) : ;;
     esac
+  elif [[ "$PKG_CMD" == "brew" ]]; then
+    # macOS: install common utilities via Homebrew
+    run brew update || true
+    run brew install python jq git rsync ripgrep pandoc pypdf libmagic coreutils || true
+    # optional: clamav for malware scanning
+    run brew install clamav || true
+    echo "Note: macOS service management uses launchd; installer will not write systemd units."
   else
     run apt-get update
     run apt-get install $PKG_INSTALL_OPTS \
@@ -530,6 +539,11 @@ _install_unit(){
 
 write_systemd_units(){
   echo "Preparing systemd unit files"
+  # If systemd is not present (macOS / other), skip unit installation
+  if ! command -v systemctl >/dev/null 2>&1; then
+    echo "systemctl not available on this host; skipping systemd unit installation"
+    return 0
+  fi
   local t
   t="$(mktemp)"
   cat >"$t" <<UNITEOF
