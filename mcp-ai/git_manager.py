@@ -17,6 +17,8 @@ import re
 import shlex
 import subprocess
 import sys
+import shutil
+import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -26,6 +28,14 @@ except Exception:
     requests = None
 
 from dynamic_menu import choose
+import subprocess
+from pathlib import Path
+from typing import Optional
+
+try:
+    import git_watcher
+except Exception:
+    git_watcher = None
 
 
 ANSIBLE_CONF_DIR = Path(os.path.expanduser('~')) / '.ansible' / 'conf'
@@ -445,6 +455,13 @@ def main():
     c.add_argument('--target', help='Target directory')
     c.add_argument('--branch', help='Branch to checkout')
     sp.add_parser('list-envs', help='List known project env files')
+    w = sp.add_parser('watch', help='Watch filesystem for .git and .gitignore changes')
+    w.add_argument('--roots', help='Comma-separated roots to watch', default='')
+    w.add_argument('--interval', type=float, help='Polling interval seconds', default=30.0)
+
+    sp.add_parser('run-github-manager', help='Run bundled .GitHubRepoManager.sh if present')
+    sp.add_parser('run-clone-playbook', help='Run CloneGitHubReposByUser.yml playbook (ansible)')
+    sp.add_parser('run-fix-ssh', help='Run fix_github_ssh.sh to prepare SSH keys for GitHub')
 
     args = p.parse_args()
     if args.cmd == 'scan':
@@ -463,6 +480,56 @@ def main():
     if args.cmd == 'list-envs':
         for pth in list_env_files():
             print(pth)
+        return 0
+    if args.cmd == 'watch':
+        roots = [r for r in (args.roots.split(',') if args.roots else []) if r]
+        roots = roots or None
+        if git_watcher is None:
+            print('git_watcher module not available')
+            return 2
+
+        def _cb(ev: Dict):
+            print('Watcher event:')
+            for k, v in ev.items():
+                print(f'  {k}: {v}')
+
+        gw = git_watcher.start_watch(roots=roots, interval=args.interval, callback=_cb)
+        try:
+            print('git watcher running (Ctrl-C to stop)')
+            while True:
+                time.sleep(1.0)
+        except KeyboardInterrupt:
+            print('\nStopping watcher...')
+            gw.stop()
+            print('stopped')
+        return 0
+    if args.cmd == 'run-github-manager':
+        script = Path.cwd() / '.GitHubRepoManager.sh'
+        if not script.exists():
+            script = Path(__file__).resolve().parents[1] / '.GitHubRepoManager.sh'
+        if not script.exists():
+            print('GitHub repo manager script not found (.GitHubRepoManager.sh)')
+            return 2
+        print('Running', script)
+        subprocess.run(['bash', str(script)])
+        return 0
+    if args.cmd == 'run-clone-playbook':
+        play = Path('/home/sgallego/GIT/Clone_All_Repos_for_a_GitHub/CloneGitHubReposByUser.yml')
+        if not play.exists():
+            print('Clone playbook not found at', play)
+            return 2
+        # Run via ansible-playbook when available
+        if shutil.which('ansible-playbook'):
+            subprocess.run(['ansible-playbook', str(play)])
+        else:
+            print('ansible-playbook not found in PATH. Run the playbook manually or install Ansible.')
+        return 0
+    if args.cmd == 'run-fix-ssh':
+        script = Path('/home/sgallego/GIT/Clone_All_Repos_for_a_GitHub/fix_github_ssh.sh')
+        if not script.exists():
+            print('fix_github_ssh.sh not found')
+            return 2
+        subprocess.run(['bash', str(script)])
         return 0
     p.print_help()
     return 2
