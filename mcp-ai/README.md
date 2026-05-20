@@ -44,6 +44,11 @@ Remediator (analyze latest entry):
 
   /usr/bin/env python3 <REPO_ROOT>/mcp-ai/remediate.py --latest
 
+Supplemental training helper
+---------------------------
+
+Use `mcp-ai supplemental-training --name <name> [--url URL] [--dirs DIR...]` to fetch, scan, clean and assemble a private dataset under `~/.ansible/.supplementaltraining/<name>`. The tool will attempt to encrypt the final artifact using `ansible-vault` or the local `training_crypto` fallback.
+
 To allow automatic execution of suggested commands set an environment variable
 and ensure you understand the risk:
 
