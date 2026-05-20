@@ -11,6 +11,9 @@ openssl-devel | libssl-dev
 gcc
 make
 redhat-rpm-config
+cmake
+openblas-devel | libopenblas-dev
+libomp-devel | libomp-dev | libgomp1
 
 ## Runtime/tooling dependencies
 
@@ -23,6 +26,10 @@ podman
 smartmontools
 lm_sensors
 pciutils
+
+## Optional: system deps useful for ML/embeddings
+# OpenBLAS and CMake can be required when building FAISS or scientific wheels.
+# libomp for OpenMP support used by some BLAS builds.
 
 ## Optional: for kernel module builds
 

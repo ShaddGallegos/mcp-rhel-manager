@@ -31,6 +31,7 @@ RECONFIGURE=0
 UNINSTALL=0
 PRESERVE_DATA=0
 REALLY_FORCE=0
+PRECOMPUTE_EMBEDS=0
 
 usage(){
   cat <<EOF
@@ -53,6 +54,7 @@ Options:
   --selinux     SELinux target mode (default: permissive)
   --firewalld   firewalld target state (default: disabled)
   --no-rollback Disable automatic rollback on failure in --apply mode
+  --precompute-embeds  Install embedding packages and precompute FAISS/embeds (optional)
 
 Unified installer — replaces architect_genesis.sh (now a compat shim).
 Apply mode by default; use --dry-run to preview. Idempotent & distro-agnostic.
@@ -82,6 +84,7 @@ while [[ $# -gt 0 ]]; do
     --firewalld) FIREWALLD_POLICY="${2:-}"; shift 2 ;;
     --no-rollback) ROLLBACK_ON_FAIL=0; shift ;;
     --reconfigure) RECONFIGURE=1; shift ;;
+    --precompute-embeds) PRECOMPUTE_EMBEDS=1; shift ;;
     --uninstall) UNINSTALL=1; shift ;;
     --preserve-data) PRESERVE_DATA=1; shift ;;
     --really-force) REALLY_FORCE=1; shift ;;
@@ -220,6 +223,9 @@ if [[ $APPLY -eq 1 && $YES -ne 1 ]]; then
   echo " - create users: $MCP_USER, $AI_USER"
   echo " - create $BASE_DIR and copy files"
   echo " - create venv: $VENV_DIR and install python deps"
+  if [[ $PRECOMPUTE_EMBEDS -eq 1 ]]; then
+    echo " - precompute embeddings (sentence-transformers / optional FAISS)"
+  fi
   echo " - place systemd units and sudoers snippets"
   echo " - install HAL CLI to /usr/local/bin"
   echo " - apply SELinux contexts and file permission hardening"
@@ -441,6 +447,25 @@ create_venv_and_install(){
     "$VENV_DIR/bin/pip" show ollama-mcp-bridge >/dev/null 2>&1 || run "$VENV_DIR/bin/pip" install ollama-mcp-bridge
   else
     echo "DRY-RUN: would ensure ollama-mcp-bridge is present"
+  fi
+  
+  # Optional: install embedding libs and precompute embeddings
+  if [[ $PRECOMPUTE_EMBEDS -eq 1 ]]; then
+    echo "Precompute embeddings requested: installing sentence-transformers and FAISS (if available)"
+    if [[ $APPLY -eq 1 ]]; then
+      # Install sentence-transformers
+      run "$VENV_DIR/bin/pip" install -U sentence-transformers || true
+      # Try faiss-cpu first; fall back to faiss
+      run "$VENV_DIR/bin/pip" install -U faiss-cpu 2>/dev/null || run "$VENV_DIR/bin/pip" install -U faiss 2>/dev/null || echo "faiss install failed; continuing without faiss"
+      # Run the precompute script
+      if [[ -f "$BASE_DIR/mcp-ai/precompute_embeds.py" ]]; then
+        run "$VENV_DIR/bin/python" "$BASE_DIR/mcp-ai/precompute_embeds.py" || echo "Precompute script failed (continuing)"
+      else
+        echo "Precompute script not found at $BASE_DIR/mcp-ai/precompute_embeds.py"
+      fi
+    else
+      echo "DRY-RUN: would install embedding packages and run precompute script"
+    fi
   fi
 }
 

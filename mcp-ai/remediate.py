@@ -143,7 +143,15 @@ def call_llm(system, user, timeout=60, model=None, max_tokens=None):
         except Exception:
             pass
 
-    payload = json.dumps(payload_obj).encode('utf-8')
+    # Prefer centralized client if available (pooling + failover)
+    try:
+        import llm_client
+        client = llm_client.get_client()
+        resp = client.call_with_failover(payload_obj, stream=False, timeout=timeout)
+        return resp
+    except Exception:
+        # Fall back to the previous candidate scanning logic using urllib
+        payload = json.dumps(payload_obj).encode('utf-8')
 
     # Build a prioritized list of endpoints to try. Support OLLAMA_URLS (comma-separated)
     candidates = []

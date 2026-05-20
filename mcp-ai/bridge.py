@@ -48,32 +48,53 @@ class MCPBridgeHandler(BaseHTTPRequestHandler):
             body = self.rfile.read(content_len).decode('utf-8')
             request_data = json.loads(body)
             
-            # Forward to Ollama
+            # Forward to Ollama (or configured LLM endpoints) using pooled HTTP client when available
             logger.debug(f'Forwarding request: {request_data.get("model", "unknown")}')
-            
-            req = Request(
-                OLLAMA_URL,
-                data=body.encode('utf-8'),
-                headers={'Content-Type': 'application/json'}
-            )
-            
-            with urlopen(req, timeout=300) as resp:
-                # Buffer entire response
-                response_data = b''
-                while True:
-                    chunk = resp.read(8192)
-                    if not chunk:
-                        break
-                    response_data += chunk
-                
-                # Send complete response back to HAL
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Content-Length', len(response_data))
+            payload = request_data
+            try:
+                # Import the new centralized client if present (module lives next to this file)
+                import llm_client
+                client = llm_client.get_client()
+                # Stream response from upstream and forward chunks to HAL
+                upstream = client.call_with_failover(payload, stream=True, timeout=300)
+                status = getattr(upstream, 'status_code', 200)
+                ctype = upstream.headers.get('Content-Type', 'application/json') if hasattr(upstream, 'headers') else 'application/json'
+                self.send_response(status)
+                self.send_header('Content-Type', ctype)
+                # Do not set Content-Length for streaming responses
                 self.end_headers()
-                self.wfile.write(response_data)
-                
-                logger.debug('Response sent to HAL')
+                for chunk in upstream.iter_content(chunk_size=8192):
+                    if not chunk:
+                        continue
+                    try:
+                        self.wfile.write(chunk)
+                        self.wfile.flush()
+                    except BrokenPipeError:
+                        break
+                logger.debug('Streamed response sent to HAL')
+            except Exception as e:
+                # Fallback to raw urllib behavior if llm_client isn't available or fails
+                logger.debug('llm_client unavailable or failed, falling back to urllib: %s', e)
+                req = Request(
+                    OLLAMA_URL,
+                    data=body.encode('utf-8'),
+                    headers={'Content-Type': 'application/json'}
+                )
+                with urlopen(req, timeout=300) as resp:
+                    # Buffer entire response
+                    response_data = b''
+                    while True:
+                        chunk = resp.read(8192)
+                        if not chunk:
+                            break
+                        response_data += chunk
+                    # Send complete response back to HAL
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.send_header('Content-Length', len(response_data))
+                    self.end_headers()
+                    self.wfile.write(response_data)
+                    logger.debug('Response sent to HAL (urllib fallback)')
                 
         except json.JSONDecodeError:
             self.send_error(400, 'Invalid JSON in request body')

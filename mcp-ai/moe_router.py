@@ -75,7 +75,66 @@ EXPERTS: dict[str, dict] = {
 }
 
 
-def _call_bridge(messages: list[dict], model: str | None = None, timeout: int = 60) -> str:
+MODEL_MAP: dict | None = None
+
+
+def _model_map_paths() -> list[str]:
+    paths: list[str] = []
+    # explicit path via env
+    envp = os.environ.get('MOE_MODEL_MAP_PATH') or os.environ.get('MOE_MODEL_MAP_FILE')
+    if envp:
+        paths.append(envp)
+    # AI_HOME inside config if set
+    if _MCP_AI_HOME:
+        paths.append(os.path.join(_MCP_AI_HOME, 'model_map.json'))
+    paths.append(os.path.expanduser('~/.mcp-ai/model_map.json'))
+    paths.append('/etc/mcp-ai/model_map.json')
+    # packaged example fallback
+    try:
+        repo_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+        paths.append(os.path.join(repo_root, 'packaging', 'llm', 'model_map.example.json'))
+    except Exception:
+        pass
+    return paths
+
+
+def load_model_map() -> dict:
+    """Load per-expert model mapping from env or config files.
+
+    Supports env JSON string `MOE_MODEL_MAP` or files from
+    `MOE_MODEL_MAP_PATH`, `~/.mcp-ai/model_map.json`, `/etc/mcp-ai/model_map.json`,
+    or the packaged example.
+    """
+    global MODEL_MAP
+    if MODEL_MAP is not None:
+        return MODEL_MAP
+    # inline JSON via env
+    env_json = os.environ.get('MOE_MODEL_MAP')
+    if env_json:
+        try:
+            data = json.loads(env_json)
+            if isinstance(data, dict):
+                MODEL_MAP = data
+                return MODEL_MAP
+        except Exception:
+            pass
+
+    for p in _model_map_paths():
+        try:
+            if p and os.path.exists(p):
+                with open(p, 'r', encoding='utf-8') as fh:
+                    data = json.load(fh)
+                    if isinstance(data, dict):
+                        MODEL_MAP = data
+                        return MODEL_MAP
+        except Exception:
+            continue
+
+    MODEL_MAP = {}
+    return MODEL_MAP
+
+
+def _call_bridge(messages: list[dict], model: str | None = None, timeout: int = 60, endpoint: str | None = None) -> str:
     # Ensure a model is chosen; try to reuse hal-tools picker when available
     if not model:
         try:
@@ -89,20 +148,37 @@ def _call_bridge(messages: list[dict], model: str | None = None, timeout: int = 
             model = os.environ.get('MOE_DEFAULT_MODEL', 'qwen2.5-coder:7b')
 
     payload = {'model': model or '', 'messages': messages, 'stream': False}
-    # Prefer requests.post when available (same shape as hal.call_bridge)
+    # Try to use centralized llm_client when available (provides pooling and failover)
+    client = None
+    try:
+        import llm_client
+        client = llm_client.get_client()
+    except Exception:
+        client = None
+
     retries = int(os.environ.get('MOE_OLLAMA_RETRIES', '2'))
     last_err = None
     for attempt in range(1, retries + 1):
         try:
+            # If a specific endpoint was provided, prefer a direct call to that endpoint.
+            if client:
+                if endpoint:
+                    # call a specific endpoint via client.call
+                    resp = client.call(payload, stream=False, timeout=timeout, endpoint=endpoint)
+                else:
+                    # try failover across configured endpoints
+                    resp = client.call_with_failover(payload, stream=False, timeout=timeout)
+                return resp
+            target = endpoint or OLLAMA_URL
             if requests:
-                r = requests.post(OLLAMA_URL, json=payload, timeout=timeout)
+                r = requests.post(target, json=payload, timeout=timeout)
                 r.raise_for_status()
                 return r.text
             # fallback to urllib
             import urllib.request
 
             data = json.dumps(payload).encode('utf-8')
-            req = urllib.request.Request(OLLAMA_URL, data=data, headers={'Content-Type': 'application/json'})
+            req = urllib.request.Request(target, data=data, headers={'Content-Type': 'application/json'})
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return resp.read().decode('utf-8')
         except Exception as e:
@@ -455,9 +531,15 @@ def _run_expert(expert: str, user_text: str, rag_context: str | None = None, tim
         messages.append({'role': 'system', 'content': 'RAG CONTEXT:\n' + rag_context})
     messages.append({'role': 'user', 'content': user_text})
     model = None
-    if isinstance(model_map, dict) and model_map.get(expert):
-        model = model_map.get(expert)
-    else:
+    endpoint = None
+    if isinstance(model_map, dict):
+        mval = model_map.get(expert) or model_map.get('default')
+        if isinstance(mval, dict):
+            model = mval.get('model') or None
+            endpoint = mval.get('endpoint') or None
+        elif isinstance(mval, str):
+            model = mval
+    if not model:
         model = cfg.get('model')
     # Expert call with retries and metrics
     retries = int(os.environ.get('MOE_EXPERT_RETRIES', '2'))
@@ -466,7 +548,7 @@ def _run_expert(expert: str, user_text: str, rag_context: str | None = None, tim
     t0 = time.time()
     for attempt in range(1, retries + 1):
         try:
-            resp = _call_bridge(messages, model=model, timeout=timeout)
+            resp = _call_bridge(messages, model=model, timeout=timeout, endpoint=endpoint)
             latency = time.time() - t0
             status = 'ok' if not (isinstance(resp, str) and resp.startswith('ERR')) else 'error'
             _emit_moe_metric({'event': 'expert_call', 'expert': expert, 'attempt': attempt, 'latency': latency, 'status': status})
@@ -489,12 +571,18 @@ def _aggregate(results: dict[str, str], user_text: str, timeout: int = 60, model
     body = '\n\n'.join(labeled)
     messages = [{'role': 'system', 'content': EXPERTS['aggregator']['system']}, {'role': 'user', 'content': user_text + '\n\n' + body}]
     model = None
-    if isinstance(model_map, dict) and model_map.get('aggregator'):
-        model = model_map.get('aggregator')
-    else:
+    endpoint = None
+    if isinstance(model_map, dict):
+        mval = model_map.get('aggregator') or model_map.get('default')
+        if isinstance(mval, dict):
+            model = mval.get('model') or None
+            endpoint = mval.get('endpoint') or None
+        elif isinstance(mval, str):
+            model = mval
+    if not model:
         model = EXPERTS['aggregator'].get('model')
     t0 = time.time()
-    out = _call_bridge(messages, model=model, timeout=timeout)
+    out = _call_bridge(messages, model=model, timeout=timeout, endpoint=endpoint)
     latency = time.time() - t0
     _emit_moe_metric({'event': 'aggregate', 'latency': latency, 'num_experts': len(results)})
     return out

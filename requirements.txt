@@ -104,3 +104,11 @@ prometheus_client>=0.16.0
 # Brave Search and SearXNG need no extra package (stdlib only) — configure via env vars:
 #   BRAVE_API_KEY   — get a free key at https://api.search.brave.com
 #   SEARXNG_URL     — URL of your local/remote SearXNG instance
+
+# Embeddings and indexing (optional/optional heavy packages)
+# - `sentence-transformers` pulls transformers and torch; installing may pull large wheels.
+sentence-transformers>=2.2.2
+# FAISS CPU wheels (platform-specific). Try faiss-cpu first; if unavailable, use faiss.
+faiss-cpu
+# Fallback/optional: scikit-learn for nearest-neighbors fallback index
+scikit-learn>=1.2.0
