@@ -1,4 +1,12 @@
 repos:
+  - repo: local
+    hooks:
+      - id: secret-scan
+        name: mcp-ai secret scanner
+        entry: python mcp-ai/secret_scan.py
+        language: system
+        stages: [commit]
+repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
