@@ -8885,7 +8885,8 @@ def _is_git_helper_query(text: str) -> bool:
     if not text:
         return False
     q = text.strip().lower()
-    return bool(re.match(r'^git\s+(log|commit.?msg|commit-message|pr.?desc|pr-description|diff|status|summary)\b', q))
+    # Accept a broader set of git helper invocations including interactive menu
+    return bool(re.match(r'^git\s+(menu|manage|manager|clone|init|commit|commit.?msg|commit-message|pr(?:-desc|-description)?|pr|diff|status|summary|push|pull|branch|checkout|repo|log)\b', q))
 
 
 def _handle_git_helper(text: str) -> str:
@@ -8900,6 +8901,15 @@ def _handle_git_helper(text: str) -> str:
 
     # Run the actual git command
     try:
+        # Interactive or higher-level git actions delegate to the CLI git manager
+        if subcmd in ('menu', 'manage', 'manager', 'clone', 'init', 'repo'):
+            # Launch mcp-ai CLI git menu in the same terminal for interactive flow
+            cli_script = os.path.join(BASE_DIR, 'mcp-ai', 'cli.py')
+            try:
+                subprocess.run([sys.executable, cli_script, 'git', 'menu'], check=False)
+                return 'Opened interactive git manager.'
+            except Exception as e:
+                return f'Failed to launch git manager: {e}'
         if subcmd in ('log',):
             result = subprocess.run(['git', 'log', '--oneline', '-20'], capture_output=True, text=True, timeout=10)
             git_out = result.stdout.strip() or result.stderr.strip() or '(no git log output)'
