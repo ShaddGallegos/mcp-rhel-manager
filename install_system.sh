@@ -131,6 +131,7 @@ WROTE_UNIT_COLLECTOR=0
 WROTE_UNIT_TIMER=0
 WROTE_SUDOERS=0
 WROTE_MCP_CONFIG=0
+WROTE_UNIT_HEALTH=0
 
 rollback_on_error(){
   local rc=$?
@@ -144,6 +145,7 @@ rollback_on_error(){
     [[ $WROTE_UNIT_REMEDIATOR -eq 1 ]] && run rm -f /etc/systemd/system/mcp-ai-remediator.service >/dev/null 2>&1 || true
     [[ $WROTE_UNIT_COLLECTOR -eq 1 ]] && run rm -f /etc/systemd/system/mcp-ai-collector.service >/dev/null 2>&1 || true
     [[ $WROTE_UNIT_TIMER -eq 1 ]] && run rm -f /etc/systemd/system/mcp-ai-collector.timer >/dev/null 2>&1 || true
+    [[ $WROTE_UNIT_HEALTH -eq 1 ]] && run rm -f /etc/systemd/system/mcp-ai-llm-health.service >/dev/null 2>&1 || true
     run systemctl daemon-reload >/dev/null 2>&1 || true
   fi
   [[ $WROTE_SUDOERS -eq 1 ]] && run rm -f /etc/sudoers.d/mcp-ai >/dev/null 2>&1 || true
@@ -642,6 +644,29 @@ RestartSec=10
 WantedBy=multi-user.target
 UNITEOF
   _install_unit "$t" /etc/systemd/system/mcp-ai-hal-brain.service || true
+
+  # LLM health server (provides /health for llm endpoints)
+  t="$(mktemp)"
+  cat >"$t" <<UNITEOF
+[Unit]
+Description=MCP AI LLM Health Server
+After=network-online.target
+Wants=network-online.target
+[Service]
+Type=simple
+User=$AI_USER
+Group=$AI_USER
+Environment=HOME=$MCP_HOME
+Environment=PATH=$VENV_DIR/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+WorkingDirectory=$BASE_DIR/mcp-ai
+ExecStart=$VENV_DIR/bin/python $BASE_DIR/mcp-ai/llm_health.py --port ${LLM_HEALTH_PORT:-18082}
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=4096
+[Install]
+WantedBy=multi-user.target
+UNITEOF
+  _install_unit "$t" /etc/systemd/system/mcp-ai-llm-health.service && WROTE_UNIT_HEALTH=1 || true
 
   t="$(mktemp)"
   cat >"$t" <<UNITEOF

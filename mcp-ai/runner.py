@@ -27,6 +27,15 @@ DEFAULT_POLICY = {
         '/usr/bin/ansible-playbook',
         '/usr/bin/dnf',
         '/usr/bin/journalctl',
+        # Filesystem and helper utilities allowed for safe file operations
+        '/bin/mkdir',
+        '/bin/rm',
+        '/bin/mv',
+        '/usr/bin/install',
+        '/bin/chmod',
+        '/bin/chown',
+        '/bin/ln',
+        '/usr/bin/tee',
     ],
     'allowed_services': [
         'mcp-bridge.service',
