@@ -927,11 +927,15 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 UNITEOF
-  systemctl --user daemon-reload 2>/dev/null || true
-  systemctl --user enable --now mcp-ai-collector.timer 2>/dev/null || true
-  if [[ $START_SERVICES -eq 1 ]]; then
-    systemctl --user enable --now mcp-bridge.service mcp-sentinel.service 2>/dev/null || true
-    loginctl enable-linger "$INSTALL_USER" 2>/dev/null || true
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user daemon-reload 2>/dev/null || true
+    systemctl --user enable --now mcp-ai-collector.timer 2>/dev/null || true
+    if [[ $START_SERVICES -eq 1 ]]; then
+      systemctl --user enable --now mcp-bridge.service mcp-sentinel.service 2>/dev/null || true
+      loginctl enable-linger "$INSTALL_USER" 2>/dev/null || true
+    fi
+  else
+    echo "systemctl not available; skipping per-user systemd enable/start steps"
   fi
   echo "Per-user systemd services written."
 }
@@ -940,16 +944,20 @@ UNITEOF
 post_install(){
   echo "Running post-install steps"
   if [[ $APPLY -eq 1 ]]; then
-    run systemctl daemon-reload
-    if [[ $START_SERVICES -eq 1 ]]; then
-      run systemctl enable \
-        mcp-ai-remediator.service \
-        mcp-ai-remediator.path || true
-      run systemctl enable --now \
-        mcp-bridge.service \
-        mcp-ai-collector.timer \
-        mcp-ai-dashboard.service \
-        mcp-ai-hal-brain.service || true
+    if command -v systemctl >/dev/null 2>&1; then
+      run systemctl daemon-reload
+      if [[ $START_SERVICES -eq 1 ]]; then
+        run systemctl enable \
+          mcp-ai-remediator.service \
+          mcp-ai-remediator.path || true
+        run systemctl enable --now \
+          mcp-bridge.service \
+          mcp-ai-collector.timer \
+          mcp-ai-dashboard.service \
+          mcp-ai-hal-brain.service || true
+      fi
+    else
+      echo "systemctl not present; skipping system-level service enable/start steps"
     fi
     # Optionally run a one-shot reindex at install time when requested
     if [[ "${HAL_REINDEX_ON_START:-0}" =~ ^(1|true|yes)$ ]]; then

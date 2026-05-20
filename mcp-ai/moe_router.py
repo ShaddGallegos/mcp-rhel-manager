@@ -40,17 +40,13 @@ try:
     import requests
 except Exception:
     requests = None
+import mcp_ai_config as config
 
-OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://localhost:1776/api/chat')
-
-# Try to use centralized config when available
-_MCP_AI_HOME = None
-try:
-    import mcp_config as cfg
-    OLLAMA_URL = getattr(cfg, 'OLLAMA_URL', OLLAMA_URL)
-    _MCP_AI_HOME = getattr(cfg, 'AI_HOME', None)
-except Exception:
-    _MCP_AI_HOME = None
+# Determine defaults from centralized config
+_MCP_AI_HOME = config.get_config('ai_home', None)
+OLLAMA_URL = config.get_config('ollama_url', config.get_ollama_url())
+if not OLLAMA_URL.endswith('/api/chat'):
+    OLLAMA_URL = OLLAMA_URL.rstrip('/') + '/api/chat'
 
 logger = logging.getLogger('moe_router')
 
