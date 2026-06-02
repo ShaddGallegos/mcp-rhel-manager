@@ -2661,16 +2661,32 @@ def _verify_auto_update_timer() -> tuple[list[str], list[str]]:
     errors = []
 
     try:
-        # Check if timer service exists
-        timer_file = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)),
-            'hal-auto-update.timer'
-        )
-        if not os.path.isfile(timer_file):
+        # Check if timer service exists in several likely locations
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        candidates = [
+            os.path.join(script_dir, 'hal-auto-update.timer'),
+            os.path.join(script_dir, '..', 'hal-auto-update.timer'),
+            os.path.join(script_dir, '..', '..', 'hal-auto-update.timer'),
+            os.path.join(os.getcwd(), 'hal-auto-update.timer'),
+            '/etc/systemd/system/hal-auto-update.timer',
+            '/lib/systemd/system/hal-auto-update.timer',
+        ]
+
+        timer_file = None
+        for c in candidates:
+            try:
+                p = os.path.abspath(os.path.expanduser(c))
+            except Exception:
+                p = c
+            if os.path.isfile(p):
+                timer_file = p
+                break
+
+        if not timer_file:
             errors.append('hal-auto-update.timer file not found')
             return repaired, errors
 
-        repaired.append('hal-auto-update.timer configuration file exists')
+        repaired.append(f'hal-auto-update.timer configuration file exists ({timer_file})')
 
         # Try to check systemd timer status (if running with sudo)
         try:
@@ -2991,15 +3007,46 @@ def _repair_cpu_thermal() -> tuple[list[str], list[str]]:
     except Exception as e:
         errors.append(f'thermal check failed: {e}')
 
-    # Check if thermald/power-profiles-daemon can help
+    # Check thermald/power-profiles-daemon and cpupower: prefer systemd unit check,
+    # but fall back to detecting installed command binaries. Provide clearer
+    # guidance when units are missing vs when services are present but inactive.
     try:
         import subprocess as _sp
         for svc in ('thermald', 'power-profiles-daemon', 'cpupower'):
-            st = _sp.run(['systemctl', 'is-active', svc], capture_output=True, text=True, timeout=5)
-            if st.stdout.strip() == 'active':
-                repaired.append(f'{svc} is active (thermal management enabled)')
-            elif st.stdout.strip() == 'inactive':
-                errors.append(f'{svc} is installed but inactive — consider enabling it')
+            unit = svc if svc.endswith('.service') else f"{svc}.service"
+            unit_found = False
+            try:
+                status = _sp.run(['systemctl', 'status', unit], capture_output=True, text=True, timeout=5)
+                out = (status.stdout or '') + '\n' + (status.stderr or '')
+                # If systemd knows about the unit, unit file exists in system
+                if 'could not be found' in out.lower() or 'not-found' in out.lower():
+                    unit_found = False
+                else:
+                    unit_found = True
+                    if status.returncode == 0 or 'active (running)' in out.lower() or 'active;' in out.lower():
+                        repaired.append(f'{svc} ({unit}) is active (thermal management enabled)')
+                        continue
+                    # Unit exists but not active
+                    errors.append(f'{unit} exists but is not active — consider `sudo systemctl enable --now {unit}`')
+                    continue
+            except Exception:
+                unit_found = False
+
+            # No systemd unit found; check for user-visible binary/command
+            try:
+                bin_path = shutil.which(svc) or shutil.which(svc.replace('-', '_'))
+            except Exception:
+                bin_path = None
+
+            if bin_path:
+                repaired.append(f'{svc} command found at {bin_path} (no systemd unit detected)')
+            else:
+                # Provide distro-agnostic package hints where helpful
+                if svc == 'cpupower':
+                    pkg_hint = 'kernel-tools or cpupower utilities (distro package name varies)'
+                else:
+                    pkg_hint = svc
+                errors.append(f'{svc} unit not found and no `{svc}` binary present — consider installing package (e.g., {pkg_hint}) or enabling its systemd unit')
     except Exception:
         pass
 
