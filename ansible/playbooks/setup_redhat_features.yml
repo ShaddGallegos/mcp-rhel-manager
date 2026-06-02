@@ -1,0 +1,183 @@
+---
+- name: Setup Red Hat features (Insights + OpenSCAP)
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: true
+
+  vars:
+    dashboard_home: "{{ ansible_env.HOME }}"
+    report_dir: /var/lib/openscap/results
+    insights_display_name: "{{ inventory_hostname }}"
+
+  tasks:
+    - name: Skip if not a RedHat-family OS
+      ansible.builtin.debug:
+        msg: "Host is not RedHat-family; skipping Red Hat feature setup."
+      when: ansible_facts['os_family'] != 'RedHat'
+
+    - name: Install Insights, subscription-manager and OpenSCAP packages
+      ansible.builtin.dnf:
+        name:
+          - insights-client
+          - subscription-manager
+          - openscap-scanner
+          - openscap
+          - scap-security-guide
+        state: present
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Register with Red Hat Insights
+      ansible.builtin.command: insights-client --register --display-name="{{ insights_display_name }}"
+      register: insights_reg
+      changed_when: "'Successfully registered' in insights_reg.stdout"
+      failed_when: "insights_reg.rc != 0 and 'already registered' not in insights_reg.stderr"
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Enable insights-client.timer if present
+      ansible.builtin.shell: |
+        if systemctl list-unit-files | grep -q '^insights-client.timer'; then
+          systemctl enable --now insights-client.timer || true
+        fi
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Ensure OpenSCAP report directory exists
+      ansible.builtin.file:
+        path: "{{ report_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Install OpenSCAP scan script
+      ansible.builtin.copy:
+        dest: /usr/local/bin/run_openscap_scan.sh
+        owner: root
+        group: root
+        mode: '0750'
+        content: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          REPORT_DIR={{ report_dir }}
+          mkdir -p "$REPORT_DIR"
+          # Find SCAP data stream (ssg-*-ds.xml)
+          DS=$(find /usr/share -type f -name 'ssg-*-ds.xml' -print -quit 2>/dev/null || true)
+          if [ -z "$DS" ]; then
+            DS=$(find /usr/share -type f -name '*-ds.xml' -print -quit 2>/dev/null || true)
+          fi
+          if [ -z "$DS" ]; then
+            echo "NO_DATASOURCE"
+            exit 2
+          fi
+          # Try to pick a sensible profile from the data stream
+          PROFILE=$(oscap xccdf list-profiles "$DS" 2>/dev/null | sed -n 's/^[[:space:]]*\(xccdf_org.*\)/\1/p' | head -n1 || true)
+          TS=$(date +%Y%m%dT%H%M%S)
+          RESULTS="$REPORT_DIR/openscap-$TS-results.xml"
+          REPORT="$REPORT_DIR/openscap-$TS-report.html"
+          ARF="$REPORT_DIR/openscap-$TS-arf.xml"
+          if [ -n "$PROFILE" ]; then
+            oscap xccdf eval --profile "$PROFILE" --results "$RESULTS" --results-arf "$ARF" --report "$REPORT" "$DS"
+          else
+            oscap xccdf eval --results "$RESULTS" --results-arf "$ARF" --report "$REPORT" "$DS"
+          fi
+          echo "OK:$RESULTS:$REPORT:$ARF"
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Create systemd unit for OpenSCAP run (oneshot)
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/openscap-scan.service
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=OpenSCAP periodic scan
+
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/local/bin/run_openscap_scan.sh
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Create systemd timer for OpenSCAP (weekly)
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/openscap-scan.timer
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=Run OpenSCAP weekly
+
+          [Timer]
+          OnCalendar=weekly
+          Persistent=true
+
+          [Install]
+          WantedBy=timers.target
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Reload systemd and enable timer
+      ansible.builtin.command: systemctl daemon-reload
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Enable and start openscap timer
+      ansible.builtin.systemd:
+        name: openscap-scan.timer
+        enabled: yes
+        state: started
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Ensure user dashboard directory exists
+      ansible.builtin.file:
+        path: "{{ lookup('env','HOME') }}/.mcp-ai"
+        state: directory
+        mode: '0755'
+      become: false
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Install dashboard updater script (user-level)
+      ansible.builtin.copy:
+        dest: "{{ lookup('env','HOME') }}/.mcp-ai/update_dashboard_config.py"
+        owner: "{{ lookup('env','USER') }}"
+        group: "{{ lookup('env','USER') }}"
+        mode: '0700'
+        content: |
+          #!/usr/bin/env python3
+          import json, os
+          home = os.path.expanduser(os.environ.get('HOME', os.path.expanduser('~')))
+          path = os.path.join(home, '.mcp-ai', 'dashboard_config.json')
+          cfg = {}
+          if os.path.exists(path):
+              try:
+                  with open(path, 'r') as fh:
+                      cfg = json.load(fh)
+              except Exception:
+                  cfg = {}
+          if 'features' not in cfg or not isinstance(cfg.get('features'), dict):
+              cfg['features'] = {}
+          r = cfg['features'].setdefault('redhat', {})
+          r.setdefault('insights', {})
+          r['insights'].setdefault('enabled', True)
+          r['insights'].setdefault('auto_collect', True)
+          r.setdefault('compliance', {})
+          r['compliance'].setdefault('enabled', True)
+          r['compliance'].setdefault('auto_scan', True)
+          os.makedirs(os.path.dirname(path), exist_ok=True)
+          with open(path, 'w') as fh:
+              json.dump(cfg, fh, indent=2)
+          print('DASHBOARD_UPDATED')
+      become: false
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Run dashboard updater script
+      ansible.builtin.command: python3 "{{ lookup('env','HOME') }}/.mcp-ai/update_dashboard_config.py"
+      become: false
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Show next steps message
+      ansible.builtin.debug:
+        msg: |
+          Red Hat features installed/updated. OpenSCAP scans are configured weekly (systemd timer).
+          Use the existing playbook register_insights.yml or the dashboard toggles to enable/disable features.
+      when: ansible_facts['os_family'] == 'RedHat'

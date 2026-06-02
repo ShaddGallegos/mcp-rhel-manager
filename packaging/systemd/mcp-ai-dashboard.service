@@ -1,0 +1,14 @@
+[Unit]
+Description=MCP AI Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=mcp
+WorkingDirectory=/opt/mcp-rhel-manager
+ExecStart=/opt/mcp-rhel-manager/venv/bin/python /opt/mcp-rhel-manager/mcp-ai/dashboard.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

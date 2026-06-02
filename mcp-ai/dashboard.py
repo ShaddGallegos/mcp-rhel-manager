@@ -22,6 +22,12 @@ from typing import Dict, List
 
 from flask import Flask, Response, jsonify, redirect, render_template_string, request
 
+try:
+    import approvals_api
+    _write_approval = approvals_api.write_approval
+except Exception:
+    _write_approval = None
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 # Optional prometheus support
@@ -49,6 +55,7 @@ app = Flask(__name__)
 def default_config() -> Dict:
     return {
         "enable_ai_features": False,
+        "features_redhat": False,
         "enable_chat": True,
         "enable_realtime_stats": True,
     }
@@ -188,10 +195,27 @@ def before_request_metrics():
 def index():
     cfg = load_config()
     p = Path(FIXES)
-    plans = [str(x.name) for x in sorted(p.glob("plan-*.json"))] if p.exists() else []
+    plans = [{'file': str(x.name), 'stem': str(x.stem)} for x in sorted(p.glob("plan-*.json"))] if p.exists() else []
     appd = Path(APPROVALS)
     approved = [str(x.name).replace('.approved.json', '') for x in appd.glob('plan-*.approved.json')] if appd.exists() else []
     initial_chat = read_chat(50)
+
+    # Load privileged actions log (last 50 entries)
+    priv_log_path = os.path.join(HOME, '.mcp-ai', 'reports', 'privileged_actions.log')
+    privileged_entries = []
+    try:
+        if os.path.exists(priv_log_path):
+            with open(priv_log_path, 'r', encoding='utf-8') as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        privileged_entries.append(json.loads(line))
+                    except Exception:
+                        privileged_entries.append({'raw': line})
+    except Exception:
+        privileged_entries = []
 
     TEMPLATE = r"""
     <!doctype html>
@@ -214,17 +238,30 @@ def index():
         <h3>Toggles</h3>
         <form id="cfgform">
           <label><input type="checkbox" id="enable_ai" /> Enable AI features</label><br/>
+                    <label><input type="checkbox" id="features_redhat" /> Enable Red Hat features</label><br/>
           <label><input type="checkbox" id="enable_chat" /> Enable Chat</label><br/>
           <label><input type="checkbox" id="enable_realtime" /> Enable Realtime Stats</label><br/>
           <button type="button" id="saveCfg">Save</button>
         </form>
 
-        <h3>Plans</h3>
-        <ul id="plansList">
-          {% for p in plans %}
-            <li>{{p}} {% if p in approved %}<strong>APPROVED</strong>{% endif %}</li>
-          {% endfor %}
-        </ul>
+                <h3>Plans</h3>
+                <ul id="plansList">
+                    {% for p in plans %}
+                        <li>
+                            {{p.file}}
+                            {% if p.stem in approved %}
+                                <strong>APPROVED</strong>
+                            {% else %}
+                                <form method="post" action="/approve?file={{p.file}}" style="display:inline">
+                                    <input name="message" placeholder="note" style="width:180px" />
+                                    <input name="patterns" placeholder="patterns (comma)" style="width:160px" />
+                                    <button type="submit">Approve</button>
+                                </form>
+                                <a href="/plan?file={{p.file}}">View</a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
       </div>
 
       <div class="col">
@@ -245,6 +282,11 @@ def index():
         </div>
       </div>
 
+            <div class="col">
+                <h3>Privileged Audit (last 50)</h3>
+                <pre id="privLog">{% for e in privileged_entries[-50:] %}{{ e | tojson }}\n{% endfor %}</pre>
+            </div>
+
       <script>
         const cfg = {{ cfg|tojson }};
         document.getElementById('enable_ai').checked = cfg.enable_ai_features;
@@ -252,11 +294,12 @@ def index():
         document.getElementById('enable_realtime').checked = cfg.enable_realtime_stats;
 
         document.getElementById('saveCfg').addEventListener('click', async ()=>{
-          const newcfg = {
-            enable_ai_features: document.getElementById('enable_ai').checked,
-            enable_chat: document.getElementById('enable_chat').checked,
-            enable_realtime_stats: document.getElementById('enable_realtime').checked,
-          };
+                const newcfg = {
+                        enable_ai_features: document.getElementById('enable_ai').checked,
+                        features_redhat: document.getElementById('features_redhat').checked,
+                        enable_chat: document.getElementById('enable_chat').checked,
+                        enable_realtime_stats: document.getElementById('enable_realtime').checked,
+                    };
           const resp = await fetch('/api/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(newcfg)});
           if(resp.ok) alert('Saved'); else alert('Save failed');
         });
@@ -316,7 +359,14 @@ def index():
     </html>
     """
 
-    return render_template_string(TEMPLATE, plans=plans, approved=approved, cfg=cfg, initial_chat=initial_chat)
+    return render_template_string(
+        TEMPLATE,
+        plans=plans,
+        approved=approved,
+        cfg=cfg,
+        initial_chat=initial_chat,
+        privileged_entries=privileged_entries,
+    )
 
 
 @app.route('/plan')
@@ -332,8 +382,18 @@ def plan_view():
             pl = json.load(fh)
     except Exception:
         return 'Malformed plan', 500
-    approved_path = os.path.join(APPROVALS, fn + '.approved.json')
-    return f"<pre>{json.dumps(pl, indent=2)}</pre><form method='post' action='/approve?file={fn}'><button type='submit'>Approve</button></form>"
+
+    approved_path = os.path.join(APPROVALS, Path(fn).stem + '.approved.json')
+    form = f"""
+    <pre>{json.dumps(pl, indent=2)}</pre>
+    <form method='post' action='/approve?file={fn}'>
+        <label>Message: <input name='message' style='width:400px' /></label><br/>
+        <label>Allowed patterns (comma-separated): <input name='patterns' style='width:400px' /></label><br/>
+        <label>Solution patterns (JSON):<br/><textarea name='solution_patterns' rows='4' cols='60'></textarea></label><br/>
+        <button type='submit'>Approve</button>
+    </form>
+    """
+    return form
 
 
 @app.route('/approve', methods=['POST'])
@@ -344,14 +404,74 @@ def approve():
     ppath = os.path.join(FIXES, fn)
     if not os.path.exists(ppath):
         return 'Plan not found', 404
-    ap = os.path.join(APPROVALS, fn + '.approved.json')
+    message = request.form.get('message') or ''
+    patterns = request.form.get('patterns') or ''
+    solp = request.form.get('solution_patterns') or request.form.get('solutionPatterns') or None
+
+    approval_payload = {'plan': fn, 'message': message}
+    if patterns:
+        approval_payload['allowed_cmd_patterns'] = [p.strip() for p in patterns.split(',') if p.strip()]
+    if solp:
+        try:
+            approval_payload['allowed_cmd_patterns_by_solution'] = json.loads(solp)
+        except Exception:
+            approval_payload['allowed_cmd_patterns_by_solution'] = solp
+
+    # Prefer using approvals_api.write_approval when available (will validate and write)
+    if _write_approval is not None:
+        try:
+            _write_approval(approval_payload)
+            return redirect('/')
+        except Exception:
+            logging.exception('approvals_api.write_approval failed; falling back')
+
+    # Fallback: write a simple approval artifact (legacy)
+    plan_stem = Path(fn).stem
+    ap = os.path.join(APPROVALS, plan_stem + '.approved.json')
     try:
+        payload = dict(approval_payload)
+        payload.setdefault('approved_at', datetime.datetime.utcnow().isoformat() + 'Z')
         with open(ap, 'w', encoding='utf-8') as fh:
-            json.dump({'plan': ppath, 'approved_at': datetime.datetime.utcnow().isoformat() + 'Z'}, fh)
+            json.dump(payload, fh, indent=2)
     except Exception:
         logging.exception('Failed to write approval file')
         return ('', 500)
     return redirect('/')
+
+
+@app.route('/api/privileged')
+def api_privileged():
+    priv_log_path = os.path.join(HOME, '.mcp-ai', 'reports', 'privileged_actions.log')
+    entries = []
+    try:
+        if os.path.exists(priv_log_path):
+            with open(priv_log_path, 'r', encoding='utf-8') as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entries.append(json.loads(line))
+                    except Exception:
+                        entries.append({'raw': line})
+    except Exception:
+        logging.exception('Failed to read privileged log')
+    return jsonify(entries)
+
+
+@app.route('/api/approvals', methods=['GET'])
+def api_approvals_list():
+    out = []
+    try:
+        for p in sorted(Path(APPROVALS).glob('*.approved.json')):
+            try:
+                with p.open('r', encoding='utf-8') as fh:
+                    out.append(json.load(fh))
+            except Exception:
+                out.append({'file': p.name})
+    except Exception:
+        logging.exception('Failed listing approvals')
+    return jsonify(out)
 
 
 @app.route('/api/config', methods=['GET', 'POST'])

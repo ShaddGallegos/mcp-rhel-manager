@@ -1,0 +1,27 @@
+---
+- name: "Remediate: Ensure firewalld enabled and running"
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Ensure firewalld package is installed
+      ansible.builtin.package:
+        name: firewalld
+        state: present
+
+    - name: Ensure firewalld is enabled and started
+      ansible.builtin.service:
+        name: firewalld
+        enabled: true
+        state: started
+
+    - name: Show active firewall zones (informational)
+      ansible.builtin.command: firewall-cmd --get-active-zones
+      register: wf_zones
+      changed_when: false
+
+    - name: Print active zones
+      ansible.builtin.debug:
+        var: wf_zones.stdout_lines

@@ -922,106 +922,10 @@ def _bridge_cb_state_path() -> str:
 
 def _load_bridge_cb_state() -> tuple[int, float]:
     try:
-        p = _bridge_cb_state_path()
-        if not os.path.exists(p):
-            return (0, 0.0)
-        with open(p, 'r', encoding='utf-8') as fh:
-            data = json.load(fh)
-        return (int(data.get('fail_count', 0) or 0), float(data.get('open_until', 0.0) or 0.0))
+        import hal_diagnostics as _hd
+        return _hd._scan_git_repos_for_secrets()
     except Exception:
-        return (0, 0.0)
-
-
-def _save_bridge_cb_state(fail_count: int, open_until: float) -> None:
-    try:
-        ensure_dirs()
-        p = _bridge_cb_state_path()
-        with open(p, 'w', encoding='utf-8') as fh:
-            json.dump({'fail_count': int(fail_count), 'open_until': float(open_until), 'updated_at': ts_now()}, fh)
-    except Exception:
-        pass
-
-
-def load_config():
-    cfg = {}
-    try:
-        cfg_path = os.path.join(AI_HOME, 'config.json')
-        if os.path.exists(cfg_path):
-            with open(cfg_path, 'r', encoding='utf-8') as fh:
-                cfg = json.load(fh)
-    except Exception:
-        cfg = {}
-    return cfg
-
-
-CONFIG = load_config()
-# conversational mode can be toggled via env HAL_CONVERSATIONAL or config 'conversational'
-CONVERSATIONAL = os.environ.get('HAL_CONVERSATIONAL', str(CONFIG.get('conversational', 'true'))).lower() in ('1','true','yes','y')
-
-
-def _call_local_ollama(prompt: str, model: str | None = None, timeout: int = 45) -> str | None:
-    """Use local Ollama (port 11434) for offline LLM processing instead of bridge."""
-    if not requests:
-        return None
-
-    try:
-        resolved_model = model
-        if not resolved_model:
-            available = get_available_models()
-            resolved_model = choose_model_for_task(task_profile='general', available=available)
-
-        ollama_url = os.environ.get('HAL_LOCAL_OLLAMA_URL', 'http://localhost:11434/api/generate')
-        payload = {
-            "model": resolved_model,
-            "prompt": prompt,
-            "stream": False,
-            "temperature": 0.5,
-        }
-        resp = requests.post(ollama_url, json=payload, timeout=timeout)
-        if resp.status_code == 200:
-            data = resp.json()
-            return (data.get('response') or '').strip()
-    except Exception:
-        pass
-    return None
-
-
-def _answer_with_local_model(query: str, rag_context: str | None = None) -> str | None:
-    """Direct offline answer path that prefers local Ollama over raw KB snippets."""
-    if not query:
-        return None
-
-    confidence = _estimate_rag_confidence(query, rag_context)
-    context_block = ''
-    include_rag = bool(rag_context) and (confidence == 'high' or _is_operational_howto_query(query) or bool(_preferred_doc_source_patterns(query)))
-    if include_rag:
-        context_block = (
-            '\n\nOptional local knowledge base context (use only if directly relevant):\n'
-            + rag_context
-        )
-
-    prompt = (
-        'You are HAL. Answer the user question directly in plain language. '
-        'If this is a factual question, give the best concise answer and include units where relevant. '
-        'If uncertain, say what is uncertain briefly. Do not output internal metadata or source dumps.\n\n'
-        f'User question: {query}'
-        f'{context_block}'
-    )
-
-    model = choose_model_for_task(text=query, task_profile='general')
-    first = _call_local_ollama(prompt, model=model, timeout=int(os.environ.get('HAL_LOCAL_OLLAMA_TIMEOUT_SEC', '75')))
-    if first:
-        return first
-
-    # Retry once with a minimal prompt if contextual prompt fails or is too slow.
-    minimal_prompt = (
-        'Answer this user question directly in 1-4 sentences. '
-        'If numeric, include the number and units.\n\n'
-        f'Question: {query}'
-    )
-    return _call_local_ollama(minimal_prompt, model=model, timeout=45)
-
-
+        return [], ['diagnostics module not available']
 def _enhance_offline_response(query: str, raw_results: str) -> str | None:
     """Use local Ollama to enhance raw offline knowledge base results with LLM processing."""
     if not raw_results or not raw_results.strip():
@@ -2656,119 +2560,21 @@ def _repair_firewall_config() -> tuple[list[str], list[str]]:
 
 
 def _verify_auto_update_timer() -> tuple[list[str], list[str]]:
-    """Verify HAL auto-update timer is properly configured."""
-    repaired = []
-    errors = []
-
+    # delegate to hal_diagnostics for implementation
     try:
-        # Check if timer service exists in several likely locations
-        script_dir = os.path.dirname(os.path.realpath(__file__))
-        candidates = [
-            os.path.join(script_dir, 'hal-auto-update.timer'),
-            os.path.join(script_dir, '..', 'hal-auto-update.timer'),
-            os.path.join(script_dir, '..', '..', 'hal-auto-update.timer'),
-            os.path.join(os.getcwd(), 'hal-auto-update.timer'),
-            '/etc/systemd/system/hal-auto-update.timer',
-            '/lib/systemd/system/hal-auto-update.timer',
-        ]
-
-        timer_file = None
-        for c in candidates:
-            try:
-                p = os.path.abspath(os.path.expanduser(c))
-            except Exception:
-                p = c
-            if os.path.isfile(p):
-                timer_file = p
-                break
-
-        if not timer_file:
-            errors.append('hal-auto-update.timer file not found')
-            return repaired, errors
-
-        repaired.append(f'hal-auto-update.timer configuration file exists ({timer_file})')
-
-        # Try to check systemd timer status (if running with sudo)
-        try:
-            status_result = subprocess.run(
-                ['systemctl', 'is-enabled', 'hal-auto-update.timer'],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            if status_result.returncode == 0:
-                repaired.append('hal-auto-update.timer is enabled')
-            else:
-                errors.append('hal-auto-update.timer is not enabled (run: sudo systemctl enable hal-auto-update.timer)')
-        except Exception:
-            # Non-root, just note the file exists
-            repaired.append('(timer status check requires sudo)')
-
-    except Exception as e:
-        errors.append(f'failed to verify auto-update timer: {e}')
-
-    return repaired, errors
+        import hal_diagnostics as _hd
+        return _hd._verify_auto_update_timer()
+    except Exception:
+        # Best-effort fallback: return empty results
+        return [], ['diagnostics module not available']
 
 
 def _manage_vault_password() -> tuple[list[str], list[str]]:
-    """Ensure ANSIBLE_VAULT_PASSWORD_FILE (defaults to ~/.ansible/conf/.vaultpass.txt) exists with a secure password."""
-    repaired = []
-    errors = []
-
     try:
-        home = os.path.expanduser('~')
-        vault_dir = os.path.join(home, '.ansible', 'conf')
-        vault_file = os.path.join(vault_dir, '.vaultpass.txt')
-
-        # Create directory if needed
-        if not os.path.isdir(vault_dir):
-            try:
-                os.makedirs(vault_dir, mode=0o700, exist_ok=True)
-                repaired.append(f'created {vault_dir} with secure permissions')
-            except Exception as e:
-                errors.append(f'failed to create vault directory: {e}')
-                return repaired, errors
-
-        # Check if vault password file exists
-        if os.path.isfile(vault_file):
-            # Verify it has content
-            try:
-                with open(vault_file, 'r') as f:
-                    content = f.read().strip()
-                    if content:
-                        repaired.append('vault password file already exists and contains a password')
-                    else:
-                        errors.append('vault password file exists but is empty')
-            except Exception as e:
-                errors.append(f'failed to read vault password: {e}')
-
-            # Ensure correct permissions (600)
-            try:
-                stat = os.stat(vault_file)
-                if stat.st_mode & 0o777 != 0o600:
-                    os.chmod(vault_file, 0o600)
-                    repaired.append('corrected vault password file permissions to 600')
-            except Exception as e:
-                errors.append(f'failed to fix vault password permissions: {e}')
-        else:
-            # Generate new secure password (32 random chars)
-            import secrets
-            import string
-            password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
-
-            try:
-                with open(vault_file, 'w') as f:
-                    f.write(password)
-                os.chmod(vault_file, 0o600)
-                repaired.append(f'created new vault password at {vault_file}')
-                repaired.append('vault password generated with 32 secure random characters')
-            except Exception as e:
-                errors.append(f'failed to create vault password file: {e}')
-
-    except Exception as e:
-        errors.append(f'failed to manage vault password: {e}')
-
-    return repaired, errors
+        import hal_diagnostics as _hd
+        return _hd._manage_vault_password()
+    except Exception:
+        return [], ['diagnostics module not available']
 
 
 def _scan_git_repos_for_secrets() -> tuple[list[str], list[str]]:

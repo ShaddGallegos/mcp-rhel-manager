@@ -1,0 +1,34 @@
+---
+- name: Remediate Ensure auditd enabled and persistent rules
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Ensure audit package is installed
+      ansible.builtin.package:
+        name: audit
+        state: present
+
+    - name: Ensure auditd service is enabled and started
+      ansible.builtin.service:
+        name: auditd
+        enabled: true
+        state: started
+
+    - name: Ensure audit rule file exists for tracking audit rules directory
+      ansible.builtin.copy:
+        dest: /etc/audit/rules.d/mcp.rules
+        owner: root
+        group: root
+        mode: '0640'
+        content: |
+          -w /etc/audit/rules.d/ -p wa -k security_updates
+      notify: reload auditd
+
+  handlers:
+    - name: reload auditd
+      ansible.builtin.service:
+        name: auditd
+        state: reloaded

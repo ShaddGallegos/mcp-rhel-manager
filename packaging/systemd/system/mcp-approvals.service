@@ -1,0 +1,34 @@
+[Unit]
+Description=MCP Approvals API (system service)
+After=network.target
+
+[Service]
+Type=simple
+User=sgallego
+# Allow optional environment files so admins can provide cert paths
+EnvironmentFile=-/etc/mcp-ai/approvals.env
+EnvironmentFile=-/home/sgallego/.config/mcp/approvals.env
+ExecStart=/usr/bin/python3 /home/sgallego/GIT/mcp-rhel-manager/mcp-ai/approvals_api.py --host 127.0.0.1 --port 8443
+WorkingDirectory=/home/sgallego/GIT/mcp-rhel-manager
+Environment=PYTHONUNBUFFERED=1
+# Use system python for system-level unit to avoid SELinux/home exec restrictions.
+# If an admin wants the virtualenv, they can enable it via the user unit or
+# set up the venv under /opt or adjust SELinux labels.
+Environment=VIRTUAL_ENV=/home/sgallego/GIT/mcp-rhel-manager/.venv
+Environment=PATH=/home/sgallego/GIT/mcp-rhel-manager/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+StandardOutput=journal
+StandardError=journal
+MemoryAccounting=yes
+MemoryMax=1G
+MemorySwapMax=1G
+OOMScoreAdjust=-1000
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=yes
+NoNewPrivileges=yes
+ReadWritePaths=/var/lib/mcp /etc/mcp-ai /home/sgallego/GIT/mcp-rhel-manager
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

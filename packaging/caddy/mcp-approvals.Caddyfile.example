@@ -1,0 +1,13 @@
+# Caddyfile example: Caddy will automatically obtain Let's Encrypt certs for the domain
+# Replace example.com with your domain and set the email for renewal notices.
+
+example.com {
+    reverse_proxy https://127.0.0.1:8443 {
+        transport http {
+            # Backend uses self-signed cert by default; skip verification or
+            # replace backend cert with a CA-signed cert.
+            tls_insecure_skip_verify
+        }
+    }
+    tls you@example.com
+}

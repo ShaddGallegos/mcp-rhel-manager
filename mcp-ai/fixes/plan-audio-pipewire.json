@@ -1,0 +1,14 @@
+{
+  "solutions": [
+    {
+      "id": "s1",
+      "commands": [
+        "/bin/sh mcp_fix_pipewire.sh"
+      ],
+      "meta": {
+        "title": "Reset PipeWire / Pulse runtime and restart socket",
+        "description": "Kill PipeWire processes, remove and recreate /run/user/<uid>/pulse for user sessions, fix ownership/permissions, reset systemd --user failed flags and start the socket. Idempotent and tolerant to failures."
+      }
+    }
+  ]
+}

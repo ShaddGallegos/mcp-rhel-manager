@@ -12,14 +12,14 @@ High priority
 - Implement `hal_control` approval CLI: create an approval queue for remediator actions and integrate with the runner policy. (files: `scripts/hal.py`, `mcp-ai/`) — DONE
 - Add AV-specific remediator (`--av-remediate`): targeted, auditable fixes limited to safe A/V actions + explicit confirmation flow. (files: `scripts/hal.py`, `scripts/hal-multimedia.py`) — DONE (see `scripts/av_remediate.py`)
 - Review and update `/usr/local/bin/mcp-ai-runner` policy to allow safe remediator operations or provide a per-action allowlist + audit. (files: `/usr/local/bin/mcp-ai-runner`, `scripts/hal.py`) — DONE (runner now merges per-plan patterns and audits privileged actions)
-- Dashboard integration: wire approval queue and `features.redhat` toggles into the dashboard UI/API and expose approval actions. (files: `mcp-ai/dashboard*`, `docs/`) — PENDING
+- Dashboard integration: wire approval queue and `features.redhat` toggles into the dashboard UI/API and expose approval actions. (files: `mcp-ai/dashboard*`, `docs/`) — DONE
 
 Medium priority
-- Add optional inotify-based event-driven auto-ingest mode as a more responsive alternative to cron. (files: `mcp-ai/auto_ingest_training.py`)
-- Extract more ingestion primitives (tracking/deduping/hashing) into a shared module (e.g. `mcp-ai/ingest_utils.py`). (files: `mcp-ai/`) 
+- Add optional inotify-based event-driven auto-ingest mode as a more responsive alternative to cron. (files: `mcp-ai/auto_ingest_training.py`) — DONE (watch mode implemented)
+- Extract more ingestion primitives (tracking/deduping/hashing) into a shared module (e.g. `mcp-ai/ingest_utils.py`). (files: `mcp-ai/`) — DONE
 - Split `scripts/hal.py` into smaller modules (core CLI, remediator, diagnostics, AV tooling). (files: `scripts/hal.py`, `scripts/`) 
-- Add unit tests for `mcp-ai/ingest_common.py` and `mcp-ai/auto_ingest_training.py`. (files: `tests/`, `mcp-ai/`)
-- Add CI checks to run `python -m py_compile` and a lightweight linter on changed Python files. (files: `.github/workflows/` or CI config)
+- Add unit tests for `mcp-ai/ingest_common.py` and `mcp-ai/auto_ingest_training.py`. (files: `tests/`, `mcp-ai/`) — PARTIALLY DONE (ingest_common tests added)
+- Add CI checks to run `python -m py_compile` and a lightweight linter on changed Python files. (files: `.github/workflows/` or CI config) — DONE (workflow updated to compile and run core tests)
 
 Low priority
 - Document the ansible-vault / refresh workflow and instructions for obtaining a valid RH refresh token; add secure storage guidance. (files: `docs/`, `ansible/`)

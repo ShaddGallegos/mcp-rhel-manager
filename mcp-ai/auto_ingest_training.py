@@ -15,6 +15,7 @@ For cron scheduling:
 from __future__ import annotations
 
 import argparse
+import time
 import hashlib
 import json
 import os
@@ -40,6 +41,43 @@ except Exception:
         Path(os.path.expanduser("~/Downloads")),
         Path(os.path.expanduser("~/Documents")),
     ]
+
+# Prefer shared ingest utilities when available (keeps local fallback definitions)
+try:
+    from ingest_utils import (
+        get_file_hash as _iu_get_file_hash,
+        load_import_tracker as _iu_load_import_tracker,
+        save_import_tracker as _iu_save_import_tracker,
+        should_import_file as _iu_should_import_file,
+        ingest_business_intel as _iu_ingest_business_intel,
+        ingest_documents as _iu_ingest_documents,
+        utc_ts as _iu_utc_ts,
+    )
+
+    def load_import_tracker():
+        return _iu_load_import_tracker(IMPORT_TRACKER)
+
+    def save_import_tracker(tracker: dict) -> None:
+        return _iu_save_import_tracker(IMPORT_TRACKER, tracker)
+
+    def get_file_hash(filepath: Path) -> str:
+        return _iu_get_file_hash(filepath)
+
+    def should_import_file(filepath: Path, tracker: dict, verbose: bool = False) -> bool:
+        # Keep original signature but delegate; base_dir left None for compatibility
+        return _iu_should_import_file(filepath, tracker, None, verbose)
+
+    def ingest_business_intel(jsonl_path: Path, verbose: bool = False):
+        return _iu_ingest_business_intel(jsonl_path, verbose)
+
+    def ingest_documents(doc_path: Path, verbose: bool = False):
+        return _iu_ingest_documents(doc_path, verbose)
+
+    def utc_ts() -> str:
+        return _iu_utc_ts()
+except Exception:
+    # if ingest_utils not available, continue using local implementations below
+    pass
 
 
 def utc_ts() -> str:
@@ -179,7 +217,7 @@ def auto_ingest(verbose: bool = False) -> int:
     if BUSINESS_TOOLS_PATH.exists():
         print(f"\nScanning {BUSINESS_TOOLS_PATH}...")
         jsonl_files = sorted(BUSINESS_TOOLS_PATH.glob("*.jsonl"))
-        intel_to_import = [f for f in jsonl_files if should_import_file(f, tracker, verbose)]
+        intel_to_import = [f for f in jsonl_files if should_import_file(f, tracker, BUSINESS_TOOLS_PATH, verbose)]
         
         if intel_to_import:
             print(f"  Found {len(intel_to_import)} new/updated business intel file(s)")
@@ -192,7 +230,10 @@ def auto_ingest(verbose: bool = False) -> int:
                 total_error += err
                 
                 # Update tracker
-                rel_path = str(jsonl_file.relative_to(jsonl_file.parent.parent.parent))
+                try:
+                    rel_path = str(jsonl_file.relative_to(BUSINESS_TOOLS_PATH))
+                except Exception:
+                    rel_path = str(jsonl_file)
                 tracker["imported"][rel_path] = {
                     "hash": get_file_hash(jsonl_file),
                     "mtime": jsonl_file.stat().st_mtime,
@@ -220,7 +261,7 @@ def auto_ingest(verbose: bool = False) -> int:
         doc_files = [
             f for f in doc_path.glob("*")
             if f.is_file() and f.suffix.lower() in supported_exts
-            and should_import_file(f, tracker, verbose)
+            and should_import_file(f, tracker, doc_path, verbose)
         ]
         
         # Limit to files modified in last 7 days to avoid re-importing old docs
@@ -242,7 +283,10 @@ def auto_ingest(verbose: bool = False) -> int:
                 doc_count += 1
                 
                 # Update tracker
-                rel_path = str(doc_file.relative_to(doc_path.parent.parent))
+                try:
+                    rel_path = str(doc_file.relative_to(doc_path))
+                except Exception:
+                    rel_path = str(doc_file)
                 tracker["imported"][rel_path] = {
                     "hash": get_file_hash(doc_file),
                     "mtime": doc_file.stat().st_mtime,
@@ -290,6 +334,17 @@ def main():
         action="store_true",
         help="Display current import tracker",
     )
+    ap.add_argument(
+        "--watch",
+        action="store_true",
+        help="Watch for filesystem changes and auto-ingest (uses watchdog if available)",
+    )
+    ap.add_argument(
+        "--poll-interval",
+        type=int,
+        default=30,
+        help="Fallback poll interval in seconds when watchdog is not available",
+    )
     
     args = ap.parse_args()
     
@@ -318,6 +373,52 @@ def main():
             total_ok += ok
             total_error += err
         print(f"Done: {total_ok} imported, {total_error} errors\n")
+        sys.exit(0)
+    
+    if args.watch:
+        # Prefer watchdog if installed, else fallback to polling
+        try:
+            from watchdog.observers import Observer
+            from watchdog.events import FileSystemEventHandler
+
+            class ChangeHandler(FileSystemEventHandler):
+                def __init__(self, cb, verbose=False):
+                    self.cb = cb
+                    self.verbose = verbose
+
+                def on_any_event(self, event):
+                    if self.verbose:
+                        print('Filesystem change detected:', event)
+                    try:
+                        self.cb(self.verbose)
+                    except Exception:
+                        pass
+
+            def run_watch(verbose=False):
+                handler = ChangeHandler(auto_ingest, verbose=verbose)
+                obs = Observer()
+                paths = [BUSINESS_TOOLS_PATH] + DOCUMENT_WATCH_PATHS
+                for p in paths:
+                    if p.exists():
+                        obs.schedule(handler, str(p), recursive=False)
+                obs.start()
+                try:
+                    while True:
+                        time.sleep(1)
+                except KeyboardInterrupt:
+                    obs.stop()
+                obs.join()
+
+            print('Starting watchdog-based auto-ingest watcher')
+            run_watch(verbose=args.verbose)
+        except Exception:
+            print('watchdog not available; falling back to polling mode')
+            try:
+                while True:
+                    auto_ingest(verbose=args.verbose)
+                    time.sleep(args.poll_interval)
+            except KeyboardInterrupt:
+                print('Watcher stopped')
         sys.exit(0)
     
     sys.exit(auto_ingest(verbose=args.verbose))
