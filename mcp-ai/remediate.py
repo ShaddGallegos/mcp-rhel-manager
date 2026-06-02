@@ -317,15 +317,24 @@ def write_suggestion(entry_path, suggestion):
         pass
     return out_path
 
-def attempt_execute(commands):
-    # Execute commands via the validated runner wrapper (/usr/local/bin/mcp-ai-runner).
+def attempt_execute(commands, entry=None, solution=None):
+    """Execute commands via the validated runner wrapper (/usr/local/bin/mcp-ai-runner).
+
+    Writes a temporary JSON containing `commands` and optional `entry` and
+    `solution` metadata so the runner can consult per-plan approvals.
+    """
     results = []
     cache_dir = os.path.join(AI_HOME, 'cache')
     os.makedirs(cache_dir, exist_ok=True)
     tmp_fn = os.path.join(cache_dir, f'cmds-{datetime_now_iso().replace(":", "").replace("-","")}.json')
+    payload = {'commands': commands}
+    if entry:
+        payload['entry'] = entry
+    if solution:
+        payload['solution'] = solution
     try:
         with open(tmp_fn, 'w', encoding='utf-8') as fh:
-            json.dump({'commands': commands}, fh)
+            json.dump(payload, fh)
     except Exception as e:
         return [{'cmds': commands, 'rc': -1, 'out': '', 'err': f'write-failed: {e}'}]
 
@@ -625,7 +634,7 @@ def main():
 
             audit_event({'action': 'execution_started', 'entry': entry_path, 'solution': sid, 'commands': cmds})
             metrics_inc('executions_started', 1)
-            results = attempt_execute(cmds)
+            results = attempt_execute(cmds, entry_path, sid)
             # determine success if all rc == 0
             success = all(r.get('rc', 1) == 0 for r in results)
             mark_attempt(entry_path, sid, 'success' if success else 'failed', {'results': results})

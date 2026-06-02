@@ -16,6 +16,8 @@ import shlex
 import subprocess
 import datetime
 import fnmatch
+import re
+from pathlib import Path
 
 
 DEFAULT_POLICY = {
@@ -60,6 +62,7 @@ DEFAULT_POLICY = {
         'server.*',
         'architect.*',
     ],
+    'allowed_cmd_patterns': [],
     'approved_images_file': '~/.mcp-ai/approved-podman-images.json',
 }
 
@@ -127,6 +130,10 @@ def _load_policy():
                 val = user_policy.get(key)
                 if isinstance(val, list) and val:
                     policy[key] = [str(x).strip() for x in val if str(x).strip()]
+            # optional global allowed command patterns
+            valp = user_policy.get('allowed_cmd_patterns')
+            if isinstance(valp, list) and valp:
+                policy['allowed_cmd_patterns'] = [str(x).strip() for x in valp if str(x).strip()]
             approved_images_file = user_policy.get('approved_images_file')
             if isinstance(approved_images_file, str) and approved_images_file.strip():
                 policy['approved_images_file'] = approved_images_file.strip()
@@ -172,6 +179,36 @@ def _allowed_podman_patterns(policy):
     if isinstance(patterns, list) and patterns:
         return [str(p).strip() for p in patterns if str(p).strip()]
     return list(DEFAULT_POLICY['allowed_image_patterns'])
+
+
+def _write_privileged_audit(entry: dict):
+    try:
+        repdir = os.path.join(AI_HOME, 'reports')
+        os.makedirs(repdir, exist_ok=True)
+        fn = os.path.join(repdir, 'privileged_actions.log')
+        entry.setdefault('ts', datetime.datetime.now(datetime.timezone.utc).isoformat() + 'Z')
+        with open(fn, 'a', encoding='utf-8') as fh:
+            fh.write(json.dumps(entry) + '\n')
+    except Exception:
+        pass
+
+
+def _matches_allowed_pattern(cmd: str, patterns: list) -> bool:
+    if not patterns:
+        return False
+    for p in patterns:
+        if not p:
+            continue
+        try:
+            if str(p).startswith('re:'):
+                if re.search(str(p)[3:], cmd):
+                    return True
+            else:
+                if fnmatch.fnmatch(cmd, str(p)):
+                    return True
+        except Exception:
+            continue
+    return False
 
 
 def _is_allowed_mcp_call(uri: str, policy: dict) -> bool:
@@ -301,6 +338,29 @@ if __name__ == '__main__':
         print('Invalid input JSON: ' + str(e), file=sys.stderr)
         sys.exit(3)
 
+    # optional metadata: entry and solution allow the runner to consult approvals
+    entry_meta = payload.get('entry')
+    solution_meta = payload.get('solution')
+    approval_patterns = []
+    approval_solution_patterns = {}
+    approval_file = None
+    approval_approved_by = None
+    if entry_meta:
+        try:
+            plan_stem = Path(entry_meta).stem
+            approvals_dir = os.path.join(AI_HOME, 'approvals')
+            candidate = os.path.join(approvals_dir, f'plan-{plan_stem}.approved.json')
+            if os.path.exists(candidate):
+                approval_file = candidate
+                with open(candidate, 'r', encoding='utf-8') as afh:
+                    apr = json.load(afh)
+                approval_patterns = apr.get('allowed_cmd_patterns', []) or []
+                approval_solution_patterns = apr.get('allowed_cmd_patterns_by_solution', {}) or {}
+                approval_approved_by = apr.get('approved_by')
+                log(f'APPROVAL_LOADED {candidate}')
+        except Exception as e:
+            log(f'WARN approval load failed: {e}')
+
     commands = payload.get('commands', [])
     policy = _load_policy()
     allowed_bins = policy.get('allowed_bins', DEFAULT_POLICY['allowed_bins'])
@@ -309,6 +369,16 @@ if __name__ == '__main__':
     explicit_approved_images = _load_approved_podman_images(policy)
 
     results = []
+    # Combine global policy patterns and optional approval-derived patterns
+    merged_patterns = []
+    merged_patterns.extend(policy.get('allowed_cmd_patterns', []) or [])
+    merged_patterns.extend(approval_patterns or [])
+    # If solution-specific patterns exist, merge those for the provided solution id
+    if solution_meta and isinstance(approval_solution_patterns, dict):
+        sp = approval_solution_patterns.get(solution_meta)
+        if sp:
+            merged_patterns.extend(sp)
+
     for c in commands:
         try:
             # Special-case: handle mcp-call:// URIs directly (validated via policy)
@@ -332,7 +402,18 @@ if __name__ == '__main__':
             if not parts:
                 raise RuntimeError('empty command')
             exe = parts[0]
-            if exe not in allowed_bins:
+
+            # If command matches an allowed pattern (policy or approval), bypass binary whitelist
+            skip_validation = False
+            try:
+                if _matches_allowed_pattern(c, merged_patterns):
+                    skip_validation = True
+                    log(f'PATTERN_ALLOW {c}')
+                    # write privileged audit record (allowed via pattern)
+                    _write_privileged_audit({'cmd': c, 'entry': entry_meta, 'solution': solution_meta, 'allowed_by': 'approval_pattern' if approval_file else 'policy_pattern', 'approval_file': approval_file, 'approved_by': approval_approved_by})
+            except Exception:
+                skip_validation = False
+            if not skip_validation and exe not in allowed_bins:
                 msg = f"DISALLOWED_EXE {exe} CMD {c}"
                 log(msg)
                 print(msg, file=sys.stderr)
@@ -360,6 +441,11 @@ if __name__ == '__main__':
             proc = subprocess.run(parts, shell=False, capture_output=True, text=True)
             results.append({'cmd': c, 'rc': proc.returncode, 'out': proc.stdout, 'err': proc.stderr})
             log(f"EXEC {c} rc={proc.returncode}")
+            # Audit executed privileged action with metadata
+            try:
+                _write_privileged_audit({'cmd': c, 'rc': proc.returncode, 'out': (proc.stdout or '')[:2000], 'err': (proc.stderr or '')[:2000], 'entry': entry_meta, 'solution': solution_meta, 'approval_file': approval_file, 'approved_by': approval_approved_by})
+            except Exception:
+                pass
         except Exception as e:
             results.append({'cmd': c, 'rc': -1, 'out': '', 'err': str(e)})
             log(f"ERROR {c} {e}")
