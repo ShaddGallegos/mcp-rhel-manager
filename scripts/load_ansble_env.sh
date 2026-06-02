@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Load variables from ~/.ansble/conf/env.yml into current shell.
+# Load variables from ~/.ansible/conf/env.yml into current shell.
 # Usage: eval "$(scripts/load_ansble_env.sh)"
+# Uses `ANSIBLE_ENV_PATH` (defaults to ~/.ansible/conf/env.yml).
 
 PY=$(command -v python3 || command -v python)
 if [[ -z "$PY" ]]; then

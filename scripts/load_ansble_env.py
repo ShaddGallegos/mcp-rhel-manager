@@ -3,7 +3,9 @@
 
 Usage: eval "$(scripts/load_ansble_env.py)"
 This prints `export KEY='value'` lines for each top-level key in the YAML.
-Do NOT commit your real `~/.ansble/conf/env.yml` to git.
+Do NOT commit your real `~/.ansible/conf/env.yml` to git.
+Uses environment variable `ANSIBLE_ENV_PATH` and defaults to
+`~/.ansible/conf/env.yml`.
 """
 import os
 import sys
@@ -14,7 +16,7 @@ except Exception:
     print("# PyYAML not available: install pyyaml to use this helper", file=sys.stderr)
     sys.exit(1)
 
-env_path = os.path.expanduser(os.getenv('ANSBLE_ENV_PATH', '~/.ansble/conf/env.yml'))
+env_path = os.path.expanduser(os.getenv('ANSIBLE_ENV_PATH', '~/.ansible/conf/env.yml'))
 if not os.path.exists(env_path):
     # nothing to load
     sys.exit(0)
