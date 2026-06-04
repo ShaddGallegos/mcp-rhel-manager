@@ -63,9 +63,9 @@ try:
     def get_file_hash(filepath: Path) -> str:
         return _iu_get_file_hash(filepath)
 
-    def should_import_file(filepath: Path, tracker: dict, verbose: bool = False) -> bool:
-        # Keep original signature but delegate; base_dir left None for compatibility
-        return _iu_should_import_file(filepath, tracker, None, verbose)
+    def should_import_file(filepath: Path, tracker: dict, base_dir: Path | None = None, verbose: bool = False) -> bool:
+        # Keep original signature but delegate; pass base_dir through for correct relpath calculation
+        return _iu_should_import_file(filepath, tracker, base_dir, verbose)
 
     def ingest_business_intel(jsonl_path: Path, verbose: bool = False):
         return _iu_ingest_business_intel(jsonl_path, verbose)
@@ -117,26 +117,42 @@ def save_import_tracker(tracker: dict) -> None:
         print(f"ERROR: Failed to save import tracker: {e}", file=sys.stderr)
 
 
-def should_import_file(filepath: Path, tracker: dict, verbose: bool = False) -> bool:
-    """Check if file should be imported (new or updated)."""
+def should_import_file(filepath: Path, tracker: dict, base_dir: Path | None = None, verbose: bool = False) -> bool:
+    """Check if file should be imported (new or updated).
+
+    `base_dir` if provided is used to compute a stable relative path for
+    the import tracker keys. This mirrors the signature used by shared
+    `ingest_utils.should_import_file`.
+    """
     try:
         stat = filepath.stat()
         current_hash = get_file_hash(filepath)
         current_mtime = stat.st_mtime
-        
-        rel_path = str(filepath.relative_to(filepath.parent.parent.parent))
-        
-        if rel_path not in tracker["imported"]:
+
+        # Compute a sensible relative path: prefer base_dir when provided,
+        # otherwise attempt a reasonable project-relative fallback.
+        if base_dir is not None:
+            try:
+                rel_path = str(filepath.relative_to(base_dir))
+            except Exception:
+                rel_path = str(filepath)
+        else:
+            try:
+                rel_path = str(filepath.relative_to(filepath.parent.parent.parent))
+            except Exception:
+                rel_path = str(filepath)
+
+        if rel_path not in tracker.get("imported", {}):
             if verbose:
                 print(f"  [NEW] {filepath.name}")
             return True
-        
-        prev = tracker["imported"][rel_path]
+
+        prev = tracker["imported"].get(rel_path, {})
         if prev.get("hash") != current_hash or prev.get("mtime", 0) < current_mtime:
             if verbose:
                 print(f"  [UPDATED] {filepath.name}")
             return True
-        
+
         if verbose:
             print(f"  [SKIP] {filepath.name} (unchanged)")
         return False

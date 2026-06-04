@@ -119,7 +119,7 @@ def main():
                     tmp_out.parent.mkdir(parents=True, exist_ok=True)
                     cmd = [sys.executable, str(root.joinpath('scripts', 'llm_suggest.py')), '--expert', 'code_fixer', '--file', str(target), '--out', str(tmp_out)]
                     try:
-                        import subprocess, json
+                        import subprocess
                         subprocess.run(cmd, check=False)
                         if tmp_out.exists():
                             data = json.loads(tmp_out.read_text(encoding='utf-8'))

@@ -26,6 +26,8 @@ import urllib.parse
 import gzip
 from datetime import datetime, timezone
 from pathlib import Path
+import difflib
+import py_compile
 
 try:
     import requests
@@ -921,11 +923,38 @@ def _bridge_cb_state_path() -> str:
 
 
 def _load_bridge_cb_state() -> tuple[int, float]:
+    """Load persisted bridge circuit-breaker state.
+
+    Returns a tuple `(fail_count:int, open_until:float)` where `open_until` is
+    an epoch timestamp (seconds since epoch) when the circuit will be allowed
+    to attempt reconnection again. If the state file is missing or malformed
+    this returns `(0, 0.0)`.
+    """
+    path = _bridge_cb_state_path()
     try:
-        import hal_diagnostics as _hd
-        return _hd._scan_git_repos_for_secrets()
+        if os.path.isfile(path):
+            with open(path, 'r', encoding='utf-8') as fh:
+                data = json.load(fh)
+            fail = int(data.get('fail_count', 0) or 0)
+            open_until = float(data.get('open_until', 0.0) or 0.0)
+            return fail, open_until
     except Exception:
-        return [], ['diagnostics module not available']
+        pass
+    return 0, 0.0
+
+
+def _save_bridge_cb_state(fail_count: int, open_until: float) -> None:
+    """Persist bridge circuit-breaker state to disk (best-effort)."""
+    path = _bridge_cb_state_path()
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        tmp = path + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as fh:
+            json.dump({'fail_count': int(fail_count), 'open_until': float(open_until)}, fh)
+        os.replace(tmp, path)
+    except Exception:
+        # best-effort: don't raise on persistence failures
+        pass
 def _enhance_offline_response(query: str, raw_results: str) -> str | None:
     """Use local Ollama to enhance raw offline knowledge base results with LLM processing."""
     if not raw_results or not raw_results.strip():
@@ -1517,7 +1546,23 @@ def _load_model_profile_overrides() -> dict:
     """
     raw = os.environ.get('HAL_MODEL_OVERRIDES')
     if not raw:
-        raw = CONFIG.get('model_overrides')
+        # Backwards-compatible: try repository config module `mcp_config` first,
+        # then fall back to a JSON config file if present.
+        try:
+            import mcp_config as cfg
+            raw = cfg.get('model_overrides', None)
+        except Exception:
+            raw = None
+    if not raw:
+        # Try a repo-level JSON config as a last resort (mcp-config.json)
+        try:
+            cfg_path = os.path.join(BASE_DIR, 'mcp-config.json')
+            if os.path.isfile(cfg_path):
+                with open(cfg_path, 'r', encoding='utf-8') as _fh:
+                    j = json.load(_fh)
+                    raw = j.get('model_overrides')
+        except Exception:
+            raw = None
 
     if not raw:
         return {}
@@ -4428,6 +4473,16 @@ def _is_ansible_migration_strategy_query(query: str) -> bool:
     return has_strategy and has_migration and has_product and has_versions
 
 
+# Backwards-compatible alias for older code that used the `aap` prefix.
+def _is_aap_migration_strategy_query(query: str) -> bool:
+    """Compatibility shim: prefer `_is_ansible_migration_strategy_query`.
+
+    Some older call sites used the name `_is_aap_migration_strategy_query`.
+    Keep a thin wrapper to avoid runtime NameError when loading mixed versions.
+    """
+    return _is_ansible_migration_strategy_query(query)
+
+
 def _is_ansible_patch_strategy_query(query: str) -> bool:
     """Detect practical patch/update runbook requests for Ansible/automation."""
     if not query:
@@ -5595,10 +5650,7 @@ def main() -> None:
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
     sys.exit(run(args))
-
-
-if __name__ == '__main__':
-    main()
+    
 """
 
 
@@ -9191,6 +9243,7 @@ def main():
     ap.add_argument('--moe-mode', choices=['auto', 'rule', 'embedding', 'llm'], default='auto', help='MoE routing mode')
     ap.add_argument('--auto-improve', action='store_true', help='Run HAL auto-improve scanner (dry-run)')
     ap.add_argument('--auto-improve-apply', action='store_true', help='Apply suggestions from auto-improve (requires HAL_ALLOW_AUTO_IMPROVE_APPLY=1)')
+    ap.add_argument('--self-fix', action='store_true', help='Generate a self-fix proposal on unexpected crashes (dry-run).')
     args = ap.parse_args()
 
     global VOICE_ENABLED, VOICE_RATE, VOICE_NAME
@@ -10415,7 +10468,7 @@ def main():
         sys.exit(0)
 
     # AAP patching prompts should return deterministic runbooks.
-    if _is_aap_patch_strategy_query(text):
+    if _is_ansible_patch_strategy_query(text):
         aap_patch_resp = generate_aap_patch_strategy_response(text)
         print('\nHAL response:\n')
         print(aap_patch_resp)
@@ -10438,7 +10491,7 @@ def main():
 
     # AAP/Ansible migration strategy prompts should return a deterministic plan,
     # not short generic model replies.
-    if _is_aap_migration_strategy_query(text):
+    if _is_ansible_migration_strategy_query(text):
         mig_resp = generate_aap_migration_strategy_response(text)
         print('\nHAL response:\n')
         print(mig_resp)
@@ -11288,5 +11341,303 @@ def main():
     if args.remediate:
         invoke_remediator(entry_path, args.exec)
 
+def _run_self_fix_proposal(argv, exc_text):
+    """Generate a safe, human-readable self-fix proposal when HAL crashes.
+
+    This writes a short report under `FIXES_DIR/selffix-<timestamp>/` with:
+      - traceback.txt
+      - pycompile.txt (syntax check results)
+      - occurrences.txt (where the missing symbol appears)
+      - suggestion.txt (proposed shim or remediation notes)
+
+    Returns the path to the created report directory.
+    """
+    try:
+        import glob
+        import traceback
+    except Exception:
+        traceback = None
+
+    ts = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+    outdir = os.path.join(FIXES_DIR, f'selffix-{ts}')
+    try:
+        os.makedirs(outdir, exist_ok=True)
+    except Exception:
+        outdir = os.path.join('/tmp', f'selffix-{ts}')
+        os.makedirs(outdir, exist_ok=True)
+
+    # Save traceback
+    tb_file = os.path.join(outdir, 'traceback.txt')
+    try:
+        with open(tb_file, 'w', encoding='utf-8') as fh:
+            fh.write(exc_text)
+    except Exception:
+        pass
+
+    # Run a lightweight py_compile sweep to collect syntax errors
+    py_errors = []
+    try:
+        for p in glob.glob('**/*.py', recursive=True):
+            if any(x in p for x in ('/.venv/', '/venv/', '/.git/', '/.eggs/', '/site-packages/')):
+                continue
+            try:
+                py_compile.compile(p, doraise=True)
+            except Exception as e:
+                py_errors.append(f'{p}: {e}')
+    except Exception as _:
+        py_errors.append('py_compile sweep failed')
+
+    py_file = os.path.join(outdir, 'pycompile.txt')
+    try:
+        with open(py_file, 'w', encoding='utf-8') as fh:
+            if py_errors:
+                fh.write('\n'.join(py_errors))
+            else:
+                fh.write('OK — no syntax errors detected')
+    except Exception:
+        pass
+
+    # Try to detect a missing NameError symbol from the traceback
+    missing_name = None
+    try:
+        m = re.search(r"NameError: name '([^']+)' is not defined", exc_text or '')
+        if m:
+            missing_name = m.group(1)
+    except Exception:
+        missing_name = None
+
+    occ_file = os.path.join(outdir, 'occurrences.txt')
+    occurrences = []
+    if missing_name:
+        try:
+            for p in glob.glob('**/*.py', recursive=True):
+                if any(x in p for x in ('/.venv/', '/venv/', '/.git/', '/.eggs/', '/site-packages/')):
+                    continue
+                try:
+                    with open(p, 'r', encoding='utf-8', errors='ignore') as fh:
+                        for i, ln in enumerate(fh, 1):
+                            if re.search(r'\b' + re.escape(missing_name) + r'\b', ln):
+                                occurrences.append(f'{p}#L{i}: {ln.strip()}')
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+    try:
+        with open(occ_file, 'w', encoding='utf-8') as fh:
+            if occurrences:
+                fh.write('\n'.join(occurrences))
+            else:
+                fh.write('No occurrences found for missing symbol in repo.')
+    except Exception:
+        pass
+
+    # Suggest a simple compatibility shim if a likely candidate function exists
+    suggestion_file = os.path.join(outdir, 'suggestion.txt')
+    try:
+        with open(suggestion_file, 'w', encoding='utf-8') as fh:
+            fh.write('HAL Self-Fix Proposal\n')
+            fh.write('======================\n\n')
+            fh.write('Traceback saved to: ' + tb_file + '\n')
+            fh.write('Syntax scan saved to: ' + py_file + '\n')
+            fh.write('Occurrences saved to: ' + occ_file + '\n\n')
+
+            if missing_name:
+                fh.write(f"Detected missing name: {missing_name}\n\n")
+
+                # Collect defined function names for fuzzy matching
+                defs = []
+                try:
+                    for p in glob.glob('**/*.py', recursive=True):
+                        if any(x in p for x in ('/.venv/', '/venv/', '/.git/', '/.eggs/', '/site-packages/')):
+                            continue
+                        try:
+                            txt = open(p, 'r', encoding='utf-8', errors='ignore').read()
+                        except Exception:
+                            continue
+                        for dn in re.findall(r'^\s*def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(', txt, flags=re.M):
+                            defs.append((dn, p))
+                except Exception:
+                    defs = []
+
+                names = [d for d, _ in defs]
+                cand = None
+                if names:
+                    cand_matches = difflib.get_close_matches(missing_name, names, n=3, cutoff=0.6)
+                    if cand_matches:
+                        cand = cand_matches[0]
+                        cand_file = next((pf for d, pf in defs if d == cand), None)
+                        fh.write(f'Closest matching function: {cand} (file: {cand_file})\n\n')
+                        fh.write('Proposed shim (DRY-RUN) — add to a suitable module (example: scripts/hal.py):\n\n')
+                        if cand_file and os.path.abspath(cand_file) != os.path.abspath(os.path.join(BASE_DIR, 'scripts', 'hal.py')):
+                            # Import the candidate from its module path
+                            rel = os.path.relpath(cand_file, BASE_DIR)
+                            module = re.sub(r'\\.py$', '', rel).replace(os.sep, '.')
+                            fh.write(f"def {missing_name}(*args, **kwargs):\n")
+                            fh.write(f"    try:\n        from {module} import {cand}\n    except Exception:\n        # fallback if import fails\n        {cand} = globals().get('{cand}')\n    return {cand}(*args, **kwargs)\n")
+                        else:
+                            fh.write(f"def {missing_name}(*args, **kwargs):\n    return {cand}(*args, **kwargs)\n")
+                    else:
+                        fh.write('No close function matches found for an automatic shim.\n')
+                        fh.write('Please inspect the traceback and occurrences and create a targeted fix.\n')
+            else:
+                fh.write('No NameError detected; include the traceback.txt contents when requesting manual help.\n')
+    except Exception:
+        pass
+
+    # Summary path returned
+    return outdir
+
+
+def _auto_apply_self_fix(report_dir: str) -> tuple[bool, str]:
+    """Attempt a conservative automatic fix based on suggestion.txt.
+
+    Currently supports a single safe fix: missing `CONFIG` in
+    `_load_model_profile_overrides()` by inserting a fallback to `mcp_config`.
+    Returns (success, message).
+    """
+    try:
+        sugg = os.path.join(report_dir, 'suggestion.txt')
+        if not os.path.isfile(sugg):
+            return False, 'suggestion.txt not found'
+        content = open(sugg, 'r', encoding='utf-8', errors='ignore').read()
+        m = re.search(r"Detected missing name: (\w+)", content)
+        if not m:
+            return False, 'no detected missing name in suggestion'
+        missing = m.group(1)
+
+        target = os.path.join(BASE_DIR, 'scripts', 'hal.py')
+        bak = target + '.bak'
+        txt = open(target, 'r', encoding='utf-8').read()
+
+        # If the missing symbol is the special CONFIG case, perform the
+        # previously implemented fallback insertion.
+        if missing == 'CONFIG':
+            # Replace the specific problematic snippet if present
+            old_snip = "raw = os.environ.get('HAL_MODEL_OVERRIDES')\n    if not raw:\n        raw = CONFIG.get('model_overrides')"
+            if old_snip in txt:
+                new_snip = (
+                    "raw = os.environ.get('HAL_MODEL_OVERRIDES')\n"
+                    "    if not raw:\n"
+                    "        try:\n"
+                    "            import mcp_config as cfg\n"
+                    "            raw = cfg.get('model_overrides', None)\n"
+                    "        except Exception:\n"
+                    "            raw = None"
+                )
+                new_txt = txt.replace(old_snip, new_snip, 1)
+                try:
+                    open(bak, 'w', encoding='utf-8').write(txt)
+                    open(target, 'w', encoding='utf-8').write(new_txt)
+                    return True, f'Applied CONFIG shim to {target} (backup: {bak})'
+                except Exception as e:
+                    return False, f'write failed: {e}'
+            else:
+                return False, 'expected snippet not found in target file'
+
+        # Otherwise, attempt to find a close function name and add a shim.
+        try:
+            import glob
+        except Exception:
+            return False, 'glob import failed'
+
+        # Collect defined functions across repo
+        defs = []
+        try:
+            for p in glob.glob('**/*.py', recursive=True):
+                if any(x in p for x in ('/.venv/', '/venv/', '/.git/', '/.eggs/', '/site-packages/')):
+                    continue
+                try:
+                    txtp = open(p, 'r', encoding='utf-8', errors='ignore').read()
+                except Exception:
+                    continue
+                for dn in re.findall(r'^\s*def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(', txtp, flags=re.M):
+                    defs.append((dn, p))
+        except Exception as e:
+            return False, f'error scanning files: {e}'
+
+        names = [d for d, _ in defs]
+        if not names:
+            return False, 'no function definitions found in repository'
+
+        cand_matches = difflib.get_close_matches(missing, names, n=3, cutoff=0.6)
+        if not cand_matches:
+            return False, 'no close function matches found for automatic shim'
+
+        cand = cand_matches[0]
+        cand_file = next((pf for d, pf in defs if d == cand), None)
+        if not cand_file:
+            return False, 'candidate file not found'
+
+        # Build shim code that delegates to the discovered function
+        rel = os.path.relpath(cand_file, BASE_DIR)
+        module = re.sub(r'\\.py$', '', rel).replace(os.sep, '.')
+        shim_lines = []
+        shim_lines.append('\n# Auto-generated compatibility shim for missing symbol: {0}\n'.format(missing))
+        shim_lines.append('def {0}(*args, **kwargs):'.format(missing))
+        shim_lines.append("    try:")
+        shim_lines.append(f"        from {module} import {cand} as _autocand")
+        shim_lines.append("        return _autocand(*args, **kwargs)")
+        shim_lines.append("    except Exception:")
+        shim_lines.append("        try:")
+        shim_lines.append(f"            return globals().get('{cand}')(*args, **kwargs)")
+        shim_lines.append("        except Exception:")
+        shim_lines.append("            raise")
+        shim = '\n'.join(shim_lines) + '\n'
+
+        # Avoid duplicate insertion
+        if re.search(r'^\s*def\s+' + re.escape(missing) + r'\s*\(', txt, flags=re.M):
+            return False, f'{missing} already defined in target'
+
+        # Find a reasonable insertion point (after top imports)
+        insert_pos = None
+        if 'search_index = None' in txt:
+            insert_pos = txt.find('search_index = None') + len('search_index = None')
+        elif 'requests = None' in txt:
+            insert_pos = txt.find('requests = None') + len('requests = None')
+        elif 'from pathlib import Path' in txt:
+            insert_pos = txt.find('from pathlib import Path') + len('from pathlib import Path')
+        else:
+            insert_pos = 0
+
+        if insert_pos is None:
+            insert_pos = 0
+
+        new_txt = txt[:insert_pos] + '\n\n' + shim + txt[insert_pos:]
+        try:
+            open(bak, 'w', encoding='utf-8').write(txt)
+            open(target, 'w', encoding='utf-8').write(new_txt)
+            return True, f'Inserted shim for {missing} delegating to {cand} (backup: {bak})'
+        except Exception as e:
+            return False, f'write failed: {e}'
+    except Exception as e:
+        return False, f'auto-apply exception: {e}'
+
+
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception:
+        if '--self-fix' in sys.argv:
+            import traceback as _tb
+            exc_text = _tb.format_exc()
+            report_dir = _run_self_fix_proposal(sys.argv, exc_text)
+            print(f'HAL encountered an unexpected error. A self-fix proposal was written to: {report_dir}')
+            # If the user requested apply, try the conservative auto-apply and report result
+            if '--apply' in sys.argv:
+                ok, msg = _auto_apply_self_fix(report_dir)
+                print('Auto-apply result:', msg)
+                if ok:
+                    print('Re-running HAL with same arguments to validate the fix...')
+                    try:
+                        os.execv(sys.executable, [sys.executable] + sys.argv)
+                    except Exception as e:
+                        print('Failed to re-exec HAL after applying fix:', e)
+                        sys.exit(1)
+                else:
+                    print('Auto-apply did not make changes. Inspect suggestion.txt manually.')
+                    sys.exit(1)
+            else:
+                print('Inspect suggestion.txt and traceback.txt then run HAL again with --self-fix --apply to attempt an automated apply (not recommended without review).')
+                sys.exit(1)
+        raise

@@ -8,3 +8,13 @@ Suggestions for scripts/hal_auto_improve.py
 - line 63: missing_docstring - main
 - line 107: print_usage - consider using logging instead of print()
 - line 109: print_usage - consider using logging instead of print()
+- line 113: print_usage - consider using logging instead of print()
+- line 135: print_usage - consider using logging instead of print()
+- line 142: print_usage - consider using logging instead of print()
+- line 147: print_usage - consider using logging instead of print()
+- line 149: print_usage - consider using logging instead of print()
+- line 156: print_usage - consider using logging instead of print()
+- line 160: print_usage - consider using logging instead of print()
+- line 162: print_usage - consider using logging instead of print()
+- line 133: print_usage - consider using logging instead of print()
+- line 131: print_usage - consider using logging instead of print()
