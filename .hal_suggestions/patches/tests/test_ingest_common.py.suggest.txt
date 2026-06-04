@@ -1,0 +1,3 @@
+Suggestions for tests/test_ingest_common.py
+- line 11: missing_docstring - test_redact_text_basic
+- line 18: missing_docstring - test_write_jsonl

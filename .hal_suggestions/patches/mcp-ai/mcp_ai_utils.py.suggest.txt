@@ -1,0 +1,12 @@
+Suggestions for mcp-ai/mcp_ai_utils.py
+- line 16: missing_docstring - run_cmd
+- line 28: missing_docstring - pip_install
+- line 35: missing_docstring - show_text_block
+- line 41: missing_docstring - confirm
+- line 17: print_usage - consider using logging instead of print()
+- line 36: print_usage - consider using logging instead of print()
+- line 37: print_usage - consider using logging instead of print()
+- line 38: print_usage - consider using logging instead of print()
+- line 43: print_usage - consider using logging instead of print()
+- line 24: print_usage - consider using logging instead of print()
+- line 49: print_usage - consider using logging instead of print()

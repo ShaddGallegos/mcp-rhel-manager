@@ -1,0 +1,41 @@
+Suggestions for scripts/weekly_report.py
+- line 49: missing_docstring - _Ansi
+- line 58: missing_docstring - _color_enabled
+- line 62: missing_docstring - _colorize
+- line 68: missing_docstring - _human_bytes
+- line 78: missing_docstring - _safe_int_env
+- line 85: missing_docstring - _default_scan_roots
+- line 101: missing_docstring - collect_mount_free_space
+- line 137: missing_docstring - collect_large_files
+- line 162: missing_docstring - _quick_file_hash
+- line 176: missing_docstring - collect_duplicate_files
+- line 215: missing_docstring - collect_gpu_usage
+- line 237: missing_docstring - collect_bleachbit_status
+- line 265: missing_docstring - _flatten_env_mapping
+- line 278: missing_docstring - load_settings
+- line 306: missing_docstring - _parse_utc_ts
+- line 319: missing_docstring - _read_lines
+- line 329: missing_docstring - collect_self_heal_events
+- line 350: missing_docstring - collect_jsonl_events
+- line 380: missing_docstring - collect_recent_reports
+- line 398: missing_docstring - collect_malware_report
+- line 413: missing_docstring - collect_chkrootkit_report
+- line 428: missing_docstring - collect_virus_report
+- line 434: missing_docstring - format_report
+- line 669: missing_docstring - choose_mail_command
+- line 687: missing_docstring - send_email
+- line 708: missing_docstring - main
+- line 453: missing_docstring - h1
+- line 456: missing_docstring - good
+- line 459: missing_docstring - warn
+- line 462: missing_docstring - bad
+- line 744: missing_docstring - _infer_format_from_path
+- line 763: missing_docstring - _export_bundle
+- line 734: print_usage - consider using logging instead of print()
+- line 922: print_usage - consider using logging instead of print()
+- line 905: print_usage - consider using logging instead of print()
+- line 907: print_usage - consider using logging instead of print()
+- line 913: print_usage - consider using logging instead of print()
+- line 919: print_usage - consider using logging instead of print()
+- line 740: print_usage - consider using logging instead of print()
+- line 742: print_usage - consider using logging instead of print()

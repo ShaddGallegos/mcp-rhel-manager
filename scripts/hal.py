@@ -11560,6 +11560,36 @@ def _auto_apply_self_fix(report_dir: str) -> tuple[bool, str]:
         if not names:
             return False, 'no function definitions found in repository'
 
+        # Conservative import-fallback: look for an explicit `from <mod> import <missing>`
+        # elsewhere in the repo and replicate that import near the top of hal.py.
+        try:
+            for p in glob.glob('**/*.py', recursive=True):
+                if any(x in p for x in ('/.venv/', '/venv/', '/.git/', '/.eggs/', '/site-packages/')):
+                    continue
+                try:
+                    txtp = open(p, 'r', encoding='utf-8', errors='ignore').read()
+                except Exception:
+                    continue
+                mimp = re.search(r'from\s+([A-Za-z0-9_.]+)\s+import\s+([^#\n]+)', txtp)
+                if mimp:
+                    names_imported = mimp.group(2)
+                    if re.search(r'\b' + re.escape(missing) + r'\b', names_imported):
+                        import_line = f"from {mimp.group(1)} import {missing}"
+                        if import_line not in txt:
+                            # insert the import near top of file (after other imports)
+                            insert_pos2 = txt.find('\n\n')
+                            if insert_pos2 == -1:
+                                insert_pos2 = 0
+                            new_txt2 = txt[:insert_pos2] + import_line + '\n' + txt[insert_pos2:]
+                            try:
+                                open(bak, 'w', encoding='utf-8').write(txt)
+                                open(target, 'w', encoding='utf-8').write(new_txt2)
+                                return True, f'Inserted import for {missing} from {mimp.group(1)} (backup: {bak})'
+                            except Exception as e:
+                                return False, f'write failed: {e}'
+        except Exception:
+            pass
+
         cand_matches = difflib.get_close_matches(missing, names, n=3, cutoff=0.6)
         if not cand_matches:
             return False, 'no close function matches found for automatic shim'

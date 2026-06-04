@@ -1,0 +1,2 @@
+Suggestions for tests/test_hal_cli_smoke_routes.py
+- line 15: missing_docstring - test_hal_main_smoke_routes_no_nameerror

@@ -1,0 +1,24 @@
+Suggestions for mcp-ai/install_assistant.py
+- line 38: missing_docstring - _load_dynamic_menu
+- line 49: missing_docstring - find_venv_python
+- line 53: missing_docstring - run_cmd
+- line 57: missing_docstring - pip_install
+- line 61: missing_docstring - show_text_block
+- line 65: missing_docstring - confirm
+- line 69: missing_docstring - option_embeddings
+- line 97: missing_docstring - option_precompute
+- line 109: missing_docstring - option_prometheus
+- line 121: missing_docstring - option_enable_health
+- line 139: missing_docstring - option_install_requirements
+- line 155: missing_docstring - option_run_tests
+- line 166: missing_docstring - main
+- line 80: print_usage - consider using logging instead of print()
+- line 94: print_usage - consider using logging instead of print()
+- line 102: print_usage - consider using logging instead of print()
+- line 118: print_usage - consider using logging instead of print()
+- line 128: print_usage - consider using logging instead of print()
+- line 152: print_usage - consider using logging instead of print()
+- line 158: print_usage - consider using logging instead of print()
+- line 84: print_usage - consider using logging instead of print()
+- line 147: print_usage - consider using logging instead of print()
+- line 188: print_usage - consider using logging instead of print()

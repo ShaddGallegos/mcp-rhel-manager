@@ -1,0 +1,3 @@
+Suggestions for mcp-ai/cli.py
+- line 14: missing_docstring - _run_module
+- line 33: missing_docstring - main

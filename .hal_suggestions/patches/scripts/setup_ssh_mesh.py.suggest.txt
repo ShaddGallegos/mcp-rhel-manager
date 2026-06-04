@@ -1,0 +1,21 @@
+Suggestions for scripts/setup_ssh_mesh.py
+- line 38: missing_docstring - find_default_pubkey
+- line 47: missing_docstring - read_pubkey
+- line 53: missing_docstring - parse_hosts
+- line 79: missing_docstring - _default_user
+- line 91: missing_docstring - _load_ansible_env
+- line 120: missing_docstring - try_paramiko
+- line 178: missing_docstring - run_subprocess
+- line 188: missing_docstring - try_ssh_copy_id
+- line 251: missing_docstring - main
+- line 279: print_usage - consider using logging instead of print()
+- line 298: print_usage - consider using logging instead of print()
+- line 268: print_usage - consider using logging instead of print()
+- line 273: print_usage - consider using logging instead of print()
+- line 303: print_usage - consider using logging instead of print()
+- line 306: print_usage - consider using logging instead of print()
+- line 320: print_usage - consider using logging instead of print()
+- line 326: print_usage - consider using logging instead of print()
+- line 329: print_usage - consider using logging instead of print()
+- line 311: print_usage - consider using logging instead of print()
+- line 318: print_usage - consider using logging instead of print()

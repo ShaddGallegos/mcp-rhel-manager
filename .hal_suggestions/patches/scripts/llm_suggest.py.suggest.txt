@@ -1,0 +1,8 @@
+Suggestions for scripts/llm_suggest.py
+- line 33: missing_docstring - build_prompt_from_file
+- line 42: missing_docstring - build_prompt_from_text
+- line 46: missing_docstring - main
+- line 25: print_usage - consider using logging instead of print()
+- line 73: print_usage - consider using logging instead of print()
+- line 75: print_usage - consider using logging instead of print()
+- line 65: print_usage - consider using logging instead of print()

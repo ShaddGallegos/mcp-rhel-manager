@@ -1,0 +1,8 @@
+Suggestions for mcp-ai/dynamic_menu.py
+- line 22: print_usage - consider using logging instead of print()
+- line 25: print_usage - consider using logging instead of print()
+- line 63: print_usage - consider using logging instead of print()
+- line 24: print_usage - consider using logging instead of print()
+- line 61: print_usage - consider using logging instead of print()
+- line 49: print_usage - consider using logging instead of print()
+- line 52: print_usage - consider using logging instead of print()

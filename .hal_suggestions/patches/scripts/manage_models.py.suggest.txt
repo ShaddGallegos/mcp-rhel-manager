@@ -1,0 +1,28 @@
+Suggestions for scripts/manage_models.py
+- line 18: missing_docstring - load_index
+- line 28: missing_docstring - save_index
+- line 34: missing_docstring - sha256_of
+- line 42: missing_docstring - iso_now
+- line 46: missing_docstring - cmd_add
+- line 70: missing_docstring - cmd_list
+- line 76: missing_docstring - cmd_verify
+- line 103: missing_docstring - cmd_remove
+- line 122: missing_docstring - cmd_cleanup
+- line 155: missing_docstring - build_parser
+- line 188: missing_docstring - main
+- line 66: print_usage - consider using logging instead of print()
+- line 72: print_usage - consider using logging instead of print()
+- line 118: print_usage - consider using logging instead of print()
+- line 151: print_usage - consider using logging instead of print()
+- line 50: print_usage - consider using logging instead of print()
+- line 86: print_usage - consider using logging instead of print()
+- line 91: print_usage - consider using logging instead of print()
+- line 96: print_usage - consider using logging instead of print()
+- line 99: print_usage - consider using logging instead of print()
+- line 107: print_usage - consider using logging instead of print()
+- line 113: print_usage - consider using logging instead of print()
+- line 115: print_usage - consider using logging instead of print()
+- line 134: print_usage - consider using logging instead of print()
+- line 141: print_usage - consider using logging instead of print()
+- line 145: print_usage - consider using logging instead of print()
+- line 147: print_usage - consider using logging instead of print()

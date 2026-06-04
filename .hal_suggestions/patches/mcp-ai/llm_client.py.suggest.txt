@@ -1,0 +1,6 @@
+Suggestions for mcp-ai/llm_client.py
+- line 39: missing_docstring - LLMClient
+- line 203: missing_docstring - get_client
+- line 40: missing_docstring - __init__
+- line 87: missing_docstring - _record_metric
+- line 114: missing_docstring - _iter_endpoints

@@ -48,6 +48,7 @@ import urllib.parse
 import urllib.error
 from datetime import datetime
 from pathlib import Path
+import difflib
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 HOME = os.path.expanduser('~')
@@ -752,6 +753,90 @@ def cmd_diff_explain(file1: str, file2: str) -> str:
     if not os.path.isfile(file1):
         print(f'File not found: {file1}', file=sys.stderr)
         return ''
+
+
+    def cmd_suggest_fix(file_path: str, apply: bool = False) -> str:
+        """Generate a suggested fix for a file using the LLM and write a proposal.
+
+        The LLM is asked to return only the fixed file contents inside a fenced
+        code block. We save a unified diff under `.hal_suggestions/patches/` and,
+        if `apply` is True, create a timestamped backup and overwrite the file.
+        """
+        if not os.path.isfile(file_path):
+            print(f'File not found: {file_path}', file=sys.stderr)
+            return ''
+
+        with open(file_path, 'r', encoding='utf-8', errors='replace') as fh:
+            orig = fh.read()
+
+        ext = Path(file_path).suffix.lower()
+        lang = 'text'
+        if ext == '.py':
+            lang = 'python'
+        elif ext in ('.yml', '.yaml'):
+            lang = 'yaml'
+        elif ext in ('.sh', '.bash'):
+            lang = 'bash'
+
+        persona = PERSONAS.get('expert', PERSONAS['friendly'])
+        prefix = (
+            f"You are an expert {lang} developer and maintainer. "
+            "Analyze the following file and produce a corrected, improved, and safe-to-run version. "
+            "Output ONLY the complete new file contents inside a single fenced code block using the appropriate language tag. "
+            "Do not include explanations or surrounding commentary.\n\n"
+            f"Original file: {os.path.basename(file_path)}\n\n```\n"
+        )
+        prompt = prefix + orig[:20000] + "\n```"
+
+        print(f'Generating suggested fix for {file_path} (language: {lang})...')
+        resp = _ask_ollama(prompt, task_hint='code')
+        if not resp:
+            print('LLM did not return a suggestion.', file=sys.stderr)
+            return ''
+
+        # Extract first fenced code block
+        m = re.search(r'```[a-zA-Z0-9_-]*\n([\s\S]+?)\n```', resp)
+        if m:
+            new_content = m.group(1)
+        else:
+            # Fallback: use whole response
+            new_content = resp
+
+        # Normalize line endings
+        new_content = new_content.replace('\r\n', '\n')
+
+        # Create suggestions dir and write unified diff
+        ts = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+        sug_dir = os.path.join(BASE_DIR, '.hal_suggestions', 'patches')
+        os.makedirs(sug_dir, exist_ok=True)
+        base = os.path.basename(file_path)
+        diff_name = f"{ts}-{base}.diff"
+        diff_path = os.path.join(sug_dir, diff_name)
+
+        ud = ''.join(difflib.unified_diff(orig.splitlines(keepends=True), new_content.splitlines(keepends=True), fromfile=file_path, tofile=file_path, lineterm=''))
+        if not ud.strip():
+            print('No differences detected between original and suggested content.')
+            return ''
+
+        with open(diff_path, 'w', encoding='utf-8') as fh:
+            fh.write(ud)
+
+        print(f'Wrote suggested patch: {diff_path}')
+
+        if apply:
+            # Conservative apply: backup original and overwrite file
+            bak = f"{file_path}.bak.{ts}"
+            try:
+                shutil.copy2(file_path, bak)
+                with open(file_path, 'w', encoding='utf-8') as fh:
+                    fh.write(new_content)
+                print(f'Applied suggested fix (backup: {bak})')
+            except Exception as e:
+                print('Failed to apply suggestion:', e, file=sys.stderr)
+                print(f'Patch left at: {diff_path}', file=sys.stderr)
+                return ''
+
+        return diff_path
     if not os.path.isfile(file2):
         print(f'File not found: {file2}', file=sys.stderr)
         return ''
@@ -1698,6 +1783,8 @@ def build_parser() -> argparse.ArgumentParser:
     ai.add_argument('--summarize', metavar='URL_OR_FILE', help='Summarize a URL or file')
     ai.add_argument('--code-review', metavar='FILE', help='AI code review of a file')
     ai.add_argument('--code-review-focus', metavar='ASPECT', default='', help='Focus area for code review')
+    ai.add_argument('--suggest-fix', metavar='FILE', help='AI generate a suggested fix for a file (writes proposal to .hal_suggestions/patches)')
+    ai.add_argument('--suggest-fix-apply', action='store_true', help='If set, apply the suggested fix (conservative: creates backup first).')
     ai.add_argument('--explain-error', action='store_true', help='Explain error output (reads stdin or --file)')
     ai.add_argument('--diff-explain', nargs=2, metavar=('FILE1', 'FILE2'), help='AI-explained diff between two files')
     ai.add_argument('--generate-readme', metavar='PATH', help='Generate README.md for a project directory')
@@ -1799,6 +1886,10 @@ def main():
 
     if args.code_review:
         cmd_code_review(args.code_review, focus=args.code_review_focus)
+        return 0
+
+    if args.suggest_fix:
+        cmd_suggest_fix(args.suggest_fix, apply=args.suggest_fix_apply)
         return 0
 
     if args.explain_error:

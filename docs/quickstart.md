@@ -239,3 +239,87 @@ systemctl --user enable --now watch-convert-sdcard.service
 ```
 
 If you prefer a timer-based run (e.g., run every 5 minutes) create a matching `.timer` unit and enable it instead of the service.
+
+## Code Assistant — review and suggest fixes
+
+HAL can review files and generate suggested fixes for Bash, Python, and Ansible files. Suggestions are saved under `.hal_suggestions/patches/` and can be applied conservatively (creates a backup).
+
+Examples:
+
+```bash
+# AI code review of a file
+python3 scripts/hal.py --tools --code-review myscript.py
+
+# Generate a suggested fix (writes patch to .hal_suggestions/patches/)
+python3 scripts/hal.py --tools --suggest-fix myscript.py
+
+# Generate and apply the suggested fix (creates a timestamped backup)
+python3 scripts/hal.py --tools --suggest-fix myscript.py --suggest-fix-apply
+```
+
+Notes:
+- The suggestion step asks the local LLM bridge for a corrected file. Review the diff under `.hal_suggestions/patches/` before applying in production.
+- Use `--suggest-fix-apply` only when you trust the generated fix; HAL will create a backup with `.bak.<timestamp>`.
+
+## GPU & Local LLM server
+
+If you have a GPU available, you can host a local LLM runtime and point HAL to it via `OLLAMA_URL` (or the equivalent bridge variable). Steps:
+
+1. Confirm GPU availability:
+
+```bash
+# NVIDIA
+nvidia-smi
+
+# AMD/ROCm
+rocminfo || which rocminfo || true
+```
+
+2. Run a GPU-enabled container (example helper included):
+
+```bash
+# Edit scripts/start_llm_container.sh MODEL_PATH and LLM_ARGS as needed, then:
+chmod +x scripts/start_llm_container.sh
+./scripts/start_llm_container.sh
+```
+
+3. Set HAL to use your local bridge (example):
+
+```bash
+export OLLAMA_URL=http://localhost:11434/api/chat
+export OLLAMA_BASE=http://localhost:11434
+```
+
+4. Systemd unit templates for running the container and the MCP inference queue are in `packaging/systemd/`.
+
+Tips:
+- Use quantized GGUF models where possible to reduce VRAM usage.
+- Prefer LocalAI/Ollama or an OpenAI-compatible runtime so HAL can reuse `OLLAMA_URL`.
+
+
+## MCP server: recommended enhancements
+
+Here are a few concrete features to add to your MCP server to make better use of GPUs and support production workflows:
+
+- Model registry and conversion pipeline: automate GGUF conversion, quantization, and validation of newly added models.
+- Inference queue & batching (scaffold provided at `scripts/mcp_inference_queue.py`): accept requests, batch them, and forward to the GPU runtime for better throughput.
+- Caching & embeddings store: keep an embeddings DB (FAISS/Chroma/SQLite) and cache model responses for identical prompts.
+- Metrics & monitoring: expose Prometheus metrics (latency, queue length, VRAM usage) and add Grafana dashboards.
+- Security: add API keys, basic auth, rate limits, and per-account quotas to the inference API.
+- Autoscaling & scheduling: if you have multiple GPUs or hosts, add a lightweight scheduler or use Kubernetes with GPU device-plugin for workload placement.
+
+Quick start files added to the repo:
+
+- `scripts/start_llm_container.sh` — helper to run a GPU-enabled container
+- `scripts/mcp_inference_queue.py` — inference queue scaffold (FastAPI + asyncio worker)
+- `packaging/systemd/hal-llm.service` — systemd unit template for container
+- `packaging/systemd/mcp-inference-queue.service` — systemd unit template for the queue
+- `.vscode/settings.json` — example VS Code settings for local LLM bridge
+
+If you want, I can:
+
+ - Wire the inference queue to Redis for persistence and robust batching.
+ - Add Prometheus instrumentation to the queue and a minimal Grafana dashboard JSON.
+ - Create a systemd `--user` / container example that uses `nvidia-container-toolkit` and verifies GPU access.
+
+Which of those would you like next? Or should I implement them in order (Redis + Prometheus + nvidia-container-toolkit examples)?

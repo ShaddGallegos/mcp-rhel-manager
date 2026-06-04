@@ -1,0 +1,7 @@
+Suggestions for mcp-ai/ingest/__init__.py
+- line 34: missing_docstring - ingest_documents
+- line 38: missing_docstring - ingest_urls
+- line 42: missing_docstring - ingest_business_intel
+- line 46: missing_docstring - ingest_artifacts
+- line 50: missing_docstring - ingest_history
+- line 54: missing_docstring - ingest_redhat_docs

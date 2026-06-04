@@ -1,0 +1,13 @@
+[Unit]
+Description=MCP Inference Queue Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/USER/GIT/mcp-rhel-manager
+ExecStart=/usr/bin/env python3 /home/USER/GIT/mcp-rhel-manager/scripts/mcp_inference_queue.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

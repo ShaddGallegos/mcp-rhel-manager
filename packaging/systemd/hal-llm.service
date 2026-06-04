@@ -1,0 +1,17 @@
+[Unit]
+Description=Local LLM Container (GPU-enabled) — run with start_llm_container.sh helper
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+Environment=LLM_IMAGE=localai/localai:latest
+Environment=MODEL_PATH=/path/to/models
+Environment=CONTAINER_NAME=local-llm
+Environment=LLM_PORT=11434
+ExecStart=/usr/bin/env bash -c '/home/USER/GIT/mcp-rhel-manager/scripts/start_llm_container.sh'
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

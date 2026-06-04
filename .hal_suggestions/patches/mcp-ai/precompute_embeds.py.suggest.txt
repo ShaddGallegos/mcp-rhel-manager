@@ -1,0 +1,7 @@
+Suggestions for mcp-ai/precompute_embeds.py
+- line 22: missing_docstring - main
+- line 42: print_usage - consider using logging instead of print()
+- line 55: print_usage - consider using logging instead of print()
+- line 45: print_usage - consider using logging instead of print()
+- line 51: print_usage - consider using logging instead of print()
+- line 35: print_usage - consider using logging instead of print()

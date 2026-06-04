@@ -1,0 +1,9 @@
+Suggestions for scripts/render_quickstart.py
+- line 12: missing_docstring - detect_os_profile
+- line 34: missing_docstring - profile_context
+- line 51: missing_docstring - _current_profile
+- line 63: missing_docstring - render
+- line 80: missing_docstring - main
+- line 94: print_usage - consider using logging instead of print()
+- line 107: print_usage - consider using logging instead of print()
+- line 101: print_usage - consider using logging instead of print()

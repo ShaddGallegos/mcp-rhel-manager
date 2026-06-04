@@ -1,0 +1,54 @@
+Suggestions for mcp-ai/git_manager.py
+- line 44: missing_docstring - ensure_conf_dir
+- line 49: missing_docstring - list_env_files
+- line 54: missing_docstring - load_env
+- line 82: missing_docstring - save_env
+- line 96: missing_docstring - run_cmd
+- line 100: missing_docstring - scan_repos
+- line 128: missing_docstring - find_secrets_in_text
+- line 187: missing_docstring - repo_remote_owner_repo
+- line 211: missing_docstring - github_list_user_repos
+- line 223: missing_docstring - github_list_repo_prs
+- line 235: missing_docstring - github_create_pr
+- line 248: missing_docstring - github_merge_pr
+- line 260: missing_docstring - interactive_menu
+- line 304: missing_docstring - repo_submenu
+- line 423: missing_docstring - clone_repo
+- line 448: missing_docstring - main
+- line 155: print_usage - consider using logging instead of print()
+- line 183: print_usage - consider using logging instead of print()
+- line 433: print_usage - consider using logging instead of print()
+- line 491: missing_docstring - _cb
+- line 157: print_usage - consider using logging instead of print()
+- line 163: print_usage - consider using logging instead of print()
+- line 322: print_usage - consider using logging instead of print()
+- line 324: print_usage - consider using logging instead of print()
+- line 343: print_usage - consider using logging instead of print()
+- line 349: print_usage - consider using logging instead of print()
+- line 356: print_usage - consider using logging instead of print()
+- line 387: print_usage - consider using logging instead of print()
+- line 406: print_usage - consider using logging instead of print()
+- line 436: print_usage - consider using logging instead of print()
+- line 444: print_usage - consider using logging instead of print()
+- line 513: print_usage - consider using logging instead of print()
+- line 159: print_usage - consider using logging instead of print()
+- line 278: print_usage - consider using logging instead of print()
+- line 329: print_usage - consider using logging instead of print()
+- line 361: print_usage - consider using logging instead of print()
+- line 370: print_usage - consider using logging instead of print()
+- line 375: print_usage - consider using logging instead of print()
+- line 392: print_usage - consider using logging instead of print()
+- line 418: print_usage - consider using logging instead of print()
+- line 470: print_usage - consider using logging instead of print()
+- line 482: print_usage - consider using logging instead of print()
+- line 488: print_usage - consider using logging instead of print()
+- line 492: print_usage - consider using logging instead of print()
+- line 498: print_usage - consider using logging instead of print()
+- line 511: print_usage - consider using logging instead of print()
+- line 519: print_usage - consider using logging instead of print()
+- line 525: print_usage - consider using logging instead of print()
+- line 530: print_usage - consider using logging instead of print()
+- line 399: print_usage - consider using logging instead of print()
+- line 494: print_usage - consider using logging instead of print()
+- line 502: print_usage - consider using logging instead of print()
+- line 504: print_usage - consider using logging instead of print()
