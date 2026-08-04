@@ -1,0 +1,21 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 511, "type": "print-statement"}
+
+### SNIPPET
+        models = data.get('models', [])
+    except Exception as e:
+        models = []
+        print(f'  ✗ Cannot reach Ollama: {e}\n')
+
+    model_data = {}
+    for m in sorted(models, key=lambda x: x.get('name', '')):
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+        models = data.get('models', [])
+    except Exception as e:
+        models = []
+        logging.error(f'Cannot reach Ollama: {e}')
+    <END_SUGGESTION>
+
+Rationale: Replaced `print` with `logging.error` to handle exceptions more appropriately and ensure the output is consistent with application logging standards.

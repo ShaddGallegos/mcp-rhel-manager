@@ -1,0 +1,8 @@
+Suggestions for mcp-ai/rollback.py
+- line 15: missing_docstring - list_backups
+- line 24: missing_docstring - restore
+- line 18: print_usage - consider using logging instead of print()
+- line 21: print_usage - consider using logging instead of print()
+- line 26: print_usage - consider using logging instead of print()
+- line 31: print_usage - consider using logging instead of print()
+- line 37: print_usage - consider using logging instead of print()

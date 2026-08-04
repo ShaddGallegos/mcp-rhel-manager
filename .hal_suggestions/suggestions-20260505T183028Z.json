@@ -1,0 +1,6838 @@
+{
+  "scanned": 20,
+  "report": {
+    "scripts/hal-brain.py": [
+      {
+        "lineno": 124,
+        "type": "missing_docstring",
+        "detail": "_ensure_dirs"
+      },
+      {
+        "lineno": 131,
+        "type": "missing_docstring",
+        "detail": "_load_perf_db"
+      },
+      {
+        "lineno": 142,
+        "type": "missing_docstring",
+        "detail": "_save_perf_db"
+      },
+      {
+        "lineno": 174,
+        "type": "missing_docstring",
+        "detail": "_append_route_log"
+      },
+      {
+        "lineno": 264,
+        "type": "missing_docstring",
+        "detail": "_get_available_models"
+      },
+      {
+        "lineno": 698,
+        "type": "missing_docstring",
+        "detail": "_log_resource_event"
+      },
+      {
+        "lineno": 711,
+        "type": "missing_docstring",
+        "detail": "_load_mcp_registry"
+      },
+      {
+        "lineno": 724,
+        "type": "missing_docstring",
+        "detail": "_save_mcp_registry"
+      },
+      {
+        "lineno": 732,
+        "type": "missing_docstring",
+        "detail": "_mcp_server_health"
+      },
+      {
+        "lineno": 1022,
+        "type": "missing_docstring",
+        "detail": "build_parser"
+      },
+      {
+        "lineno": 1064,
+        "type": "missing_docstring",
+        "detail": "main"
+      },
+      {
+        "lineno": 399,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 421,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 426,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 445,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 446,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 447,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 455,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 456,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 480,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 481,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 497,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 498,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 499,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 504,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 523,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 526,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 537,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 553,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 559,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 565,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 597,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 600,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 606,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 624,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 679,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 756,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 757,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 758,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 764,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 786,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 848,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 899,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 900,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 901,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 902,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 919,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 920,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 923,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 924,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 931,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 932,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 939,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 940,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 941,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 947,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 957,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 977,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 987,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 994,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1013,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 521,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 529,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 557,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 594,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 599,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 603,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 639,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 657,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 676,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 681,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 684,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 763,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 771,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 772,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 778,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 783,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 800,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 804,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 812,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 833,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 864,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 865,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 866,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 867,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 874,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 875,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 896,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 922,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 926,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 930,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 954,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 974,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 980,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1007,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1015,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 419,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 511,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 534,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 548,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 622,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 642,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 650,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 653,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 823,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 908,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 916,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 929,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 985,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1123,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 550,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 645,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 661,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 827,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 830,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 970,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 411,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 614,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 618,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 620,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 414,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "scripts/hal-dashboard.py": [
+      {
+        "lineno": 188,
+        "type": "missing_docstring",
+        "detail": "main"
+      },
+      {
+        "lineno": 82,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 83,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 88,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 92,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 95,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 99,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 102,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 113,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 114,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 175,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 176,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 177,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 178,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 185,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 224,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 71,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 110,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 125,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 126,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 127,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 128,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 129,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 132,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 166,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 167,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 168,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 181,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 183,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "scripts/hal-inventory.py": [
+      {
+        "lineno": 371,
+        "type": "missing_docstring",
+        "detail": "main"
+      },
+      {
+        "lineno": 155,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 167,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 187,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 188,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 189,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 192,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 193,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 209,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 210,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 231,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 237,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 238,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 239,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 240,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 243,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 244,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 267,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 279,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 280,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 281,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 282,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 283,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 284,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 302,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 314,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 324,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 340,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 346,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 387,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 394,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 397,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 398,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 399,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 400,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 401,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 402,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 403,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 164,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 176,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 203,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 204,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 218,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 222,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 242,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 246,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 296,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 378,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 379,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 380,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 221,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "scripts/hal-multimedia.py": [
+      {
+        "lineno": 45,
+        "type": "missing_docstring",
+        "detail": "_ollama_generate"
+      },
+      {
+        "lineno": 66,
+        "type": "missing_docstring",
+        "detail": "_coerce_plan_json"
+      },
+      {
+        "lineno": 98,
+        "type": "missing_docstring",
+        "detail": "_ai_plan"
+      },
+      {
+        "lineno": 160,
+        "type": "missing_docstring",
+        "detail": "_run_hal_studio"
+      },
+      {
+        "lineno": 168,
+        "type": "missing_docstring",
+        "detail": "_multimedia_menu"
+      },
+      {
+        "lineno": 173,
+        "type": "missing_docstring",
+        "detail": "build_parser"
+      },
+      {
+        "lineno": 188,
+        "type": "missing_docstring",
+        "detail": "main"
+      },
+      {
+        "lineno": 110,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 116,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 137,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 139,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 140,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 162,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 207,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 211,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 212,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 142,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 143,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 145,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 149,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 151,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 147,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 153,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "scripts/hal-notify.py": [
+      {
+        "lineno": 90,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 153,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 183,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "scripts/hal.py": [
+      {
+        "lineno": 4231,
+        "type": "todo",
+        "detail": "- name: TODO \u2014 replace with actual task"
+      },
+      {
+        "lineno": 4292,
+        "type": "todo",
+        "detail": "- name: TODO \u2014 main task for role {role_name}"
+      },
+      {
+        "lineno": 4934,
+        "type": "todo",
+        "detail": "f\"(Bridge offline \u2014 returning starter scaffold; fill in the TODO sections)\\n\""
+      },
+      {
+        "lineno": 4939,
+        "type": "todo",
+        "detail": "\"  1. Fill in all TODO markers with real tasks\\n\""
+      },
+      {
+        "lineno": 5119,
+        "type": "todo",
+        "detail": "# TODO: implement your logic here"
+      },
+      {
+        "lineno": 5132,
+        "type": "todo",
+        "detail": "result = {{\"status\": \"ok\", \"message\": \"TODO \u2014 replace with real output\"}}"
+      },
+      {
+        "lineno": 8491,
+        "type": "todo",
+        "detail": "ap.add_argument('--todo', nargs='+', metavar='ACTION', help='AI TODO manager: add|list|done|delete|clear|prioritize [text] [id]')"
+      },
+      {
+        "lineno": 9229,
+        "type": "todo",
+        "detail": "'--sys-monitor', '--watch-log', '--todo', '--chat-export',"
+      },
+      {
+        "lineno": 138,
+        "type": "missing_docstring",
+        "detail": "_tts_binary"
+      },
+      {
+        "lineno": 142,
+        "type": "missing_docstring",
+        "detail": "_speech_ready"
+      },
+      {
+        "lineno": 146,
+        "type": "missing_docstring",
+        "detail": "_speech_text"
+      },
+      {
+        "lineno": 156,
+        "type": "missing_docstring",
+        "detail": "speak_if_enabled"
+      },
+      {
+        "lineno": 175,
+        "type": "missing_docstring",
+        "detail": "_run_voice_chat"
+      },
+      {
+        "lineno": 310,
+        "type": "missing_docstring",
+        "detail": "_is_bridge_timeout_error"
+      },
+      {
+        "lineno": 315,
+        "type": "missing_docstring",
+        "detail": "_is_bridge_recoverable_error"
+      },
+      {
+        "lineno": 416,
+        "type": "missing_docstring",
+        "detail": "_ensure_bridge_supervisor_started"
+      },
+      {
+        "lineno": 427,
+        "type": "missing_docstring",
+        "detail": "_intel_cache_file"
+      },
+      {
+        "lineno": 663,
+        "type": "missing_docstring",
+        "detail": "_cleanup_intel_cache"
+      },
+      {
+        "lineno": 677,
+        "type": "missing_docstring",
+        "detail": "_load_intel_cache_entry"
+      },
+      {
+        "lineno": 720,
+        "type": "missing_docstring",
+        "detail": "_load_intel_cache"
+      },
+      {
+        "lineno": 725,
+        "type": "missing_docstring",
+        "detail": "_save_intel_cache"
+      },
+      {
+        "lineno": 805,
+        "type": "missing_docstring",
+        "detail": "_bridge_cb_state_path"
+      },
+      {
+        "lineno": 809,
+        "type": "missing_docstring",
+        "detail": "_load_bridge_cb_state"
+      },
+      {
+        "lineno": 821,
+        "type": "missing_docstring",
+        "detail": "_save_bridge_cb_state"
+      },
+      {
+        "lineno": 831,
+        "type": "missing_docstring",
+        "detail": "load_config"
+      },
+      {
+        "lineno": 931,
+        "type": "missing_docstring",
+        "detail": "ensure_dirs"
+      },
+      {
+        "lineno": 976,
+        "type": "missing_docstring",
+        "detail": "ts_now"
+      },
+      {
+        "lineno": 980,
+        "type": "missing_docstring",
+        "detail": "_slugify"
+      },
+      {
+        "lineno": 985,
+        "type": "missing_docstring",
+        "detail": "write_interaction"
+      },
+      {
+        "lineno": 1181,
+        "type": "missing_docstring",
+        "detail": "call_bridge"
+      },
+      {
+        "lineno": 1553,
+        "type": "missing_docstring",
+        "detail": "_diag_severity_rank"
+      },
+      {
+        "lineno": 1559,
+        "type": "missing_docstring",
+        "detail": "_collect_diag_findings"
+      },
+      {
+        "lineno": 1586,
+        "type": "missing_docstring",
+        "detail": "_render_health_summary_menu"
+      },
+      {
+        "lineno": 1621,
+        "type": "missing_docstring",
+        "detail": "_render_health_actions"
+      },
+      {
+        "lineno": 1632,
+        "type": "missing_docstring",
+        "detail": "_choose_health_output_mode"
+      },
+      {
+        "lineno": 2524,
+        "type": "missing_docstring",
+        "detail": "_infer_primary_product"
+      },
+      {
+        "lineno": 2541,
+        "type": "missing_docstring",
+        "detail": "_extract_rag_sources"
+      },
+      {
+        "lineno": 2559,
+        "type": "missing_docstring",
+        "detail": "_estimate_rag_confidence"
+      },
+      {
+        "lineno": 2835,
+        "type": "missing_docstring",
+        "detail": "_extract_company_from_contact_query"
+      },
+      {
+        "lineno": 2848,
+        "type": "missing_docstring",
+        "detail": "_flat_company_email_list_from_training"
+      },
+      {
+        "lineno": 2907,
+        "type": "missing_docstring",
+        "detail": "_extract_company_city_from_address_query"
+      },
+      {
+        "lineno": 2923,
+        "type": "missing_docstring",
+        "detail": "_company_address_from_training"
+      },
+      {
+        "lineno": 5508,
+        "type": "missing_docstring",
+        "detail": "_extract_requested_months"
+      },
+      {
+        "lineno": 5517,
+        "type": "missing_docstring",
+        "detail": "_fetch_live_stock_quote"
+      },
+      {
+        "lineno": 5550,
+        "type": "missing_docstring",
+        "detail": "_fetch_stooq_history_summary"
+      },
+      {
+        "lineno": 5701,
+        "type": "missing_docstring",
+        "detail": "_send_notification_event"
+      },
+      {
+        "lineno": 5711,
+        "type": "missing_docstring",
+        "detail": "_send_slack_test_notification"
+      },
+      {
+        "lineno": 7175,
+        "type": "missing_docstring",
+        "detail": "find_entry"
+      },
+      {
+        "lineno": 7184,
+        "type": "missing_docstring",
+        "detail": "append_feedback"
+      },
+      {
+        "lineno": 7198,
+        "type": "missing_docstring",
+        "detail": "invoke_remediator"
+      },
+      {
+        "lineno": 8362,
+        "type": "missing_docstring",
+        "detail": "main"
+      },
+      {
+        "lineno": 112,
+        "type": "missing_docstring",
+        "detail": "_spin"
+      },
+      {
+        "lineno": 2676,
+        "type": "missing_docstring",
+        "detail": "_keyword_sentences"
+      },
+      {
+        "lineno": 2934,
+        "type": "missing_docstring",
+        "detail": "_norm_city"
+      },
+      {
+        "lineno": 10299,
+        "type": "missing_docstring",
+        "detail": "_source_tag"
+      },
+      {
+        "lineno": 176,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 177,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 971,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 2168,
+        "type": "missing_docstring",
+        "detail": "find_git_repos"
+      },
+      {
+        "lineno": 2412,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 2413,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7195,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7768,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7769,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7770,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7771,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7772,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7831,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7832,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7833,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7834,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7835,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7839,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7840,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8213,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8214,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8215,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8216,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8217,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10015,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10313,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10314,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10315,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10528,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 194,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 195,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1647,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1648,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1649,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1650,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 2421,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 2435,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 2453,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7207,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7210,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7747,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7748,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7749,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7750,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7754,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7755,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7756,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7757,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7762,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7763,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7764,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7838,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8357,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8507,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8538,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8561,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8565,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8569,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8587,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8624,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8628,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8692,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8701,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8719,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8720,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8755,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8771,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8775,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8788,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8792,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8796,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8800,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8804,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8808,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8812,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8873,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8917,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8948,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8949,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8950,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8953,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8969,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8978,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8995,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9035,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9040,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9041,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9042,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9045,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9046,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9047,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9054,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9055,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9056,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9075,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9076,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9077,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9098,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9120,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9121,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9122,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9139,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9145,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9149,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9150,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9151,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9152,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9153,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9154,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9164,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9170,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9175,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9248,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9398,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9399,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9402,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9460,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9499,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9537,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9661,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9662,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9664,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9670,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9671,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9673,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9682,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9683,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9685,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9693,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9694,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9696,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9704,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9705,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9707,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9716,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9717,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9719,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9727,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9728,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9730,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9738,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9739,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9741,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9749,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9750,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9752,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9760,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9761,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9763,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9771,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9772,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9774,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9784,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9785,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9787,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9794,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9795,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9797,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9817,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9818,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9820,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9864,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9865,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9867,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9876,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9877,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9879,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9898,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9899,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9901,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9919,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9920,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9922,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9940,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9941,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9943,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9952,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9953,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9955,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9964,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9965,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9967,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9982,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9983,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9985,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9994,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9995,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9997,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10006,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10007,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10009,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10426,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10427,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10428,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10430,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10445,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10472,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10473,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10478,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10485,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10487,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10488,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10511,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10512,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10518,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 188,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 2426,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 2430,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7189,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 7753,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8231,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8234,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8235,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8236,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8237,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8238,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8239,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8240,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8247,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8251,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8256,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8257,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8261,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8264,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8265,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8555,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8575,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8584,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8621,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8623,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8650,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8661,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8670,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8681,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8707,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8761,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8767,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8783,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8786,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8820,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8823,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8833,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8834,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8866,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8905,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8923,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8932,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8941,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8980,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8987,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8992,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8993,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9029,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9050,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9081,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9092,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9097,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9135,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9157,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9181,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9200,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9212,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9236,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9245,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9256,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9265,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9282,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9283,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9284,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9304,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9314,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9335,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9381,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9432,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9433,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9434,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9439,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9440,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9442,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9444,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9445,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9448,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9449,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9450,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9476,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9482,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9492,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9494,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9514,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9520,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9530,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9532,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9552,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9558,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9567,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9569,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9578,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9579,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9581,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9632,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9633,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9634,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9636,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9639,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9640,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9642,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9808,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9889,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9910,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9931,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10033,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10034,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10036,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10376,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10377,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10378,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10380,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10411,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10420,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 183,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 2428,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 2432,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 2445,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 2449,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 2479,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 2481,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 2483,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8225,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8244,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8246,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8270,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8273,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8542,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8544,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8547,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8896,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8907,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8957,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8960,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8966,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8972,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8974,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8975,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8982,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8990,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9016,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9017,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9018,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9019,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9020,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9021,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9022,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9023,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9024,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9025,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9052,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9085,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9086,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9095,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9125,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9126,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9137,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9138,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9162,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9163,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9287,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9307,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9385,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9419,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9420,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9422,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9453,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9454,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9486,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9524,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9562,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9593,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9594,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9596,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9606,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9607,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9609,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9620,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9621,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9623,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9651,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9652,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9654,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10054,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10055,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10057,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10198,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10199,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10227,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10365,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10366,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10368,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10389,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10390,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10392,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10400,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10401,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10403,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10415,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10418,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 2447,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 2451,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8260,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8272,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8831,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8852,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8892,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8894,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8964,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9027,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9298,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9299,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9300,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9301,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9302,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9489,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9527,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 9565,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10110,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10111,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10139,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10155,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10172,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10173,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10175,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10190,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10191,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10193,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10222,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10223,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10230,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10352,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10353,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10355,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10084,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10085,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10087,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10102,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10103,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10105,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10134,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10135,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 10142,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8733,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8753,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8751,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8746,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8747,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 8749,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "scripts/hal-security-audit.py": [
+      {
+        "lineno": 193,
+        "type": "missing_docstring",
+        "detail": "main"
+      },
+      {
+        "lineno": 61,
+        "type": "missing_docstring",
+        "detail": "_search"
+      },
+      {
+        "lineno": 41,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 42,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 148,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 172,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 53,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 162,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 165,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 186,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 189,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 242,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 254,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 255,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 272,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 273,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 49,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 265,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 266,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 281,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 285,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 268,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 270,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 295,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 299,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 320,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "scripts/hal-stocks.py": [
+      {
+        "lineno": 26,
+        "type": "missing_docstring",
+        "detail": "_load_hal_studio_module"
+      },
+      {
+        "lineno": 45,
+        "type": "missing_docstring",
+        "detail": "_utc_now"
+      },
+      {
+        "lineno": 49,
+        "type": "missing_docstring",
+        "detail": "_normalize_symbol"
+      },
+      {
+        "lineno": 53,
+        "type": "missing_docstring",
+        "detail": "_validate_symbol"
+      },
+      {
+        "lineno": 63,
+        "type": "missing_docstring",
+        "detail": "_get_quote_data"
+      },
+      {
+        "lineno": 73,
+        "type": "missing_docstring",
+        "detail": "_ollama_generate"
+      },
+      {
+        "lineno": 94,
+        "type": "missing_docstring",
+        "detail": "_ai_stock_advice"
+      },
+      {
+        "lineno": 113,
+        "type": "missing_docstring",
+        "detail": "_quote"
+      },
+      {
+        "lineno": 167,
+        "type": "missing_docstring",
+        "detail": "_watch"
+      },
+      {
+        "lineno": 267,
+        "type": "missing_docstring",
+        "detail": "_advisor"
+      },
+      {
+        "lineno": 300,
+        "type": "missing_docstring",
+        "detail": "_stock_menu"
+      },
+      {
+        "lineno": 332,
+        "type": "missing_docstring",
+        "detail": "build_parser"
+      },
+      {
+        "lineno": 360,
+        "type": "missing_docstring",
+        "detail": "main"
+      },
+      {
+        "lineno": 163,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 256,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 31,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 36,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 117,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 144,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 171,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 178,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 181,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 184,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 271,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 284,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 291,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 292,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 302,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 303,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 304,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 305,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 306,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 245,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 277,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 279,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 294,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 296,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 231,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 313,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 131,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 132,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 133,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 198,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 199,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 200,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 325,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 329,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "scripts/hal-studio.py": [
+      {
+        "lineno": 30,
+        "type": "missing_docstring",
+        "detail": "_now_utc"
+      },
+      {
+        "lineno": 34,
+        "type": "missing_docstring",
+        "detail": "_require_pillow"
+      },
+      {
+        "lineno": 42,
+        "type": "missing_docstring",
+        "detail": "list_capabilities"
+      },
+      {
+        "lineno": 61,
+        "type": "missing_docstring",
+        "detail": "_have_python_module"
+      },
+      {
+        "lineno": 68,
+        "type": "missing_docstring",
+        "detail": "print_capabilities"
+      },
+      {
+        "lineno": 77,
+        "type": "missing_docstring",
+        "detail": "_fetch_quote"
+      },
+      {
+        "lineno": 125,
+        "type": "missing_docstring",
+        "detail": "stock_quote"
+      },
+      {
+        "lineno": 154,
+        "type": "missing_docstring",
+        "detail": "stock_watch"
+      },
+      {
+        "lineno": 188,
+        "type": "missing_docstring",
+        "detail": "image_describe"
+      },
+      {
+        "lineno": 240,
+        "type": "missing_docstring",
+        "detail": "image_resize"
+      },
+      {
+        "lineno": 258,
+        "type": "missing_docstring",
+        "detail": "image_poster"
+      },
+      {
+        "lineno": 303,
+        "type": "missing_docstring",
+        "detail": "text_to_image"
+      },
+      {
+        "lineno": 368,
+        "type": "missing_docstring",
+        "detail": "_get_ollama_url"
+      },
+      {
+        "lineno": 372,
+        "type": "missing_docstring",
+        "detail": "_ollama_refine_prompt"
+      },
+      {
+        "lineno": 403,
+        "type": "missing_docstring",
+        "detail": "_diffusers_pipeline"
+      },
+      {
+        "lineno": 425,
+        "type": "missing_docstring",
+        "detail": "ai_image_generate"
+      },
+      {
+        "lineno": 475,
+        "type": "missing_docstring",
+        "detail": "text_to_music"
+      },
+      {
+        "lineno": 532,
+        "type": "missing_docstring",
+        "detail": "text_to_speech"
+      },
+      {
+        "lineno": 564,
+        "type": "missing_docstring",
+        "detail": "mix_music_and_vocals"
+      },
+      {
+        "lineno": 599,
+        "type": "missing_docstring",
+        "detail": "_safe_slug"
+      },
+      {
+        "lineno": 604,
+        "type": "missing_docstring",
+        "detail": "prompt_pipeline"
+      },
+      {
+        "lineno": 678,
+        "type": "missing_docstring",
+        "detail": "video_info"
+      },
+      {
+        "lineno": 706,
+        "type": "missing_docstring",
+        "detail": "video_trim"
+      },
+      {
+        "lineno": 859,
+        "type": "missing_docstring",
+        "detail": "_has_flatpak_app"
+      },
+      {
+        "lineno": 869,
+        "type": "missing_docstring",
+        "detail": "_obs_command"
+      },
+      {
+        "lineno": 878,
+        "type": "missing_docstring",
+        "detail": "_libreoffice_command"
+      },
+      {
+        "lineno": 890,
+        "type": "missing_docstring",
+        "detail": "_default_obs_recordings_dir"
+      },
+      {
+        "lineno": 894,
+        "type": "missing_docstring",
+        "detail": "_v4l2_name_for_device"
+      },
+      {
+        "lineno": 938,
+        "type": "missing_docstring",
+        "detail": "_list_video_devices"
+      },
+      {
+        "lineno": 974,
+        "type": "missing_docstring",
+        "detail": "obsbot_status"
+      },
+      {
+        "lineno": 998,
+        "type": "missing_docstring",
+        "detail": "obsbot_list_controls"
+      },
+      {
+        "lineno": 1024,
+        "type": "missing_docstring",
+        "detail": "obsbot_set_control"
+      },
+      {
+        "lineno": 1047,
+        "type": "missing_docstring",
+        "detail": "obs_status"
+      },
+      {
+        "lineno": 1067,
+        "type": "missing_docstring",
+        "detail": "obs_launch"
+      },
+      {
+        "lineno": 1086,
+        "type": "missing_docstring",
+        "detail": "obs_recordings"
+      },
+      {
+        "lineno": 1114,
+        "type": "missing_docstring",
+        "detail": "libreoffice_convert"
+      },
+      {
+        "lineno": 1153,
+        "type": "missing_docstring",
+        "detail": "run_menu"
+      },
+      {
+        "lineno": 1300,
+        "type": "missing_docstring",
+        "detail": "build_parser"
+      },
+      {
+        "lineno": 1429,
+        "type": "missing_docstring",
+        "detail": "main"
+      },
+      {
+        "lineno": 70,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 71,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 139,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 140,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 141,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 142,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 143,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 148,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 149,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 150,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 160,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 161,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 184,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 209,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 210,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 254,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 299,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 364,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 471,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 528,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 560,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 595,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 669,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 670,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 671,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 672,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 673,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 674,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 702,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 978,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 979,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 980,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 981,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 982,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1018,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1019,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1020,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1043,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1056,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1057,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1058,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1059,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1060,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1061,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1062,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1063,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1103,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1104,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1149,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 73,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 128,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 145,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 147,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 156,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 190,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 242,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 245,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 260,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 305,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 477,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 480,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 545,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 557,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 566,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 569,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 575,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 593,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 680,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 683,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 698,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 708,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 711,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 766,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 773,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 776,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 812,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 826,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 848,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 850,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 984,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 994,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1001,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1015,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1027,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1041,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1070,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1079,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1089,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1106,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1110,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1117,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1120,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1130,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1142,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1155,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1156,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1157,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1158,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1159,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1160,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1161,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1162,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1163,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1164,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1165,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1166,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1167,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1168,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1169,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1170,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1171,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1172,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1173,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1174,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1175,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1176,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1177,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1178,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1179,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 181,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 213,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 217,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 458,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 543,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 555,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 770,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 783,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 986,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 989,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 991,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1008,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1034,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1082,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1144,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1146,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 167,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 170,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 461,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 988,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 231,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 233,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 235,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 173,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 176,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1218,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1278,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1286,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1297,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "scripts/hal-tools.py": [
+      {
+        "lineno": 6,
+        "type": "todo",
+        "detail": "generation, system monitoring, persona switching, todo management, and more."
+      },
+      {
+        "lineno": 24,
+        "type": "todo",
+        "detail": "hal-tools.py --todo add \"Review satellite patching plan\""
+      },
+      {
+        "lineno": 25,
+        "type": "todo",
+        "detail": "hal-tools.py --todo list"
+      },
+      {
+        "lineno": 56,
+        "type": "todo",
+        "detail": "TODO_FILE = os.path.join(TOOLS_DIR, 'todo.json')"
+      },
+      {
+        "lineno": 1284,
+        "type": "todo",
+        "detail": "# \u2500\u2500 TODO Manager \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
+      },
+      {
+        "lineno": 1286,
+        "type": "todo",
+        "detail": "def _load_todos() -> list:"
+      },
+      {
+        "lineno": 1288,
+        "type": "todo",
+        "detail": "if os.path.exists(TODO_FILE):"
+      },
+      {
+        "lineno": 1290,
+        "type": "todo",
+        "detail": "with open(TODO_FILE, encoding='utf-8') as f:"
+      },
+      {
+        "lineno": 1297,
+        "type": "todo",
+        "detail": "def _save_todos(todos: list):"
+      },
+      {
+        "lineno": 1299,
+        "type": "todo",
+        "detail": "with open(TODO_FILE, 'w', encoding='utf-8') as f:"
+      },
+      {
+        "lineno": 1300,
+        "type": "todo",
+        "detail": "json.dump(todos, f, indent=2)"
+      },
+      {
+        "lineno": 1303,
+        "type": "todo",
+        "detail": "def cmd_todo(action: str, text: str = '', item_id: int = 0) -> None:"
+      },
+      {
+        "lineno": 1304,
+        "type": "todo",
+        "detail": "\"\"\"Simple AI-aware TODO list manager.\"\"\""
+      },
+      {
+        "lineno": 1305,
+        "type": "todo",
+        "detail": "todos = _load_todos()"
+      },
+      {
+        "lineno": 1310,
+        "type": "todo",
+        "detail": "print('Provide todo text after \"add\".', file=sys.stderr)"
+      },
+      {
+        "lineno": 1312,
+        "type": "todo",
+        "detail": "todo = {"
+      },
+      {
+        "lineno": 1313,
+        "type": "todo",
+        "detail": "'id': max((t['id'] for t in todos), default=0) + 1,"
+      },
+      {
+        "lineno": 1319,
+        "type": "todo",
+        "detail": "todos.append(todo)"
+      },
+      {
+        "lineno": 1320,
+        "type": "todo",
+        "detail": "_save_todos(todos)"
+      },
+      {
+        "lineno": 1321,
+        "type": "todo",
+        "detail": "print(f'  \u2705 Added todo #{todo[\"id\"]}: {text}')"
+      },
+      {
+        "lineno": 1324,
+        "type": "todo",
+        "detail": "pending = [t for t in todos if not t['done']]"
+      },
+      {
+        "lineno": 1325,
+        "type": "todo",
+        "detail": "done = [t for t in todos if t['done']]"
+      },
+      {
+        "lineno": 1326,
+        "type": "todo",
+        "detail": "print(f'\\n\ud83d\udcdd HAL TODO List  ({len(pending)} pending, {len(done)} done)\\n')"
+      },
+      {
+        "lineno": 1327,
+        "type": "todo",
+        "detail": "if not todos:"
+      },
+      {
+        "lineno": 1328,
+        "type": "todo",
+        "detail": "print('  No todos. Add with: hal --todo add \"your task\"')"
+      },
+      {
+        "lineno": 1337,
+        "type": "todo",
+        "detail": "print('Provide todo ID: hal --todo done <id>', file=sys.stderr)"
+      },
+      {
+        "lineno": 1339,
+        "type": "todo",
+        "detail": "found = next((t for t in todos if t['id'] == item_id), None)"
+      },
+      {
+        "lineno": 1341,
+        "type": "todo",
+        "detail": "print(f'Todo #{item_id} not found.')"
+      },
+      {
+        "lineno": 1345,
+        "type": "todo",
+        "detail": "_save_todos(todos)"
+      },
+      {
+        "lineno": 1350,
+        "type": "todo",
+        "detail": "print('Provide todo ID: hal --todo delete <id>', file=sys.stderr)"
+      },
+      {
+        "lineno": 1352,
+        "type": "todo",
+        "detail": "before = len(todos)"
+      },
+      {
+        "lineno": 1353,
+        "type": "todo",
+        "detail": "todos = [t for t in todos if t['id'] != item_id]"
+      },
+      {
+        "lineno": 1354,
+        "type": "todo",
+        "detail": "_save_todos(todos)"
+      },
+      {
+        "lineno": 1355,
+        "type": "todo",
+        "detail": "print(f'  {\"Deleted\" if len(todos) < before else \"Not found\"}: #{item_id}')"
+      },
+      {
+        "lineno": 1358,
+        "type": "todo",
+        "detail": "todos = [t for t in todos if not t['done']]"
+      },
+      {
+        "lineno": 1359,
+        "type": "todo",
+        "detail": "_save_todos(todos)"
+      },
+      {
+        "lineno": 1360,
+        "type": "todo",
+        "detail": "print('  \u2713 Cleared completed todos.')"
+      },
+      {
+        "lineno": 1363,
+        "type": "todo",
+        "detail": "# Use AI to prioritize the todo list"
+      },
+      {
+        "lineno": 1364,
+        "type": "todo",
+        "detail": "pending = [t for t in todos if not t['done']]"
+      },
+      {
+        "lineno": 1366,
+        "type": "todo",
+        "detail": "print('  No pending todos to prioritize.')"
+      },
+      {
+        "lineno": 1370,
+        "type": "todo",
+        "detail": "f'I have the following TODO items. Please rank them by priority for a sysadmin/DevOps engineer, '"
+      },
+      {
+        "lineno": 1373,
+        "type": "todo",
+        "detail": "print('\\n\ud83e\udd16 HAL todo prioritization:\\n')"
+      },
+      {
+        "lineno": 1737,
+        "type": "todo",
+        "detail": "# TODO"
+      },
+      {
+        "lineno": 1738,
+        "type": "todo",
+        "detail": "todo_grp = ap.add_argument_group('TODO Manager')"
+      },
+      {
+        "lineno": 1739,
+        "type": "todo",
+        "detail": "todo_grp.add_argument('--todo', nargs='+', metavar='ACTION', help='TODO manager: add|list|done|delete|clear|prioritize [text] [id]')"
+      },
+      {
+        "lineno": 1881,
+        "type": "todo",
+        "detail": "# TODO"
+      },
+      {
+        "lineno": 1882,
+        "type": "todo",
+        "detail": "if args.todo:"
+      },
+      {
+        "lineno": 1883,
+        "type": "todo",
+        "detail": "parts = args.todo"
+      },
+      {
+        "lineno": 1885,
+        "type": "todo",
+        "detail": "# Support: --todo done 3  or  --todo add \"some text\""
+      },
+      {
+        "lineno": 1894,
+        "type": "todo",
+        "detail": "cmd_todo(action, text=text, item_id=item_id)"
+      },
+      {
+        "lineno": 72,
+        "type": "missing_docstring",
+        "detail": "_ensure_dirs"
+      },
+      {
+        "lineno": 430,
+        "type": "missing_docstring",
+        "detail": "cmd_personas"
+      },
+      {
+        "lineno": 448,
+        "type": "missing_docstring",
+        "detail": "cmd_set_persona"
+      },
+      {
+        "lineno": 1286,
+        "type": "missing_docstring",
+        "detail": "_load_todos"
+      },
+      {
+        "lineno": 1297,
+        "type": "missing_docstring",
+        "detail": "_save_todos"
+      },
+      {
+        "lineno": 1674,
+        "type": "missing_docstring",
+        "detail": "build_parser"
+      },
+      {
+        "lineno": 1755,
+        "type": "missing_docstring",
+        "detail": "main"
+      },
+      {
+        "lineno": 1200,
+        "type": "missing_docstring",
+        "detail": "get_downloads"
+      },
+      {
+        "lineno": 340,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 376,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 377,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 378,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 425,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 426,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 431,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 432,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 433,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 445,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 458,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 459,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 582,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 591,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 650,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 673,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 675,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 696,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 710,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 712,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 732,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 742,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 744,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 759,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 764,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 765,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 766,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 781,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 783,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 796,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 834,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 836,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 842,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 850,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 876,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 907,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 925,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 926,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 927,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 943,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 957,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1007,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1008,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1009,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1010,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1011,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1012,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1013,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1020,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1028,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1029,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1097,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1107,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1122,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1169,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1170,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1172,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1180,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1208,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1209,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1219,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1220,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1230,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1252,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1253,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1269,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1280,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1389,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1443,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1489,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1495,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1514,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1515,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1579,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1632,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1639,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1647,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1652,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1660,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1668,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 400,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 401,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 402,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 417,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 439,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 440,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 443,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 444,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 452,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 453,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 588,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 597,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 600,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 604,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 608,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 609,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 619,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 653,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 662,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 684,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 753,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 756,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 769,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 793,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 858,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 859,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 866,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 893,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 911,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 922,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 931,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 938,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 939,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 940,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 941,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 963,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 989,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1072,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1073,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1076,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1095,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1158,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1196,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1216,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1232,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1233,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1239,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1248,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1277,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1321,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1418,
+        "type": "missing_docstring",
+        "detail": "bar"
+      },
+      {
+        "lineno": 1440,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1486,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1492,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1525,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1541,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 412,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 419,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 422,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 599,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 729,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 856,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 865,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 869,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 870,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 880,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 882,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 885,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 898,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 901,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 914,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 953,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1075,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1085,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1089,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1091,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1094,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1146,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1151,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1153,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1186,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1192,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1263,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1310,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1326,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1386,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1424,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1432,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1574,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 976,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1081,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1148,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1150,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1328,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1346,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1478,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1331,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1333,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1337,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1341,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1355,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1462,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1476,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1350,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1360,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1466,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1472,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1373,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1374,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1376,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 1366,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "scripts/server.py": [
+      {
+        "lineno": 76,
+        "type": "missing_docstring",
+        "detail": "_load_server_config"
+      },
+      {
+        "lineno": 105,
+        "type": "missing_docstring",
+        "detail": "_utc_now_iso"
+      },
+      {
+        "lineno": 109,
+        "type": "missing_docstring",
+        "detail": "_ensure_dirs"
+      },
+      {
+        "lineno": 113,
+        "type": "missing_docstring",
+        "detail": "_redact_text"
+      },
+      {
+        "lineno": 128,
+        "type": "missing_docstring",
+        "detail": "_audit_event"
+      },
+      {
+        "lineno": 147,
+        "type": "missing_docstring",
+        "detail": "_rotate_audit_log_if_needed"
+      },
+      {
+        "lineno": 172,
+        "type": "missing_docstring",
+        "detail": "_acquire_command_slot"
+      },
+      {
+        "lineno": 190,
+        "type": "missing_docstring",
+        "detail": "_release_command_slot"
+      },
+      {
+        "lineno": 196,
+        "type": "missing_docstring",
+        "detail": "_tool_guard"
+      },
+      {
+        "lineno": 236,
+        "type": "missing_docstring",
+        "detail": "_resolve_timeout"
+      },
+      {
+        "lineno": 268,
+        "type": "missing_docstring",
+        "detail": "_tool_ok"
+      },
+      {
+        "lineno": 283,
+        "type": "missing_docstring",
+        "detail": "_tool_err"
+      },
+      {
+        "lineno": 300,
+        "type": "missing_docstring",
+        "detail": "_cmd_details"
+      },
+      {
+        "lineno": 443,
+        "type": "missing_docstring",
+        "detail": "_check_local_port"
+      },
+      {
+        "lineno": 451,
+        "type": "missing_docstring",
+        "detail": "_service_state"
+      },
+      {
+        "lineno": 458,
+        "type": "missing_docstring",
+        "detail": "_mcp_health_snapshot"
+      },
+      {
+        "lineno": 519,
+        "type": "missing_docstring",
+        "detail": "_read_last_lines"
+      },
+      {
+        "lineno": 530,
+        "type": "missing_docstring",
+        "detail": "_issue_counts"
+      },
+      {
+        "lineno": 560,
+        "type": "missing_docstring",
+        "detail": "_render_issue_report"
+      },
+      {
+        "lineno": 216,
+        "type": "missing_docstring",
+        "detail": "_decorator"
+      },
+      {
+        "lineno": 237,
+        "type": "missing_docstring",
+        "detail": "_to_positive_int"
+      },
+      {
+        "lineno": 952,
+        "type": "missing_docstring",
+        "detail": "h_add"
+      },
+      {
+        "lineno": 1006,
+        "type": "missing_docstring",
+        "detail": "s_add"
+      },
+      {
+        "lineno": 218,
+        "type": "missing_docstring",
+        "detail": "_wrapped"
+      }
+    ],
+    "scripts/hal_auto_improve.py": [
+      {
+        "lineno": 8,
+        "type": "todo",
+        "detail": "bare except:, and TODO comments) and writes suggestion reports to"
+      },
+      {
+        "lineno": 35,
+        "type": "todo",
+        "detail": "# TODO comments"
+      },
+      {
+        "lineno": 37,
+        "type": "todo",
+        "detail": "if 'TODO' in line.upper():"
+      },
+      {
+        "lineno": 38,
+        "type": "todo",
+        "detail": "suggestions.append({'lineno': i, 'type': 'todo', 'detail': line.strip()})"
+      },
+      {
+        "lineno": 20,
+        "type": "missing_docstring",
+        "detail": "should_skip"
+      },
+      {
+        "lineno": 27,
+        "type": "missing_docstring",
+        "detail": "analyze_file"
+      },
+      {
+        "lineno": 63,
+        "type": "missing_docstring",
+        "detail": "main"
+      },
+      {
+        "lineno": 107,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 109,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "mcp-ai/collector.py": [
+      {
+        "lineno": 24,
+        "type": "missing_docstring",
+        "detail": "ensure_dirs"
+      },
+      {
+        "lineno": 28,
+        "type": "missing_docstring",
+        "detail": "run_cmd"
+      },
+      {
+        "lineno": 35,
+        "type": "missing_docstring",
+        "detail": "collect_once"
+      },
+      {
+        "lineno": 80,
+        "type": "missing_docstring",
+        "detail": "main"
+      },
+      {
+        "lineno": 76,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 77,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "mcp-ai/remediate.py": [
+      {
+        "lineno": 34,
+        "type": "missing_docstring",
+        "detail": "ensure_cache_dir"
+      },
+      {
+        "lineno": 37,
+        "type": "missing_docstring",
+        "detail": "load_attempts"
+      },
+      {
+        "lineno": 47,
+        "type": "missing_docstring",
+        "detail": "save_attempts"
+      },
+      {
+        "lineno": 52,
+        "type": "missing_docstring",
+        "detail": "find_latest_entry"
+      },
+      {
+        "lineno": 58,
+        "type": "missing_docstring",
+        "detail": "load_entry"
+      },
+      {
+        "lineno": 62,
+        "type": "missing_docstring",
+        "detail": "build_prompt"
+      },
+      {
+        "lineno": 125,
+        "type": "missing_docstring",
+        "detail": "call_llm"
+      },
+      {
+        "lineno": 154,
+        "type": "missing_docstring",
+        "detail": "find_suggestion_for_entry"
+      },
+      {
+        "lineno": 168,
+        "type": "missing_docstring",
+        "detail": "audit_event"
+      },
+      {
+        "lineno": 178,
+        "type": "missing_docstring",
+        "detail": "ensure_backup_dir"
+      },
+      {
+        "lineno": 186,
+        "type": "missing_docstring",
+        "detail": "create_etc_backup"
+      },
+      {
+        "lineno": 200,
+        "type": "missing_docstring",
+        "detail": "metrics_inc"
+      },
+      {
+        "lineno": 217,
+        "type": "missing_docstring",
+        "detail": "extract_json"
+      },
+      {
+        "lineno": 230,
+        "type": "missing_docstring",
+        "detail": "normalize_solutions"
+      },
+      {
+        "lineno": 251,
+        "type": "missing_docstring",
+        "detail": "write_suggestion"
+      },
+      {
+        "lineno": 268,
+        "type": "missing_docstring",
+        "detail": "attempt_execute"
+      },
+      {
+        "lineno": 303,
+        "type": "missing_docstring",
+        "detail": "mark_attempt"
+      },
+      {
+        "lineno": 313,
+        "type": "missing_docstring",
+        "detail": "datetime_now_iso"
+      },
+      {
+        "lineno": 317,
+        "type": "missing_docstring",
+        "detail": "main"
+      },
+      {
+        "lineno": 431,
+        "type": "missing_docstring",
+        "detail": "validate_remediation_schema"
+      },
+      {
+        "lineno": 454,
+        "type": "missing_docstring",
+        "detail": "write_plan_file"
+      },
+      {
+        "lineno": 412,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 331,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 534,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 653,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 151,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 371,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 404,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 409,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 480,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 487,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 488,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 494,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 565,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 592,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 630,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 634,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 647,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 482,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 484,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 501,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 548,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 553,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 560,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 620,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "mcp-ai/runner.py": [
+      {
+        "lineno": 54,
+        "type": "missing_docstring",
+        "detail": "find_ai_home"
+      },
+      {
+        "lineno": 76,
+        "type": "missing_docstring",
+        "detail": "log"
+      },
+      {
+        "lineno": 164,
+        "type": "missing_docstring",
+        "detail": "_is_image_allowed"
+      },
+      {
+        "lineno": 278,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 216,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 220,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 226,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 246,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 252,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 257,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 265,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "mcp-ai/approve.py": [
+      {
+        "lineno": 22,
+        "type": "missing_docstring",
+        "detail": "list_plans"
+      },
+      {
+        "lineno": 31,
+        "type": "missing_docstring",
+        "detail": "approve"
+      },
+      {
+        "lineno": 48,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 25,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 28,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 33,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "mcp-ai/simulate_failure.py": [
+      {
+        "lineno": 19,
+        "type": "missing_docstring",
+        "detail": "make_entry"
+      },
+      {
+        "lineno": 44,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 45,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "mcp-ai/mcp_rpc.py": [
+      {
+        "lineno": 14,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 23,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 26,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ],
+    "mcp-ai/rollback.py": [
+      {
+        "lineno": 15,
+        "type": "missing_docstring",
+        "detail": "list_backups"
+      },
+      {
+        "lineno": 24,
+        "type": "missing_docstring",
+        "detail": "restore"
+      },
+      {
+        "lineno": 18,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 21,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 26,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 31,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      },
+      {
+        "lineno": 37,
+        "type": "print_usage",
+        "detail": "consider using logging instead of print()"
+      }
+    ]
+  }
+}

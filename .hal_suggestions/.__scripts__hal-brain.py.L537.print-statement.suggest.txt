@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 537, "type": "print-statement"}
+
+### SNIPPET
+            print(f'  {icon} {name:<25} {srv.get("description", "")[:40]}  [{status}]')
+
+    # ── Key Python packages
+    print('\n\n📦 Key Python Packages:\n')
+    packages = ['requests', 'ansible', 'duckduckgo-search', 'huggingface-hub', 'psutil',
+                'streamlit', 'fastapi', 'rich', 'ollama-mcp-bridge', 'pandas']
+    for pkg in packages:
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logger.debug(f'  {icon} {name:<25} {srv.get("description", "")[:40]}  [{status}]')
+
+# ── Key Python packages
+logger.info('\n\n📦 Key Python Packages:\n')
+packages = ['requests', 'ansible', 'duckduckgo-search', 'huggingface-hub', 'psutil',
+            'streamlit', 'fastapi', 'rich', 'ollama-mcp-bridge', 'pandas']
+for pkg in packages:
+<END_SUGGESTION>
+
+Rationale: Replace `print` statements with `logger.debug` and `logger.info` for better log management and to avoid cluttering standard output.

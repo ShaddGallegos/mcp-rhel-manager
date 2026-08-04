@@ -1,0 +1,2 @@
+Suggestions for .cache/mcp_update_dashboard.py
+- line 33: print_usage - consider using logging instead of print()

@@ -1,0 +1,8 @@
+Suggestions for scripts/llama_invoke.py
+- line 16: missing_docstring - main
+- line 25: print_usage - consider using logging instead of print()
+- line 53: print_usage - consider using logging instead of print()
+- line 33: print_usage - consider using logging instead of print()
+- line 34: print_usage - consider using logging instead of print()
+- line 35: print_usage - consider using logging instead of print()
+- line 56: print_usage - consider using logging instead of print()

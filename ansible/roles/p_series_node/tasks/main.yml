@@ -1,0 +1,96 @@
+---
+# Remediation tasks for Lenovo ThinkPad, IdeaPad, and P and W-Series nodes (populated by architect_genesis.sh)
+
+# Idempotency guard — skip entire role body if already applied in this play.
+# Prevents the "minirhis_host_setup ran twice" noise when the role is included
+# more than once (e.g. via roles: and include_role: in the same playbook).
+- name: Skip if host setup already applied this play
+  ansible.builtin.meta: end_host
+  when: _minirhis_host_setup_done | default(false)
+
+- name: Install required diagnostic and remediation packages
+  become: true
+  dnf:
+    name:
+      - smartmontools
+      - lm_sensors
+      - pciutils
+      - sof-firmware
+      - audit
+      - audit-libs
+      - auditd
+      - firewalld
+      - fail2ban
+      - iproute
+    state: present
+    update_cache: true
+
+- name: Ensure auditd is enabled and started
+  become: true
+  service:
+    name: auditd
+    state: started
+    enabled: true
+
+- name: Ensure firewalld is enabled and started
+  become: true
+  service:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: Ensure fail2ban is enabled and started (if available)
+  become: true
+  service:
+    name: fail2ban
+    state: started
+    enabled: true
+  ignore_errors: true
+
+- name: Deploy systemd drop-in for mcp-bridge to order after ollama
+  become: true
+  copy:
+    dest: /etc/systemd/system/mcp-bridge.service.d/override.conf
+    content: |
+      [Unit]
+      After=ollama.service
+      [Service]
+      Restart=on-failure
+
+- name: Install Python project requirements into venv
+  become: true
+  pip:
+    requirements: /opt/mcp-rhel-manager/requirements.txt
+    virtualenv: /opt/mcp-rhel-manager/venv
+    virtualenv_command: python3 -m venv
+  ignore_errors: true
+
+- name: Restore filelock after potential aider-chat system-wide install downgrade
+  # aider-chat hard-pins filelock==3.20.3 which conflicts with virtualenv>=3.24.2 and tox>=3.25.
+  # This task ensures the venv has the correct filelock version regardless of system pip state.
+  become: true
+  pip:
+    name: "filelock>=3.24.2"
+    virtualenv: /opt/mcp-rhel-manager/venv
+    state: latest
+  ignore_errors: true
+
+- name: Reload systemd daemon
+  become: true
+  command: systemctl daemon-reload
+  changed_when: false
+
+# Refresh pci.ids so libvirt/GTK stops warning about unknown PCI IDs
+# (e.g. 1af4:1012 — virtio-rng — which ships in newer upstream pci.ids but
+# may be absent from the version bundled with the installed pciutils package).
+- name: Refresh pci.ids database (fixes virtio-rng 1af4:1012 libvirt noise)
+  become: true
+  ansible.builtin.command: update-pciids
+  changed_when: false
+  failed_when: false
+  tags: [pciutils, hardware]
+
+# Mark this role as applied so a second include in the same play is a no-op.
+- name: Mark host setup as completed (idempotency guard)
+  ansible.builtin.set_fact:
+    _minirhis_host_setup_done: true

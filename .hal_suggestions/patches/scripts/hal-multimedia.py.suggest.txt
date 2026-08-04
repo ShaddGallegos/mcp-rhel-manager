@@ -1,0 +1,24 @@
+Suggestions for scripts/hal-multimedia.py
+- line 45: missing_docstring - _ollama_generate
+- line 66: missing_docstring - _coerce_plan_json
+- line 98: missing_docstring - _ai_plan
+- line 160: missing_docstring - _run_hal_studio
+- line 168: missing_docstring - _multimedia_menu
+- line 173: missing_docstring - build_parser
+- line 188: missing_docstring - main
+- line 110: print_usage - consider using logging instead of print()
+- line 116: print_usage - consider using logging instead of print()
+- line 137: print_usage - consider using logging instead of print()
+- line 139: print_usage - consider using logging instead of print()
+- line 140: print_usage - consider using logging instead of print()
+- line 162: print_usage - consider using logging instead of print()
+- line 207: print_usage - consider using logging instead of print()
+- line 211: print_usage - consider using logging instead of print()
+- line 212: print_usage - consider using logging instead of print()
+- line 142: print_usage - consider using logging instead of print()
+- line 143: print_usage - consider using logging instead of print()
+- line 145: print_usage - consider using logging instead of print()
+- line 149: print_usage - consider using logging instead of print()
+- line 151: print_usage - consider using logging instead of print()
+- line 147: print_usage - consider using logging instead of print()
+- line 153: print_usage - consider using logging instead of print()

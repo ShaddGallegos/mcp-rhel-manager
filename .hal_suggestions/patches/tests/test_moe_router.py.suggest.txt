@@ -1,0 +1,8 @@
+Suggestions for tests/test_moe_router.py
+- line 6: missing_docstring - load_moe_module
+- line 13: missing_docstring - MoeRouterTests
+- line 14: missing_docstring - test_rule_mode_moe_call
+- line 26: missing_docstring - test_embedding_mode_fallback
+- line 34: missing_docstring - test_expert_concurrency
+- line 18: missing_docstring - fake_call
+- line 37: missing_docstring - slow_call

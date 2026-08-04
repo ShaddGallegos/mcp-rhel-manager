@@ -1,0 +1,71 @@
+name: MoE Integration Tests (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: "Runner label (e.g., self-hosted or ubuntu-latest)"
+        required: false
+        default: "self-hosted"
+      ollama_url:
+        description: "Optional OLLAMA_URL; if blank uses repository secret or localhost"
+        required: false
+        default: ""
+
+jobs:
+  integration:
+    runs-on: ${{ github.event.inputs.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt || true
+          # optional: try to install faiss and sklearn for faster index support
+          python -m pip install faiss-cpu scikit-learn || true
+
+      - name: Build MoE profile index
+        run: |
+          python mcp-ai/build_moe_index.py --rebuild
+        shell: bash
+
+      - name: Sanity check Ollama
+        env:
+          OLLAMA_URL_INPUT: ${{ github.event.inputs.ollama_url }}
+          OLLAMA_URL_SECRET: ${{ secrets.OLLAMA_URL }}
+        run: |
+          if [ -n "$OLLAMA_URL_INPUT" ]; then
+            export OLLAMA_URL="$OLLAMA_URL_INPUT"
+          elif [ -n "$OLLAMA_URL_SECRET" ]; then
+            export OLLAMA_URL="$OLLAMA_URL_SECRET"
+          else
+            export OLLAMA_URL='http://localhost:1776/api/chat'
+          fi
+          echo "Using OLLAMA_URL=$OLLAMA_URL"
+          if command -v curl >/dev/null 2>&1; then
+            curl -sS --fail "$OLLAMA_URL" || true
+          fi
+        shell: bash
+
+      - name: Run gated MoE integration tests
+        env:
+          MOE_RUN_INTEGRATION: "1"
+          OLLAMA_URL_INPUT: ${{ github.event.inputs.ollama_url }}
+          OLLAMA_URL_SECRET: ${{ secrets.OLLAMA_URL }}
+        run: |
+          if [ -n "$OLLAMA_URL_INPUT" ]; then
+            export OLLAMA_URL="$OLLAMA_URL_INPUT"
+          elif [ -n "$OLLAMA_URL_SECRET" ]; then
+            export OLLAMA_URL="$OLLAMA_URL_SECRET"
+          else
+            export OLLAMA_URL='http://localhost:1776/api/chat'
+          fi
+          echo "Using OLLAMA_URL=$OLLAMA_URL"
+          python -m unittest tests/test_moe_integration.py -v
+        shell: bash

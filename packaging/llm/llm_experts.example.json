@@ -1,0 +1,12 @@
+{
+  "code_fixer": {
+    "description": "Suggest code fixes and patches for Python/Bash/Ansible",
+    "model": "coder-model",
+    "cmd": "ollama run coder-model --prompt-file {prompt_file}"
+  },
+  "shell_fixer": {
+    "description": "Shell-specific suggestions",
+    "model": "shell-model",
+    "cmd": "ollama run shell-model --prompt-file {prompt_file}"
+  }
+}

@@ -1,0 +1,5 @@
+Suggestions for mcp-ai/moe_admin.py
+- line 15: missing_docstring - main
+- line 22: print_usage - consider using logging instead of print()
+- line 29: print_usage - consider using logging instead of print()
+- line 32: print_usage - consider using logging instead of print()

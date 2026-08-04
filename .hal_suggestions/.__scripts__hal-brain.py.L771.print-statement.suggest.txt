@@ -1,0 +1,23 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 771, "type": "print-statement"}
+
+### SNIPPET
+    """Start a registered MCP server."""
+    registry = _load_mcp_registry()
+    if name not in registry:
+        print(f'MCP server not registered: {name}', file=sys.stderr)
+        print(f'Available: {", ".join(registry.keys())}')
+        return 1
+
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+    """Start a registered MCP server."""
+    registry = _load_mcp_registry()
+    if name not in registry:
+        logging.error(f'MCP server not registered: {name}')
+        logging.info(f'Available: {", ".join(registry.keys())}')
+        return 1
+<END_SUGGESTION>
+
+Rationale: Replace print statements with logging to improve the code's robustness and maintainability.

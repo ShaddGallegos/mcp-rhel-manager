@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 786, "type": "print-statement"}
+
+### SNIPPET
+        print(f'No command defined for {name}', file=sys.stderr)
+        return 1
+
+    print(f'\n▶  Starting MCP server: {name}')
+    env = {**os.environ, **srv.get('env', {})}
+
+    if isinstance(cmd, str):
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+        sys.stderr.write(f'No command defined for {name}\n')
+        return 1
+
+    sys.stdout.write(f'\n▶  Starting MCP server: {name}\n')
+    env = {**os.environ, **srv.get('env', {})}
+
+    if isinstance(cmd, str):
+<END_SUGGESTION>
+
+Rationale: Replaced `print` statements with `sys.stderr.write` and `sys.stdout.write` to ensure consistent use of standard error and output streams.

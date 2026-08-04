@@ -1,0 +1,21 @@
+Suggestions for mcp-ai/ingest_documents.py
+- line 44: missing_docstring - IngestResult
+- line 51: missing_docstring - utc_ts
+- line 55: missing_docstring - sha12
+- line 59: missing_docstring - read_text_file
+- line 68: missing_docstring - read_delimited
+- line 80: missing_docstring - read_spreadsheet
+- line 125: missing_docstring - read_pdf
+- line 141: missing_docstring - read_docx
+- line 155: missing_docstring - _run_text_extractor
+- line 166: missing_docstring - read_doc
+- line 199: missing_docstring - gather_files
+- line 225: missing_docstring - ingest_file
+- line 273: missing_docstring - parse_args
+- line 289: missing_docstring - main
+- line 305: print_usage - consider using logging instead of print()
+- line 321: print_usage - consider using logging instead of print()
+- line 302: print_usage - consider using logging instead of print()
+- line 313: print_usage - consider using logging instead of print()
+- line 316: print_usage - consider using logging instead of print()
+- line 319: print_usage - consider using logging instead of print()

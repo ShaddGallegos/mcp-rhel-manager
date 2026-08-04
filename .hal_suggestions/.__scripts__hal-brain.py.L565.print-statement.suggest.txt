@@ -1,0 +1,18 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 565, "type": "print-statement"}
+
+### SNIPPET
+
+def resource_cleanup(days: int = 30, dry_run: bool = True) -> list[str]:
+    """Remove Ollama models not used in the last N days."""
+    print(f'\n🧹 Resource Cleanup (unused > {days} days)  [{"DRY RUN" if dry_run else "LIVE"}]\n')
+
+    db = _load_perf_db()
+    available = _get_available_models()
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logger.info(f'\n🧹 Resource Cleanup (unused > {days} days)  [{"DRY RUN" if dry_run else "LIVE"}]\n')
+<END_SUGGESTION>
+
+Replace the print statement with a logger.info call to maintain logging while following best practices.

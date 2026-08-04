@@ -1,0 +1,28 @@
+[Unit]
+Description=MCP Approvals API (user service)
+After=network.target
+
+[Service]
+# ExecStart: run the approvals API from this repository
+# Allow optional environment files so admins or users can provide cert paths
+EnvironmentFile=-/etc/mcp-ai/approvals.env
+EnvironmentFile=-%h/.config/mcp/approvals.env
+ExecStart=%h/GIT/mcp-rhel-manager/.venv/bin/python %h/GIT/mcp-rhel-manager/mcp-ai/approvals_api.py --host 127.0.0.1 --port 8443
+WorkingDirectory=%h/GIT/mcp-rhel-manager
+Environment=PYTHONUNBUFFERED=1
+StandardOutput=journal
+StandardError=journal
+MemoryAccounting=yes
+MemoryMax=1G
+MemorySwapMax=1G
+OOMScoreAdjust=-1000
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=yes
+NoNewPrivileges=yes
+ReadWritePaths=%h/.mcp-ai %h/GIT/mcp-rhel-manager
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=default.target

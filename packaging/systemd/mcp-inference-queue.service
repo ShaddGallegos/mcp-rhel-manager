@@ -1,0 +1,13 @@
+[Unit]
+Description=MCP Inference Queue Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory={{REPO_DIR}}
+ExecStart=/usr/bin/env bash -c "{{REPO_DIR}}/scripts/start_inference_queue.sh"
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

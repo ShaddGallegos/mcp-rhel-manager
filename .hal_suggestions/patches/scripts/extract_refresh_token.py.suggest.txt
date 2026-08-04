@@ -1,0 +1,4 @@
+Suggestions for scripts/extract_refresh_token.py
+- line 15: missing_docstring - parse_text
+- line 35: missing_docstring - main
+- line 45: print_usage - consider using logging instead of print()

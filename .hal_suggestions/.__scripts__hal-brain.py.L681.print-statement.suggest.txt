@@ -1,0 +1,23 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 681, "type": "print-statement"}
+
+### SNIPPET
+
+    print(f'\n🤖 Recommended models not yet installed ({len(missing)}):\n')
+    for role, model in missing.items():
+        print(f'  [{role:12}] {model}')
+
+    if dry_run:
+        print('\n  [Dry run — use --auto-pull to actually download]\n')
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logging.info(f'\n🤖 Recommended models not yet installed ({len(missing)}):\n')
+for role, model in missing.items():
+    logging.info(f'  [{role:12}] {model}')
+
+if dry_run:
+    logging.info('\n  [Dry run — use --auto-pull to actually download]\n')
+<END_SUGGESTION>
+
+Rationale: Replace `print` statements with `logging.info` for better control over log levels and easier redirection of logs in the future.

@@ -1,0 +1,28 @@
+---
+- name: Remediate List available package updates and optionally apply
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: false
+
+  vars:
+    apply_updates: false
+
+  tasks:
+    - name: Check for available updates (dnf check-update)
+      ansible.builtin.command:
+        cmd: dnf check-update
+      register: updates
+      ignore_errors: true
+      changed_when: false
+
+    - name: Save updates summary to reports
+      ansible.builtin.copy:
+        dest: "{{ lookup('env','HOME') }}/.mcp-ai/reports/updates-summary.txt"
+        content: "{{ updates.stdout | default('') }}"
+
+    - name: Apply all updates (only when apply_updates is true)
+      ansible.builtin.yum:
+        name: '*'
+        state: latest
+      when: apply_updates | bool

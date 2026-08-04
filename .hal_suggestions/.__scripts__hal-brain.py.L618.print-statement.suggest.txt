@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 618, "type": "print-statement"}
+
+### SNIPPET
+                    removed.append(model)
+                    _log_resource_event('remove', model, reason)
+                else:
+                    print(f'  ✗ Failed: {result.stderr.strip()}')
+            except FileNotFoundError:
+                print('  ollama command not found.')
+        else:
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+                    removed.append(model)
+                    _log_resource_event('remove', model, reason)
+                else:
+                    _log_error(f'  ✗ Failed: {result.stderr.strip()}')
+            except FileNotFoundError:
+                _log_error('  ollama command not found.')
+        else:
+<END_SUGGESTION>
+
+Replace 'print' statements with '_log_error' for consistency and proper logging.

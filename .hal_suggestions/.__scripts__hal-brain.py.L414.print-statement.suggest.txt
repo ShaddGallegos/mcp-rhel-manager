@@ -1,0 +1,20 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 414, "type": "print-statement"}
+
+### SNIPPET
+                    print(f'  ✓ {m} ({lat:.1f}s)')
+                except Exception as e:
+                    results[m] = f'[ERR: {e}]'
+                    print(f'  ✗ {m} error')
+    else:
+        for m in models:
+            text, lat = _call_ollama(prompt, m, temperature=0.5)
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+                except Exception as e:
+                    results[m] = f'[ERR: {e}]'
+                    print(f'  ✗ {m} error', file=sys.stderr)
+<END_SUGGESTION>
+
+Rationale: Redirect the error print to stderr to keep stdout clean.

@@ -1,0 +1,3 @@
+Suggestions for tests/test_supplemental_training_smoke.py
+- line 8: missing_docstring - load_module
+- line 21: missing_docstring - test_supplemental_training_basic_run

@@ -1,0 +1,52 @@
+name: MoE Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: [self-hosted, rhel]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+      - name: Install minimal deps
+        run: |
+          python -m pip install --upgrade pip
+          # try to install requirements if present; tolerate failure
+          python -m pip install -r requirements.txt || true
+          # Try to install FAISS CPU and sklearn for faster index support; tolerate failures
+          python -m pip install faiss-cpu scikit-learn || true
+      - name: Run MoE unit tests
+        run: |
+          python -m unittest tests/test_moe_router.py -v
+
+  integration:
+    if: ${{ secrets.OLLAMA_URL != '' }}
+    runs-on: [self-hosted, rhel]
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt || true
+          python -m pip install faiss-cpu scikit-learn || true
+      - name: Build MoE profile index
+        run: |
+          python mcp-ai/build_moe_index.py --rebuild
+        shell: bash
+      - name: Run MoE integration tests
+        env:
+          OLLAMA_URL: ${{ secrets.OLLAMA_URL }}
+          MOE_RUN_INTEGRATION: "1"
+        run: |
+          python -m unittest tests/test_moe_integration.py -v
+        shell: bash

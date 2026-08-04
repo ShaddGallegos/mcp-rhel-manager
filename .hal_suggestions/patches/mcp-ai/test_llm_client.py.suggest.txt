@@ -1,0 +1,11 @@
+Suggestions for mcp-ai/test_llm_client.py
+- line 23: missing_docstring - MockHandler
+- line 44: missing_docstring - run_server
+- line 50: missing_docstring - main
+- line 24: missing_docstring - do_POST
+- line 40: missing_docstring - log_message
+- line 46: print_usage - consider using logging instead of print()
+- line 66: print_usage - consider using logging instead of print()
+- line 59: print_usage - consider using logging instead of print()
+- line 61: print_usage - consider using logging instead of print()
+- line 63: print_usage - consider using logging instead of print()

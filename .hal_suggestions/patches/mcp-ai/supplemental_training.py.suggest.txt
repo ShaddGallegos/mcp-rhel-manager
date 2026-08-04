@@ -1,0 +1,13 @@
+Suggestions for mcp-ai/supplemental_training.py
+- line 48: missing_docstring - ensure_outdir
+- line 66: missing_docstring - sanitize_text
+- line 71: missing_docstring - is_binary
+- line 79: missing_docstring - fetch_url
+- line 99: missing_docstring - try_clamscan
+- line 122: missing_docstring - extract_text_from_file
+- line 172: missing_docstring - build_dataset
+- line 178: missing_docstring - maybe_convert_to_gguf
+- line 198: missing_docstring - encrypt_with_ansible_vault
+- line 217: missing_docstring - fallback_encrypt
+- line 233: missing_docstring - main
+- line 364: print_usage - consider using logging instead of print()

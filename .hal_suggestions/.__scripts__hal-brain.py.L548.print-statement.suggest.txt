@@ -1,0 +1,23 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 548, "type": "print-statement"}
+
+### SNIPPET
+                capture_output=True, text=True, timeout=5,
+            )
+            ver = result.stdout.strip() or '?'
+            print(f'  ✓ {pkg:<30} {ver}')
+        except Exception:
+            print(f'  ? {pkg:<30} (check failed)')
+
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+                capture_output=True, text=True, timeout=5,
+            )
+            ver = result.stdout.strip() or '?'
+            logger.info(f'  ✓ {pkg:<30} {ver}')
+        except Exception:
+            logger.error(f'  ? {pkg:<30} (check failed)')
+<END_SUGGESTION>
+
+Rationale: Replace print statements with Python's logging module for better control and flexibility in handling different log levels.

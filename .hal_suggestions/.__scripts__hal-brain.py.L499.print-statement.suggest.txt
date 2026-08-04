@@ -1,0 +1,23 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 499, "type": "print-statement"}
+
+### SNIPPET
+    """Show all resources: models, packages, MCP servers."""
+    print('\n' + '═' * 70)
+    print(f'  {ASSISTANT} Resource Status')
+    print('═' * 70 + '\n')
+
+    db = _load_perf_db()
+
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+    """Show all resources: models, packages, MCP servers."""
+    print('\n' + '═' * 70)
+    print(f'  {ASSISTANT} Resource Status')
+    print('═' * 70 + '\n')
+
+    db = _load_perf_db()
+<END_SUGGESTION>
+
+Rationale: The code snippet uses `print` statements for output, which is a common practice in scripts. If this is part of a larger system that needs to be refactored to use logging instead of print statements, the change should be made at a higher level to ensure consistency across the application. For now, no changes are needed as the code appears to be functioning correctly for its intended purpose.

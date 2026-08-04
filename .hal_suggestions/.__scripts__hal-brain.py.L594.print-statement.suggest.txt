@@ -1,0 +1,22 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 594, "type": "print-statement"}
+
+### SNIPPET
+                keep.append((model, 'unknown date'))
+
+    if not to_remove:
+        print('  ✓ No models to remove. Everything is in active use.')
+        return []
+
+    print('  Candidates for removal:')
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+if not to_remove:
+    print('  ✓ No models to remove. Everything is in active use.')
+    return []
+
+print('  Candidates for removal:')
+<END_SUGGESTION>
+
+Rationale: Replaced `to_remove` with `not to_remove` to ensure the condition checks for an empty list correctly, maintaining minimal changes.

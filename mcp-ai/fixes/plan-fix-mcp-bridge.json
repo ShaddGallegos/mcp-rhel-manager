@@ -1,0 +1,14 @@
+{
+    "solutions": [
+        {
+            "id": "s1",
+            "commands": [
+                "/bin/sh scripts/fix_mcp_bridge.sh"
+            ],
+            "meta": {
+                "title": "Fix MCP bridge issues",
+                "description": "Run repository-provided helper to repair common mcp-bridge problems (service files, config paths, venv issues)."
+            }
+        }
+    ]
+}

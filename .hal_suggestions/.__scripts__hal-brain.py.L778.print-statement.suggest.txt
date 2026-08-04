@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 778, "type": "print-statement"}
+
+### SNIPPET
+    srv = registry[name]
+    status = _mcp_server_health(srv)
+    if status in ('healthy', 'running'):
+        print(f'  {name} is already running.')
+        return 0
+
+    cmd = srv.get('command', [])
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+    srv = registry[name]
+    status = _mcp_server_health(srv)
+    if status in ('healthy', 'running'):
+        logging.info(f'  {name} is already running.')
+        return 0
+
+    cmd = srv.get('command', [])
+<END_SUGGESTION>
+
+Rationale: Replace `print` with `logging.info` to adhere to best practices for logging, which helps in distinguishing between different levels of log messages and can be easily configured for output redirection or filtering.

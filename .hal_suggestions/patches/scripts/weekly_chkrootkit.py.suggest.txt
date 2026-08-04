@@ -1,0 +1,18 @@
+Suggestions for scripts/weekly_chkrootkit.py
+- line 44: missing_docstring - _progress_enabled
+- line 48: missing_docstring - _run_with_spinner
+- line 76: missing_docstring - _flatten_env_mapping
+- line 88: missing_docstring - load_settings
+- line 109: missing_docstring - utc_now
+- line 113: missing_docstring - run_command
+- line 125: missing_docstring - _host_default_email
+- line 129: missing_docstring - ensure_chkrootkit
+- line 155: missing_docstring - run_chkrootkit_scan
+- line 183: missing_docstring - write_report
+- line 191: missing_docstring - main
+- line 72: print_usage - consider using logging instead of print()
+- line 62: print_usage - consider using logging instead of print()
+- line 217: print_usage - consider using logging instead of print()
+- line 219: print_usage - consider using logging instead of print()
+- line 67: print_usage - consider using logging instead of print()
+- line 202: print_usage - consider using logging instead of print()

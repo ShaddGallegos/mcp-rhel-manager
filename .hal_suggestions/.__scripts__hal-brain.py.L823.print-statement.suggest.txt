@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 823, "type": "print-statement"}
+
+### SNIPPET
+                pid = int(f.read().strip())
+            os.kill(pid, signal.SIGTERM)
+            os.unlink(pid_file)
+            print(f'  ✓ Sent SIGTERM to {name} (PID {pid})')
+            _log_resource_event('mcp-stop', name, 'manual')
+            return 0
+        except ProcessLookupError:
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+                pid = int(f.read().strip())
+            os.kill(pid, signal.SIGTERM)
+            os.unlink(pid_file)
+            _log_resource_event('mcp-stop', name, 'manual')
+            return 0
+        except ProcessLookupError:
+            pass
+<END_SUGGESTION>
+
+Rationale: The `print` statement is unnecessary in this context since the function already logs resource events. Removing it avoids potential issues with output during non-interactive executions.

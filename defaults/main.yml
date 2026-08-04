@@ -1,0 +1,4 @@
+---
+mcp_rhel_manager_use_local_defaults_env: true
+mcp_rhel_manager_defaults_env_file: "{{ playbook_dir | dirname }}/defaults/env.yml"
+mcp_rhel_manager_local_defaults_precedence: "noninteractive"

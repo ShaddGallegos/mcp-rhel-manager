@@ -1,0 +1,23 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 481, "type": "print-statement"}
+
+### SNIPPET
+    plan_text, _ = _call_ollama(prompt, planner_model, system=system, temperature=0.3)
+
+    print('📋 Task Plan:\n')
+    print(plan_text)
+
+    # Parse into structured list (best-effort)
+    tasks = []
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+    plan_text, _ = _call_ollama(prompt, planner_model, system=system, temperature=0.3)
+
+    log.info('📋 Task Plan:\n%s', plan_text)
+
+    # Parse into structured list (best-effort)
+    tasks = []
+<END_SUGGESTION>
+
+Rationale: Replace `print` with a logging statement to improve code readability and maintainability while adhering to best practices for output in production environments.

@@ -1,0 +1,19 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 521, "type": "print-statement"}
+
+### SNIPPET
+        last_used = db.get('models', {}).get(name, {}).get('last_used', 'never')[:10]
+        total_uses = db.get('models', {}).get(name, {}).get('total_uses', 0)
+        model_data[name] = {'size': size, 'size_str': size_str, 'last_used': last_used, 'total_uses': total_uses}
+        print(f'  {name:<45} {size_str:>8}  used {total_uses:4}x  last: {last_used}')
+
+    print(f'\n  Total: {len(models)} model(s)')
+
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+        logger.info(f'  {name:<45} {size_str:>8}  used {total_uses:4}x  last: {last_used}')
+    logger.info(f'\n  Total: {len(models)} model(s)')
+<END_SUGGESTION>
+
+Rationale: Replace `print` statements with `logger.info` to adhere to the principle of logging instead of printing for non-error messages. This change assumes there is a logging setup in place that handles `logger.info` appropriately, such as directing it to a log file or console output.

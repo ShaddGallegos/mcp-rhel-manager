@@ -1,0 +1,27 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 597, "type": "print-statement"}
+
+### SNIPPET
+        print('  ✓ No models to remove. Everything is in active use.')
+        return []
+
+    print('  Candidates for removal:')
+    for model, reason in to_remove:
+        print(f'  ✗ {model:<45} ({reason})')
+    print(f'\n  Keeping {len(keep)} active model(s).')
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+        print('  ✓ No models to remove. Everything is in active use.')
+        return []
+
+    def log_candidates(to_remove, keep):
+        print('  Candidates for removal:')
+        for model, reason in to_remove:
+            print(f'  ✗ {model:<45} ({reason})')
+        print(f'\n  Keeping {len(keep)} active model(s).')
+
+    log_candidates(to_remove, keep)
+<END_SUGGESTION>
+
+Rationale: Extracted the logging logic into a separate function `log_candidates` to improve readability and maintainability. This keeps the main code block clean and focused on its primary responsibility.

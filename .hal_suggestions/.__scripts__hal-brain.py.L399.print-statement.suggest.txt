@@ -1,0 +1,23 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 399, "type": "print-statement"}
+
+### SNIPPET
+    if not models:
+        return '[No models available for ensemble]'
+
+    print(f'\n⚡ Ensemble ({len(models)} models): {", ".join(models)}\n')
+
+    results: dict[str, str] = {}
+
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+if not models:
+    return '[No models available for ensemble]'
+
+logger.info(f'\n⚡ Ensemble ({len(models)} models): {", ".join(models)}\n')
+
+results: dict[str, str] = {}
+<END_SUGGESTION>
+
+Rationale: Replaced the print statement with a logger.info call to improve code safety and maintainability.

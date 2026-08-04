@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!DOCTYPE source SYSTEM "source.dtd">
+<source>
+    <name>Facebook</name>
+    <keys>
+        <key>
+            <name>App ID</name>
+            <value>app_id</value>
+        </key>
+        <key>
+            <name>App Secret</name>
+            <value>app_secret</value>
+        </key>
+        <key>
+            <name>Access Token</name>
+            <value>access_token</value>
+        </key>
+    </keys>
+    <children>
+        <node>
+            <name>User</name>
+            <description>User's profile and posts</description>
+            <function>user</function>
+            <inputs>
+                <input required="true">
+                    <name>User</name>
+                    <type>primary</type>
+                </input>
+            </inputs>
+        </node>
+    </children>
+</source>

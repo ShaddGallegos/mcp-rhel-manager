@@ -1,0 +1,22 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 757, "type": "print-statement"}
+
+### SNIPPET
+    """List all registered MCP servers with health status."""
+    registry = _load_mcp_registry()
+    print(f'\n🔗 MCP Server Registry ({len(registry)} servers)\n')
+    print(f'  {"NAME":<20} {"STATUS":<12} {"DESCRIPTION"}')
+    print('  ' + '─' * 70)
+    for name, srv in registry.items():
+        status = _mcp_server_health(srv)
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logger.info(f'\n🔗 MCP Server Registry ({len(registry)} servers)\n')
+logger.info(f'  {"NAME":<20} {"STATUS":<12} {"DESCRIPTION"}')
+logger.info('  ' + '─' * 70)
+for name, srv in registry.items():
+    status = _mcp_server_health(srv)
+<END_SUGGESTION>
+
+Rationale: Replace direct `print` calls with `logger.info` to follow best practices for logging and separate concerns.

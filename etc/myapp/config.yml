@@ -1,0 +1,5 @@
+# Template for /etc/myapp/config.yml (created in-repo, do NOT copy to /etc without review)
+app:
+  name: myapp
+  listen: 127.0.0.1:8080
+  debug: false

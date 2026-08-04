@@ -1,0 +1,6 @@
+Suggestions for mcp-ai/training_maintenance.py
+- line 26: missing_docstring - _safe_load_json
+- line 65: missing_docstring - run_maintenance
+- line 156: missing_docstring - parse_args
+- line 163: missing_docstring - main
+- line 166: print_usage - consider using logging instead of print()

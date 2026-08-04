@@ -1,0 +1,19 @@
+[Unit]
+Description=MCP Code Fix Watcher (inotify)
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/default/mcp-code-fix
+ExecStart=/usr/local/bin/watch_and_fix.sh
+Restart=on-failure
+RestartSec=10
+Nice=10
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=yes
+NoNewPrivileges=yes
+ReadWritePaths=/var/lib/mcp-llms /etc/mcp-ai /var/log/mcp-code-fix /tmp
+
+[Install]
+WantedBy=multi-user.target

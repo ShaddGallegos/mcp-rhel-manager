@@ -1,0 +1,14 @@
+{
+    "solutions": [
+        {
+            "id": "s1",
+            "commands": [
+                "/bin/sh scripts/fix_boot_warnings.sh"
+            ],
+            "meta": {
+                "title": "Resolve boot-time warnings",
+                "description": "Run fix_boot_warnings.sh to address common boot-time warnings, SELinux contexts, and tmpfiles issues."
+            }
+        }
+    ]
+}

@@ -1,0 +1,9 @@
+Suggestions for mcp-ai/approvals_api.py
+- line 35: missing_docstring - _normalize_plan_stem
+- line 63: missing_docstring - api_approve_impl
+- line 73: missing_docstring - api_list_approvals_impl
+- line 84: missing_docstring - api_health_impl
+- line 102: missing_docstring - main
+- line 90: missing_docstring - api_approve
+- line 94: missing_docstring - api_list_approvals
+- line 98: missing_docstring - api_health

@@ -1,0 +1,33 @@
+{
+    "allowed_bins": [
+        "/usr/bin/systemctl",
+        "/usr/bin/podman",
+        "/usr/bin/tar",
+        "/usr/sbin/tar",
+        "/bin/tar",
+        "/usr/bin/rsync",
+        "/usr/bin/ansible-playbook",
+        "/usr/bin/dnf",
+        "/usr/bin/journalctl"
+    ],
+    "allowed_services": [
+        "mcp-bridge.service",
+        "mcp-sentinel.service",
+        "mcp-manager.service",
+        "mcp-ai-collector.service",
+        "mcp-ai-collector.timer",
+        "mcp-ai-remediator.service",
+        "mcp-ai-remediator.path",
+        "mcp-ai-hal-brain.service",
+        "mcp-ai-dashboard.service",
+        "mcp-ai-indexer.service",
+        "mcp-ai-indexer.timer"
+    ],
+    "allowed_image_patterns": [
+        "registry.redhat.io/*",
+        "quay.io/redhat*/*",
+        "quay.io/ansible*/*",
+        "docker.io/library/*"
+    ],
+    "approved_images_file": "~/.mcp-ai/approved-podman-images.json"
+}

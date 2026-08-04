@@ -1,0 +1,19 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 550, "type": "print-statement"}
+
+### SNIPPET
+            ver = result.stdout.strip() or '?'
+            print(f'  ✓ {pkg:<30} {ver}')
+        except Exception:
+            print(f'  ? {pkg:<30} (check failed)')
+
+    # ── Routing recommendation
+    print('\n\n🎯 Current Task → Model Routing:\n')
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logger.info(f'  ✓ {pkg:<30} {ver}')
+logger.error(f'  ? {pkg:<30} (check failed)')
+<END_SUGGESTION>
+
+Rationale: Replace print statements with logger calls to maintain proper logging and avoid direct output in scripts.

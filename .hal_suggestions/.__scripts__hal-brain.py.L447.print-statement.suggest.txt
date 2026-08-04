@@ -1,0 +1,21 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 447, "type": "print-statement"}
+
+### SNIPPET
+
+    print('─' * 70)
+    print('🤖 Ensemble synthesis:\n')
+    print(synthesis)
+    return synthesis
+
+
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+print('-' * 70)
+print('🤖 Ensemble synthesis:\n')
+print(synthesis)
+return synthesis
+<END_SUGGESTION>
+
+Rationale: Replaced '─' with '-' to adhere to a more standard character set, which avoids potential issues with non-standard characters in some environments.

@@ -1,0 +1,23 @@
+Suggestions for scripts/configure_ansible_env.py
+- line 30: missing_docstring - ensure_conf_dir
+- line 46: missing_docstring - ensure_vault_pass_file
+- line 105: missing_docstring - write_env_yaml
+- line 132: missing_docstring - encrypt_with_ansible_vault
+- line 147: missing_docstring - main
+- line 128: print_usage - consider using logging instead of print()
+- line 170: print_usage - consider using logging instead of print()
+- line 171: print_usage - consider using logging instead of print()
+- line 203: print_usage - consider using logging instead of print()
+- line 244: print_usage - consider using logging instead of print()
+- line 245: print_usage - consider using logging instead of print()
+- line 246: print_usage - consider using logging instead of print()
+- line 53: print_usage - consider using logging instead of print()
+- line 135: print_usage - consider using logging instead of print()
+- line 140: print_usage - consider using logging instead of print()
+- line 194: print_usage - consider using logging instead of print()
+- line 143: print_usage - consider using logging instead of print()
+- line 175: print_usage - consider using logging instead of print()
+- line 212: print_usage - consider using logging instead of print()
+- line 218: print_usage - consider using logging instead of print()
+- line 222: print_usage - consider using logging instead of print()
+- line 158: print_usage - consider using logging instead of print()

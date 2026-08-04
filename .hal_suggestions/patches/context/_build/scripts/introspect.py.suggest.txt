@@ -1,0 +1,14 @@
+Suggestions for context/_build/scripts/introspect.py
+- line 92: missing_docstring - line_is_empty
+- line 104: missing_docstring - pip_file_data
+- line 121: missing_docstring - bindep_file_data
+- line 371: missing_docstring - parse_args
+- line 391: missing_docstring - run_introspect
+- line 426: missing_docstring - create_introspect_parser
+- line 479: missing_docstring - write_file
+- line 496: missing_docstring - main
+- line 42: missing_docstring - __init__
+- line 64: missing_docstring - target_dir
+- line 415: print_usage - consider using logging instead of print()
+- line 416: print_usage - consider using logging instead of print()
+- line 99: print_usage - consider using logging instead of print()

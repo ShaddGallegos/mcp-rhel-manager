@@ -1,0 +1,18 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 421, "type": "print-statement"}
+
+### SNIPPET
+            results[m] = text
+            print(f'  ✓ {m} ({lat:.1f}s)')
+
+    print()
+
+    # Synthesize with a judge model (pick best available if not specified)
+    judge = judge_model or (judge_model := select_model('reasoning', available))
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logging.info(f'  ✓ {m} ({lat:.1f}s)')
+<END_SUGGESTION>
+
+Rationale: Replace `print` with `logging.info` to adhere to best practices for logging in scripts, ensuring that the output can be easily directed and filtered.

@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!DOCTYPE source SYSTEM "source.dtd">
+<source>
+    <name>Reddit</name>
+    <keys>
+        <key>
+            <name>Client ID</name>
+            <value>client_id</value>
+        </key>
+        <key>
+            <name>Secret</name>
+            <value>secret</value>
+        </key>
+        <key>
+            <name>User Agent</name>
+            <value>user_agent</value>
+        </key>
+    </keys>
+    <children>
+        <node>
+            <name>Search</name>
+            <description>Search posts</description>
+            <function>search</function>
+            <inputs>
+                <input required="true">
+                    <name>Query</name>
+                    <type>primary</type>
+                </input>
+            </inputs>
+        </node>
+    </children>
+</source>

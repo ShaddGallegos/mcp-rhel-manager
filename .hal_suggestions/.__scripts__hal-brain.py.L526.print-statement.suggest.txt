@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 526, "type": "print-statement"}
+
+### SNIPPET
+    print(f'\n  Total: {len(models)} model(s)')
+
+    # ── MCP servers
+    print('\n\n🔗 MCP Servers:\n')
+    registry = _load_mcp_registry()
+    if not registry:
+        print('  (No MCP servers registered. Run: hal --mcp-server-register)')
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logger.info(f'\n  Total: {len(models)} model(s)')
+
+# ── MCP servers
+logger.info('\n\n🔗 MCP Servers:\n')
+registry = _load_mcp_registry()
+if not registry:
+    logger.info('  (No MCP servers registered. Run: hal --mcp-server-register)')
+<END_SUGGESTION>
+
+Rationale: Replace print statements with logger.info to adhere to best practices and maintain the integrity of log output.

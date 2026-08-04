@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 758, "type": "print-statement"}
+
+### SNIPPET
+    registry = _load_mcp_registry()
+    print(f'\n🔗 MCP Server Registry ({len(registry)} servers)\n')
+    print(f'  {"NAME":<20} {"STATUS":<12} {"DESCRIPTION"}')
+    print('  ' + '─' * 70)
+    for name, srv in registry.items():
+        status = _mcp_server_health(srv)
+        icon = {'healthy': '✓', 'running': '✓', 'offline': '✗', 'unknown': '?', 'unhealthy': '⚠'}.get(status, '?')
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+    registry = _load_mcp_registry()
+    print(f'\n🔗 MCP Server Registry ({len(registry)} servers)\n', file=sys.stderr)
+    print(f'  {"NAME":<20} {"STATUS":<12} {"DESCRIPTION"}', file=sys.stderr)
+    print('  ' + '─' * 70, file=sys.stderr)
+    for name, srv in registry.items():
+        status = _mcp_server_health(srv)
+        icon = {'healthy': '✓', 'running': '✓', 'offline': '✗', 'unknown': '?', 'unhealthy': '⚠'}.get(status, '?')
+<END_SUGGESTION>
+
+Rationale: Redirecting print statements to `sys.stderr` can help in distinguishing between regular output and diagnostic information, which is particularly useful in environments where both are monitored separately.

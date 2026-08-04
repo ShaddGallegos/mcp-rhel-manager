@@ -1,0 +1,17 @@
+[Unit]
+Description=MCP Model Cleanup Service
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/manage_models.py --index /var/lib/mcp-llms/models.json cleanup --days 30
+User=root
+Group=root
+ProtectSystem=full
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectHome=read-only
+ReadWritePaths=/var/lib/mcp-llms /etc/mcp-ai /var/log/mcp-ai
+
+[Install]
+WantedBy=multi-user.target

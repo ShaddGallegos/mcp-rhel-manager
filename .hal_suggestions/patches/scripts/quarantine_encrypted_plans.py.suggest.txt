@@ -1,0 +1,7 @@
+Suggestions for scripts/quarantine_encrypted_plans.py
+- line 15: missing_docstring - get_fixes_dir
+- line 21: missing_docstring - main
+- line 24: print_usage - consider using logging instead of print()
+- line 41: print_usage - consider using logging instead of print()
+- line 43: print_usage - consider using logging instead of print()
+- line 45: print_usage - consider using logging instead of print()

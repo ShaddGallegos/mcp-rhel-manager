@@ -1,0 +1,41 @@
+---
+
+# Consolidated Ansible requirements for all MINIRHIS container roles
+# Collections required for core functionality
+#
+# Usage: ansible-galaxy collection install -r requirements.yml
+
+collections:
+  # Core Ansible collections
+  - name: "ansible.posix"
+    version: "*"
+  - name: "ansible.utils"
+    version: "*"
+  - name: "ansible.netcommon"
+    version: "*"
+  - name: "ansible.controller"
+    version: "4.5.21"
+  - name: "ansible.hub"
+    version: "*"
+
+  # Community collections
+  - name: "community.general"
+    version: "*"
+  - name: "community.vmware"
+    version: "*"
+  - name: "community.aws"
+    version: "*"
+
+  # RedHat/Infrastructure collections
+  - name: "redhat.rhel_system_roles"
+    version: "*"
+  - name: "redhat.redhat_csp_download"
+    version: "*"
+
+  # Cloud and container collections
+  - name: "azure.azcollection"
+    version: "*"
+  - name: "containers.podman"
+    version: "*"
+  - name: "vmware.vmware"
+    version: "*"

@@ -1,0 +1,5 @@
+Suggestions for tests/test_hal_bridge_retry.py
+- line 9: missing_docstring - test_call_bridge_retries
+- line 18: missing_docstring - DummyResp
+- line 22: missing_docstring - fake_post
+- line 19: missing_docstring - __init__

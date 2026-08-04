@@ -1,0 +1,2 @@
+Suggestions for scripts/hal_diagnostics.py
+- line 160: missing_docstring - find_git_repos

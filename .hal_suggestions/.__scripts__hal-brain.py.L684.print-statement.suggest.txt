@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 684, "type": "print-statement"}
+
+### SNIPPET
+        print(f'  [{role:12}] {model}')
+
+    if dry_run:
+        print('\n  [Dry run — use --auto-pull to actually download]\n')
+        return list(missing.values())
+
+    pulled = []
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logger.info(f'  [{role:12}] {model}')
+
+if dry_run:
+    logger.info('\n  [Dry run — use --auto-pull to actually download]\n')
+    return list(missing.values())
+
+pulled = []
+<END_SUGGESTION>
+
+Replace `print` statements with `logger.info` for better log management and easier debugging.

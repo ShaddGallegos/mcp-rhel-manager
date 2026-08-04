@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 800, "type": "print-statement"}
+
+### SNIPPET
+        if pid_file:
+            with open(pid_file, 'w') as f:
+                f.write(str(proc.pid))
+        print(f'  ✓ {name} started (PID {proc.pid})')
+        _log_resource_event('mcp-start', name, 'manual')
+        return 0
+    else:
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+        if pid_file:
+            with open(pid_file, 'w') as f:
+                f.write(str(proc.pid))
+        logging.info(f'  ✓ {name} started (PID {proc.pid})')
+        _log_resource_event('mcp-start', name, 'manual')
+        return 0
+    else:
+<END_SUGGESTION>
+
+Rationale: Replace the `print` statement with a call to `logging.info`, which is a more appropriate and configurable method for logging in Python scripts.

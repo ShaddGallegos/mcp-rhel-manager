@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 606, "type": "print-statement"}
+
+### SNIPPET
+        print('\n  [Dry run — no models removed. Use --resource-cleanup with --confirm to remove.]\n')
+        return [m for m, _ in to_remove]
+
+    print()
+    removed = []
+    for model, reason in to_remove:
+        confirm = input(f'  Remove {model}? ({reason}) [y/N]: ').strip().lower()
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+    print('  [Dry run — no models removed. Use --resource-cleanup with --confirm to remove.]')
+    return [m for m, _ in to_remove]
+
+    print()
+    removed = []
+    for model, reason in to_remove:
+        confirm = input(f'  Remove {model}? ({reason}) [y/N]: ').strip().lower()
+<END_SUGGESTION>
+
+Rationale: The original code uses a `print` statement for formatting, which can be replaced with an f-string for better readability and to avoid the print-statement type issue.

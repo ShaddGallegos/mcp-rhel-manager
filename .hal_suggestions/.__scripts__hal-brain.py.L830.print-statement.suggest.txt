@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 830, "type": "print-statement"}
+
+### SNIPPET
+            print(f'  {name}: process not found (already stopped?)')
+            return 0
+        except Exception as e:
+            print(f'  ✗ Could not stop {name}: {e}')
+            return 1
+    else:
+        print(f'  No PID file for {name}. Try stopping manually.')
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+            print(f'  {name}: process not found (already stopped?)', file=sys.stderr)
+            return 0
+        except Exception as e:
+            print(f'  ✗ Could not stop {name}: {e}', file=sys.stderr)
+            return 1
+    else:
+        print(f'  No PID file for {name}. Try stopping manually.', file=sys.stderr)
+<END_SUGGESTION>
+
+Rationale: Redirecting the print statements to `sys.stderr` ensures that they are output to the standard error stream, which is more appropriate for diagnostic messages than the default standard output.

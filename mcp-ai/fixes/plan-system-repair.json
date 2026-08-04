@@ -1,0 +1,14 @@
+{
+    "solutions": [
+        {
+            "id": "s1",
+            "commands": [
+                "/bin/sh scripts/fix-system.sh"
+            ],
+            "meta": {
+                "title": "Run curated system repair script",
+                "description": "Execute the repository's fix-system.sh to apply a set of user-approved repairs (audio, DKMS, network-online, MCP services). Run as the user account."
+            }
+        }
+    ]
+}

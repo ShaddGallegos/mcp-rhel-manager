@@ -1,0 +1,15 @@
+Suggestions for mcp-ai/runner.py
+- line 70: missing_docstring - find_ai_home
+- line 92: missing_docstring - log
+- line 184: missing_docstring - _write_privileged_audit
+- line 196: missing_docstring - _matches_allowed_pattern
+- line 276: missing_docstring - _is_image_allowed
+- line 456: print_usage - consider using logging instead of print()
+- line 328: print_usage - consider using logging instead of print()
+- line 332: print_usage - consider using logging instead of print()
+- line 338: print_usage - consider using logging instead of print()
+- line 419: print_usage - consider using logging instead of print()
+- line 390: print_usage - consider using logging instead of print()
+- line 425: print_usage - consider using logging instead of print()
+- line 430: print_usage - consider using logging instead of print()
+- line 438: print_usage - consider using logging instead of print()

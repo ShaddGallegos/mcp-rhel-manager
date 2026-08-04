@@ -1,0 +1,2 @@
+This is the expected answer for hello world
+An explanation containing KEYWORD for the second prompt

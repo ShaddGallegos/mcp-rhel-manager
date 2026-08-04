@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 661, "type": "print-statement"}
+
+### SNIPPET
+        if not auto_confirm:
+            confirm = input(f'  Pull {resource}? This may download several GB. [y/N]: ').strip().lower()
+            if confirm != 'y':
+                print('  Cancelled.')
+                return 0
+
+        result = subprocess.run(['ollama', 'pull', resource], check=False)
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+if not auto_confirm:
+    confirm = input(f'  Pull {resource}? This may download several GB. [y/N]: ').strip().lower()
+    if confirm != 'y':
+        logging.info('  Cancelled.')
+        return 0
+
+result = subprocess.run(['ollama', 'pull', resource], check=False)
+<END_SUGGESTION>
+
+Rationale: Replace the `print` statement with a logging call to avoid direct use of `print`.

@@ -1,0 +1,23 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 419, "type": "print-statement"}
+
+### SNIPPET
+        for m in models:
+            text, lat = _call_ollama(prompt, m, temperature=0.5)
+            results[m] = text
+            print(f'  ✓ {m} ({lat:.1f}s)')
+
+    print()
+
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+        for m in models:
+            text, lat = _call_ollama(prompt, m, temperature=0.5)
+            results[m] = text
+            log.info(f'  ✓ {m} ({lat:.1f}s)')
+
+    log.info()
+<END_SUGGESTION>
+
+Rationale: Replace `print` statements with `log.info` to follow a more structured logging approach, which is typically recommended in Python scripts for better control and flexibility in managing output.

@@ -1,0 +1,23 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 764, "type": "print-statement"}
+
+### SNIPPET
+        icon = {'healthy': '✓', 'running': '✓', 'offline': '✗', 'unknown': '?', 'unhealthy': '⚠'}.get(status, '?')
+        desc = srv.get('description', '')[:45]
+        print(f'  {icon} {name:<20} {status:<12} {desc}')
+    print()
+
+
+def cmd_mcp_server_start(name: str) -> int:
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+        icon = {'healthy': '✓', 'running': '✓', 'offline': '✗', 'unknown': '?', 'unhealthy': '⚠'}.get(status, '?')
+        desc = srv.get('description', '')[:45]
+        print(f'  {icon} {name:<20} {status:<12} {desc}', end='')
+    print()
+
+def cmd_mcp_server_start(name: str) -> int:
+<END_SUGGESTION>
+
+Rationale: The issue was a misplaced `print()` statement that caused an extra newline. Replacing it with `print(..., end='')` ensures the output remains on the same line.

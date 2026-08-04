@@ -1,0 +1,93 @@
+---
+- name: Remediate HAL doctor (conservative)
+  hosts: localhost
+  gather_facts: true
+  become: true
+  vars:
+    apply_changes: false
+    enforce_selinux: false
+    report_dir: /root/.mcp-ai/reports
+  tasks:
+    - name: Ensure report dir exists
+      ansible.builtin.file:
+        path: "{{ report_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+
+    - name: Install sof-firmware (only if apply_changes)
+      ansible.builtin.package:
+        name: sof-firmware
+        state: present
+      check_mode: "{{ not apply_changes }}"
+      register: sof_result
+      ignore_errors: true
+
+    - name: Capture sof install result
+      ansible.builtin.copy:
+        content: "{{ sof_result | to_nice_json }}"
+        dest: "{{ report_dir }}/sof-install.json"
+        mode: "0600"
+
+    - name: Gather journal warnings
+      ansible.builtin.command:
+        cmd: journalctl -b -p warning --no-pager
+      register: journal_warn
+
+    - name: Save journal warnings
+      ansible.builtin.copy:
+        content: "{{ journal_warn.stdout }}"
+        dest: "{{ report_dir }}/journal-warn.txt"
+        mode: "0600"
+
+    - name: Gather kernel logs
+      ansible.builtin.command:
+        cmd: journalctl -k -b --no-pager
+      register: kernel_logs
+
+    - name: Save kernel logs
+      ansible.builtin.copy:
+        content: "{{ kernel_logs.stdout }}"
+        dest: "{{ report_dir }}/kernel.txt"
+        mode: "0600"
+
+    - name: Get mcp-bridge status
+      ansible.builtin.command:
+        cmd: systemctl status mcp-bridge.service --no-pager
+      register: bridge_status
+      failed_when: false
+
+    - name: Save mcp-bridge status
+      ansible.builtin.copy:
+        content: "{{ bridge_status.stdout }}\n\n{{ bridge_status.stderr }}"
+        dest: "{{ report_dir }}/mcp-bridge-status.txt"
+        mode: "0600"
+
+    - name: Get mcp-manager status
+      ansible.builtin.command:
+        cmd: systemctl status mcp-manager.service --no-pager
+      register: manager_status
+      failed_when: false
+
+    - name: Save mcp-manager status
+      ansible.builtin.copy:
+        content: "{{ manager_status.stdout }}\n\n{{ manager_status.stderr }}"
+        dest: "{{ report_dir }}/mcp-manager-status.txt"
+        mode: "0600"
+
+    - name: Gather remediator journal
+      ansible.builtin.command:
+        cmd: journalctl -u mcp-ai-remediator.service --no-pager -n 200
+      register: remediator_journal
+      failed_when: false
+
+    - name: Save remediator journal
+      ansible.builtin.copy:
+        content: "{{ remediator_journal.stdout }}"
+        dest: "{{ report_dir }}/remediator-journal.txt"
+        mode: "0600"
+
+    - name: Report summary
+      ansible.builtin.debug:
+        msg: "Reports saved to {{ report_dir }}; sof-install changed={{ sof_result.changed if sof_result is defined else 'unknown' }}"

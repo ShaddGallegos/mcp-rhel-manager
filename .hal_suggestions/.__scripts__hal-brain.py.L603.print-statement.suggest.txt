@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 603, "type": "print-statement"}
+
+### SNIPPET
+    print(f'\n  Keeping {len(keep)} active model(s).')
+
+    if dry_run:
+        print('\n  [Dry run — no models removed. Use --resource-cleanup with --confirm to remove.]\n')
+        return [m for m, _ in to_remove]
+
+    print()
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logger.info(f'\n  Keeping {len(keep)} active model(s).')
+
+if dry_run:
+    logger.info('\n  [Dry run — no models removed. Use --resource-cleanup with --confirm to remove.]\n')
+    return [m for m, _ in to_remove]
+
+logger.info()
+<END_SUGGESTION>
+
+Rationale: Replace print statements with logging calls to adhere to best practices and maintain the code's modularity and flexibility.

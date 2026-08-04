@@ -1,0 +1,2 @@
+Suggestions for tests/test_reindex_embeddings.py
+- line 8: missing_docstring - test_build_index

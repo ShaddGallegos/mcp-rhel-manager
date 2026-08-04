@@ -1,0 +1,19 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 456, "type": "print-statement"}
+
+### SNIPPET
+def task_plan(goal: str) -> list[dict]:
+    """Decompose a complex goal into subtasks with optimal resource assignments."""
+    print(f'\n🧠 HAL Task Planner: {goal}\n')
+    print('Analyzing goal and decomposing into subtasks...\n')
+
+    available = _get_available_models()
+    planner_model = select_model('reasoning', available)
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+    logger.info(f'\n🧠 HAL Task Planner: {goal}\n')
+    logger.info('Analyzing goal and decomposing into subtasks...\n')
+<END_SUGGESTION>
+
+Rationale: Replace print statements with a logging mechanism for better control, flexibility, and potential future enhancements.

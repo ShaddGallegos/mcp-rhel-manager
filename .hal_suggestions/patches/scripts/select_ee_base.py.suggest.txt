@@ -1,0 +1,10 @@
+Suggestions for scripts/select_ee_base.py
+- line 17: missing_docstring - has_nvidia_gpu
+- line 31: missing_docstring - shutil_which
+- line 35: missing_docstring - prompt_default
+- line 44: missing_docstring - update_base_image
+- line 89: missing_docstring - main
+- line 86: print_usage - consider using logging instead of print()
+- line 47: print_usage - consider using logging instead of print()
+- line 82: print_usage - consider using logging instead of print()
+- line 104: print_usage - consider using logging instead of print()

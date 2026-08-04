@@ -1,0 +1,23 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 599, "type": "print-statement"}
+
+### SNIPPET
+
+    print('  Candidates for removal:')
+    for model, reason in to_remove:
+        print(f'  ✗ {model:<45} ({reason})')
+    print(f'\n  Keeping {len(keep)} active model(s).')
+
+    if dry_run:
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+    print("  Candidates for removal:")
+    for model, reason in to_remove:
+        print(f"  ✗ {model:<45} ({reason})")
+    print(f"\n  Keeping {len(keep)} active model(s).")
+
+    if dry_run:
+<END_SUGGESTION>
+
+Rationale: The code snippet uses `print` statements for output, which is generally discouraged in production code. Replacing them with `print` ensures that the code remains consistent and avoids potential issues related to future changes or migration away from direct print usage.

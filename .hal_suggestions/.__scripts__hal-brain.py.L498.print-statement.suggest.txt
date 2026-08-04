@@ -1,0 +1,20 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 498, "type": "print-statement"}
+
+### SNIPPET
+def resource_status(verbose: bool = False) -> dict:
+    """Show all resources: models, packages, MCP servers."""
+    print('\n' + '═' * 70)
+    print(f'  {ASSISTANT} Resource Status')
+    print('═' * 70 + '\n')
+
+    db = _load_perf_db()
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logger.info('\n' + '═' * 70)
+logger.info(f'  {ASSISTANT} Resource Status')
+logger.info('═' * 70 + '\n')
+<END_SUGGESTION>
+
+Rationale: Replace `print` statements with a logger for better control over output and to align with best practices in Python development.

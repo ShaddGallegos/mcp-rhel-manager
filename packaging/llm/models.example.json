@@ -1,0 +1,9 @@
+{
+  "ggml-coder.bin": {
+    "path": "/var/lib/mcp-llms/ggml-coder.bin",
+    "checksum": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "size": 0,
+    "added_at": "2026-05-19T00:00:00Z",
+    "pinned": true
+  }
+}

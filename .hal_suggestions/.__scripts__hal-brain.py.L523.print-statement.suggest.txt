@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 523, "type": "print-statement"}
+
+### SNIPPET
+        model_data[name] = {'size': size, 'size_str': size_str, 'last_used': last_used, 'total_uses': total_uses}
+        print(f'  {name:<45} {size_str:>8}  used {total_uses:4}x  last: {last_used}')
+
+    print(f'\n  Total: {len(models)} model(s)')
+
+    # ── MCP servers
+    print('\n\n🔗 MCP Servers:\n')
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+        model_data[name] = {'size': size, 'size_str': size_str, 'last_used': last_used, 'total_uses': total_uses}
+        logging.info(f'  {name:<45} {size_str:>8}  used {total_uses:4}x  last: {last_used}')
+
+    logging.info(f'\n  Total: {len(models)} model(s)')
+
+    # ── MCP servers
+    logging.info('\n\n🔗 MCP Servers:\n')
+<END_SUGGESTION>
+
+Replace print statements with logging calls to avoid cluttering output and allow for easier redirection of logs.

@@ -1,0 +1,12 @@
+{
+  "default": "qwen2.5-coder:7b",
+  "business": {
+    "model": "qwen2.5-coder:7b",
+    "endpoint": "http://localhost:1776/api/chat"
+  },
+  "summarizer": "gpt-3.5-mini",
+  "aggregator": {
+    "model": "qwen2.5-coder:7b",
+    "endpoint": "http://localhost:1776/api/chat"
+  }
+}

@@ -1,0 +1,22 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 553, "type": "print-statement"}
+
+### SNIPPET
+            print(f'  ? {pkg:<30} (check failed)')
+
+    # ── Routing recommendation
+    print('\n\n🎯 Current Task → Model Routing:\n')
+    avail_names = [m['name'] for m in models]
+    for task in TASK_TYPES[:8]:
+        best = select_model(task, avail_names)
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+f'  ? {pkg:<30} (check failed)'
+'\n\n🎯 Current Task → Model Routing:\n'
+avail_names = [m['name'] for m in models]
+for task in TASK_TYPES[:8]:
+    best = select_model(task, avail_names)
+<END_SUGGESTION>
+
+Rationale: Replaced the print statements with f-strings to avoid issues related to print-statement.

@@ -1,0 +1,22 @@
+Suggestions for mcp-ai/dashboard.py
+- line 55: missing_docstring - default_config
+- line 64: missing_docstring - load_config
+- line 74: missing_docstring - save_config
+- line 84: missing_docstring - append_chat
+- line 92: missing_docstring - read_chat
+- line 111: missing_docstring - get_stats
+- line 136: missing_docstring - check_readiness
+- line 186: missing_docstring - before_request_metrics
+- line 195: missing_docstring - index
+- line 373: missing_docstring - plan_view
+- line 400: missing_docstring - approve
+- line 443: missing_docstring - api_privileged
+- line 463: missing_docstring - api_approvals_list
+- line 478: missing_docstring - api_config
+- line 491: missing_docstring - api_chat
+- line 502: missing_docstring - api_stats
+- line 507: missing_docstring - metrics
+- line 525: missing_docstring - sse_stream
+- line 534: missing_docstring - stream
+- line 542: missing_docstring - health
+- line 550: missing_docstring - readiness_route

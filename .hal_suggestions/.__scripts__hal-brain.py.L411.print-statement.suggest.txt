@@ -1,0 +1,19 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 411, "type": "print-statement"}
+
+### SNIPPET
+                try:
+                    text, lat = fut.result(timeout=120)
+                    results[m] = text
+                    print(f'  ✓ {m} ({lat:.1f}s)')
+                except Exception as e:
+                    results[m] = f'[ERR: {e}]'
+                    print(f'  ✗ {m} error')
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logger.info(f'  ✓ {m} ({lat:.1f}s)')
+logger.error(f'  ✗ {m} error')
+<END_SUGGESTION>
+
+Rationale: Replace print statements with logging calls for better control and flexibility in handling log messages.

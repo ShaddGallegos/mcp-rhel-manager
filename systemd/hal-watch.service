@@ -1,0 +1,14 @@
+[Unit]
+Description=HAL System Watcher (mcp-rhel-manager)
+After=network.target
+
+[Service]
+Type=simple
+# ExecStart: uses repository path configured for this workspace
+ExecStart=/usr/bin/python3 BASE_DIR/scripts/watch_system_and_fix.py --daemon --check-smart --no-reboot
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

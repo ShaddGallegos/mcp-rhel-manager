@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 653, "type": "print-statement"}
+
+### SNIPPET
+            print(f'  ✓ Installed: {resource}')
+            _log_resource_event('pip-install', resource, 'manual')
+        else:
+            print(f'  ✗ Failed to install: {resource}')
+        return result.returncode
+    else:
+        # Ollama model pull
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logger.info(f'  ✓ Installed: {resource}')
+_logger_resource_event('pip-install', resource, 'manual')
+else:
+logger.error(f'  ✗ Failed to install: {resource}')
+return result.returncode
+else:
+# Ollama model pull
+<END_SUGGESTION>
+
+Rationale: Replace print statements with appropriate logging calls for better control and flexibility in handling output.

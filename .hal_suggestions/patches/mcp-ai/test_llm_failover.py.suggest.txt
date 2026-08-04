@@ -1,0 +1,12 @@
+Suggestions for mcp-ai/test_llm_failover.py
+- line 17: missing_docstring - BadHandler
+- line 26: missing_docstring - GoodHandler
+- line 42: missing_docstring - run_server
+- line 47: missing_docstring - main
+- line 18: missing_docstring - do_POST
+- line 22: missing_docstring - log_message
+- line 27: missing_docstring - do_POST
+- line 38: missing_docstring - log_message
+- line 59: print_usage - consider using logging instead of print()
+- line 60: print_usage - consider using logging instead of print()
+- line 63: print_usage - consider using logging instead of print()

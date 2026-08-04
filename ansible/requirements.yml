@@ -1,0 +1,8 @@
+---
+# Ansible Galaxy collections required by mcp-rhel-manager
+# Customize as needed for your playbooks and roles
+collections:
+  - name: community.general
+  - name: containers.podman
+  - name: community.crypto
+  - name: ansible.posix

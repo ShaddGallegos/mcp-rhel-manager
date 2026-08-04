@@ -1,0 +1,12 @@
+Suggestions for mcp-ai/moe_router.py
+- line 77: missing_docstring - _model_map_paths
+- line 133: missing_docstring - _call_bridge
+- line 221: missing_docstring - _get_embedding
+- line 232: missing_docstring - _embeds_dir
+- line 245: missing_docstring - _index_disk_paths
+- line 419: missing_docstring - _cosine_sim
+- line 443: missing_docstring - _choose_experts_rule
+- line 491: missing_docstring - _choose_experts_embedding
+- line 522: missing_docstring - _run_expert
+- line 561: missing_docstring - _aggregate
+- line 780: print_usage - consider using logging instead of print()

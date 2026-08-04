@@ -1,0 +1,16 @@
+Suggestions for mcp-ai/indexer.py
+- line 7: missing_docstring - safe_run
+- line 14: missing_docstring - get_hostname
+- line 20: missing_docstring - read_os_release
+- line 33: missing_docstring - find_logs
+- line 59: missing_docstring - list_rpm
+- line 72: missing_docstring - list_pip
+- line 80: missing_docstring - list_services
+- line 93: missing_docstring - detect_binaries
+- line 107: missing_docstring - find_libraries
+- line 126: missing_docstring - compute_sha256
+- line 130: missing_docstring - platform_uname
+- line 137: missing_docstring - main
+- line 196: print_usage - consider using logging instead of print()
+- line 197: print_usage - consider using logging instead of print()
+- line 185: print_usage - consider using logging instead of print()

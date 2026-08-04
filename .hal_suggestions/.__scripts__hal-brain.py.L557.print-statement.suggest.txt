@@ -1,0 +1,20 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 557, "type": "print-statement"}
+
+### SNIPPET
+    avail_names = [m['name'] for m in models]
+    for task in TASK_TYPES[:8]:
+        best = select_model(task, avail_names)
+        print(f'  {task:<12} → {best}')
+
+    print('\n' + '═' * 70 + '\n')
+    return {'models': model_data, 'mcp': registry}
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logger.info(f'  {task:<12} → {best}')
+logger.info('\n' + '═' * 70 + '\n')
+return {'models': model_data, 'mcp': registry}
+<END_SUGGESTION>
+
+Rationale: Replace `print` statements with `logger.info` to adhere to the code's logging practices.

@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'mcp-dashboard'
+    # Replace with your host:port where the dashboard runs (env example: MCP_DASH_HOST:MCP_DASH_PORT)
+    static_configs:
+      - targets: ['localhost:8080']
+
+rule_files:
+  - '/etc/prometheus/rules/mcp_rules.yml'

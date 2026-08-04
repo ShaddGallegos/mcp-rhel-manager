@@ -1,0 +1,23 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 639, "type": "print-statement"}
+
+### SNIPPET
+    if is_pip:
+        # Python package install
+        clean = resource.replace('-', '_').lower()
+        print(f'\n📦 Install Python package: {resource}\n')
+
+        if not auto_confirm and resource not in ALLOWED_AUTO_INSTALL:
+            print(f'  ⚠  Package "{resource}" is not in the auto-install whitelist.')
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+if is_pip:
+    clean = resource.replace('-', '_').lower()
+    logging.info(f'\n📦 Install Python package: {resource}\n')
+
+    if not auto_confirm and resource not in ALLOWED_AUTO_INSTALL:
+        logging.warning(f'  ⚠  Package "{resource}" is not in the auto-install whitelist.')
+<END_SUGGESTION>
+
+Rationale: Replace `print` statements with `logging.info` and `logging.warning` to improve code safety, readability, and maintainability.

@@ -1,0 +1,9 @@
+Suggestions for mcp-ai/llm_bridge.py
+- line 35: missing_docstring - _default_paths
+- line 48: missing_docstring - load_experts
+- line 61: missing_docstring - LLMBridge
+- line 62: missing_docstring - __init__
+- line 65: missing_docstring - list_experts
+- line 68: missing_docstring - run_expert
+- line 110: print_usage - consider using logging instead of print()
+- line 104: print_usage - consider using logging instead of print()

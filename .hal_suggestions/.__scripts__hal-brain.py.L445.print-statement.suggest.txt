@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 445, "type": "print-statement"}
+
+### SNIPPET
+
+    synthesis, _ = _call_ollama(synthesis_prompt, judge, temperature=0.3)
+
+    print('─' * 70)
+    print('🤖 Ensemble synthesis:\n')
+    print(synthesis)
+    return synthesis
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+import logging
+
+logging.info('─' * 70)
+logging.info('🤖 Ensemble synthesis:\n')
+logging.info(synthesis)
+
+return synthesis
+<END_SUGGESTION>
+
+Rationale: Replace `print` statements with `logging.info` to follow best practices for output in a script, improving maintainability and flexibility.

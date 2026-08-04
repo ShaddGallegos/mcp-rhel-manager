@@ -1,0 +1,21 @@
+2026-07-23T09:03:53-06:00 Starting microphone diagnostics
+2026-07-23T09:03:53-06:00 Detected audio backend: pactl
+2026-07-23T09:03:53-06:00 No pactl sources found; listing hardware via arecord -l
+**** List of CAPTURE Hardware Devices ****
+2026-07-23T09:03:53-06:00 Restarting audio services (user-level)
+2026-07-23T09:03:55-06:00 Ensuring source 'auto_null.monitor' is unmuted and at sensible volume
+2026-07-23T09:03:55-06:00 Recording 3s test via arecord -> /tmp/af_mic_test_292689.wav
+2026-07-23T09:03:58-06:00 Test recording size: 529244 bytes
+2026-07-23T09:03:58-06:00 Microphone recording test succeeded
+2026-07-23T09:03:59-06:00 Starting microphone diagnostics
+2026-07-23T09:03:59-06:00 Detected audio backend: pactl
+2026-07-23T09:03:59-06:00 Ensuring source 'auto_null.monitor' is unmuted and at sensible volume
+2026-07-23T09:03:59-06:00 Recording 3s test via arecord -> /tmp/af_mic_test_293267.wav
+2026-07-23T09:04:02-06:00 Test recording size: 529244 bytes
+2026-07-23T09:04:02-06:00 Microphone recording test succeeded
+2026-07-23T09:04:30-06:00 Starting microphone diagnostics
+2026-07-23T09:04:30-06:00 Detected audio backend: pactl
+2026-07-23T09:04:30-06:00 Ensuring source 'auto_null.monitor' is unmuted and at sensible volume
+2026-07-23T09:04:30-06:00 Recording 3s test via arecord -> /tmp/af_mic_test_301176.wav
+2026-07-23T09:04:33-06:00 Test recording size: 529244 bytes
+2026-07-23T09:04:33-06:00 Microphone recording test succeeded

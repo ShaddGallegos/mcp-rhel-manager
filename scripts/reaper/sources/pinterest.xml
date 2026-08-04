@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!DOCTYPE source SYSTEM "source.dtd">
+<source>
+    <name>Pinterest</name>
+    <keys>
+        <key>
+            <name>Access Token</name>
+            <value>access_token</value>
+        </key>
+    </keys>
+    <children>
+        <node>
+            <name>User</name>
+            <description>User boards and pins</description>
+            <function>user</function>
+            <inputs>
+                <input required="true">
+                    <name>User</name>
+                    <type>primary</type>
+                </input>
+            </inputs>
+        </node>
+    </children>
+</source>

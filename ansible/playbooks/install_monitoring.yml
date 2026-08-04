@@ -1,0 +1,14 @@
+---
+- name: Install and configure monitoring stack (Prometheus + Grafana)
+  hosts: all
+  become: true
+  vars:
+    install_prometheus: true
+    install_grafana: true
+    install_docker: false
+  roles:
+    - role: monitoring
+      vars:
+        monitoring_install_prometheus: "{{ install_prometheus }}"
+        monitoring_install_grafana: "{{ install_grafana }}"
+        monitoring_install_docker: "{{ install_docker }}"

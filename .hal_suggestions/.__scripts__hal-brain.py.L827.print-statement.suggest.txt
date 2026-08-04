@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 827, "type": "print-statement"}
+
+### SNIPPET
+            _log_resource_event('mcp-stop', name, 'manual')
+            return 0
+        except ProcessLookupError:
+            print(f'  {name}: process not found (already stopped?)')
+            return 0
+        except Exception as e:
+            print(f'  ✗ Could not stop {name}: {e}')
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+            _log_resource_event('mcp-stop', name, 'manual')
+            return 0
+        except ProcessLookupError as e:
+            logging.warning(f'  {name}: process not found (already stopped?): {e}')
+            return 0
+        except Exception as e:
+            logging.error(f'  ✗ Could not stop {name}: {e}')
+<END_SUGGESTION>
+
+Replaced print statements with logging calls for better control and flexibility in handling different severity levels of log messages.

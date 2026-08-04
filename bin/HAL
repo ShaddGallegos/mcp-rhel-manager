@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Lightweight wrapper to run the HAL CLI as a system command `HAL`
+# Behavior:
+# - Prefer repository-local hal.py so development changes are immediately available.
+# - Fallback to /opt installation if repository runtime is not available.
+
+SELF_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(cd "$(dirname "$SELF_PATH")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+CLI_ARGS=("$@")
+
+try_repo() {
+  local root="$1"
+  [[ -n "$root" ]] || return 1
+  [[ -f "$root/scripts/hal.py" ]] || return 1
+  if [[ -x "$root/venv/bin/python" ]]; then
+    exec "$root/venv/bin/python" "$root/scripts/hal.py" "${CLI_ARGS[@]}"
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    exec python3 "$root/scripts/hal.py" "${CLI_ARGS[@]}"
+  fi
+  return 1
+}
+
+# Optional override if user sets HAL_REPO_ROOT.
+try_repo "${HAL_REPO_ROOT:-}" || true
+
+# Prefer active working directory when user runs hal inside a repo checkout.
+try_repo "$PWD" || true
+
+# If running from a subdirectory, resolve git top-level and try that.
+if command -v git >/dev/null 2>&1; then
+  GIT_ROOT="$(git -C "$PWD" rev-parse --show-toplevel 2>/dev/null || true)"
+  try_repo "$GIT_ROOT" || true
+fi
+
+# Original relative resolution (works when launcher is placed inside a repo tree).
+try_repo "$REPO_ROOT" || true
+
+# Common checkout locations when invoked outside the repo tree.
+try_repo "$HOME/GIT/mcp-rhel-manager" || true
+try_repo "$HOME/mcp-rhel-manager" || true
+
+if [[ -x "/opt/mcp-rhel-manager/venv/bin/python" && -f "/opt/mcp-rhel-manager/scripts/hal.py" ]]; then
+  exec "/opt/mcp-rhel-manager/venv/bin/python" "/opt/mcp-rhel-manager/scripts/hal.py" "$@"
+fi
+
+echo "Could not find HAL installation. Expected /opt/mcp-rhel-manager or repository layout with hal.py."
+exit 2

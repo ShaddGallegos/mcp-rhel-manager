@@ -1,0 +1,19 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 763, "type": "print-statement"}
+
+### SNIPPET
+        status = _mcp_server_health(srv)
+        icon = {'healthy': '✓', 'running': '✓', 'offline': '✗', 'unknown': '?', 'unhealthy': '⚠'}.get(status, '?')
+        desc = srv.get('description', '')[:45]
+        print(f'  {icon} {name:<20} {status:<12} {desc}')
+    print()
+
+
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+log.info(f'  {icon} {name:<20} {status:<12} {desc}')
+log.info()
+<END_SUGGESTION>
+
+Rationale: Replaces `print` statements with `log.info` to adhere to the principle of logging instead of printing, which is more suitable for a script that might be integrated into larger systems or run in environments where standard output is not available.

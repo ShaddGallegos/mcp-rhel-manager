@@ -1,0 +1,23 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 783, "type": "print-statement"}
+
+### SNIPPET
+
+    cmd = srv.get('command', [])
+    if not cmd:
+        print(f'No command defined for {name}', file=sys.stderr)
+        return 1
+
+    print(f'\n▶  Starting MCP server: {name}')
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+    cmd = srv.get('command', [])
+    if not cmd:
+        logging.error(f'No command defined for {name}')
+        return 1
+
+    logging.info(f'\n▶  Starting MCP server: {name}')
+<END_SUGGESTION>
+
+Replaced `print` statements with `logging` calls for better control and flexibility in log management.

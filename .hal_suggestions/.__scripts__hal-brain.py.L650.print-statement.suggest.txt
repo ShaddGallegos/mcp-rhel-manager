@@ -1,0 +1,23 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 650, "type": "print-statement"}
+
+### SNIPPET
+
+        result = subprocess.run([sys.executable, '-m', 'pip', 'install', '--quiet', resource], check=False)
+        if result.returncode == 0:
+            print(f'  ✓ Installed: {resource}')
+            _log_resource_event('pip-install', resource, 'manual')
+        else:
+            print(f'  ✗ Failed to install: {resource}')
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+        result = subprocess.run([sys.executable, '-m', 'pip', 'install', '--quiet', resource], check=False)
+        if result.returncode == 0:
+            logging.info(f'  ✓ Installed: {resource}')
+            _log_resource_event('pip-install', resource, 'manual')
+        else:
+            logging.error(f'  ✗ Failed to install: {resource}')
+<END_SUGGESTION>
+
+Rationale: Replace print statements with logging calls for better control over output and integration with logging frameworks.

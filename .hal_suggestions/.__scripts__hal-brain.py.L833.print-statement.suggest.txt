@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 833, "type": "print-statement"}
+
+### SNIPPET
+            print(f'  ✗ Could not stop {name}: {e}')
+            return 1
+    else:
+        print(f'  No PID file for {name}. Try stopping manually.')
+        return 1
+
+
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+import logging
+
+logging.error(f'  ✗ Could not stop {name}: {e}')
+return 1
+else:
+    logging.warning(f'  No PID file for {name}. Try stopping manually.')
+    return 1
+<END_SUGGESTION>
+
+Rationale: Replaced `print` statements with `logging.error` and `logging.warning` to improve log consistency and avoid direct console output.

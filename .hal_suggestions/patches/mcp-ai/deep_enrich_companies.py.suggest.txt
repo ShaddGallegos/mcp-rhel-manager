@@ -1,0 +1,9 @@
+Suggestions for mcp-ai/deep_enrich_companies.py
+- line 27: missing_docstring - load_module_from_path
+- line 34: missing_docstring - normalize_vendor_name
+- line 38: missing_docstring - run_deep_enrich
+- line 272: missing_docstring - parse_args
+- line 279: missing_docstring - main
+- line 286: print_usage - consider using logging instead of print()
+- line 289: print_usage - consider using logging instead of print()
+- line 291: print_usage - consider using logging instead of print()

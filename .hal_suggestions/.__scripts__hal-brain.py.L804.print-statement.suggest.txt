@@ -1,0 +1,22 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 804, "type": "print-statement"}
+
+### SNIPPET
+        _log_resource_event('mcp-start', name, 'manual')
+        return 0
+    else:
+        print(f'  ✗ {name} exited immediately (rc={proc.returncode})')
+        return proc.returncode
+
+
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+        _log_resource_event('mcp-start', name, 'manual')
+        return 0
+    else:
+        self._log_error(f'  ✗ {name} exited immediately (rc={proc.returncode})')
+        return proc.returncode
+<END_SUGGESTION>
+
+Rationale: Replace the `print` statement with a call to `_log_error`, which is assumed to be a logging method that handles errors appropriately. This change maintains the original functionality while adhering to best practices for error handling in Python scripts.

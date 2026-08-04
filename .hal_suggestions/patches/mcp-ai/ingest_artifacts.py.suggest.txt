@@ -1,0 +1,12 @@
+Suggestions for mcp-ai/ingest_artifacts.py
+- line 22: missing_docstring - redact
+- line 31: missing_docstring - collect_files
+- line 45: missing_docstring - file_type
+- line 56: missing_docstring - read_and_prepare
+- line 79: missing_docstring - write_jsonl
+- line 91: missing_docstring - main
+- line 113: print_usage - consider using logging instead of print()
+- line 132: print_usage - consider using logging instead of print()
+- line 110: print_usage - consider using logging instead of print()
+- line 128: print_usage - consider using logging instead of print()
+- line 125: print_usage - consider using logging instead of print()

@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 679, "type": "print-statement"}
+
+### SNIPPET
+        print('\n✓ All recommended models are already installed.\n')
+        return []
+
+    print(f'\n🤖 Recommended models not yet installed ({len(missing)}):\n')
+    for role, model in missing.items():
+        print(f'  [{role:12}] {model}')
+
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+        print('\n✓ All recommended models are already installed.\n')
+        return []
+
+    if missing:
+        print(f'\n🤖 Recommended models not yet installed ({len(missing)}):\n')
+        for role, model in missing.items():
+            print(f'  [{role:12}] {model}')
+<END_SUGGESTION>
+
+Rationale: The original code had two separate `print` statements that could be combined with a conditional check to ensure they only execute when necessary.

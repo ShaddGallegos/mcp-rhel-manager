@@ -1,0 +1,44 @@
+name: MoE Full CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  full:
+    # RHEL-only policy: run on self-hosted RHEL runners
+    runs-on: [self-hosted, rhel]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt || true
+          python -m pip install faiss-cpu scikit-learn || true
+
+      - name: Build MoE profile index
+        run: |
+          python mcp-ai/build_moe_index.py --rebuild
+        shell: bash
+
+      - name: Run unit tests
+        run: |
+          python -m pytest -q tests/test_moe_router.py
+        shell: bash
+
+      - name: Run integration tests (if OLLAMA_URL provided)
+        if: ${{ secrets.OLLAMA_URL != '' }}
+        env:
+          OLLAMA_URL: ${{ secrets.OLLAMA_URL }}
+          MOE_RUN_INTEGRATION: "1"
+        run: |
+          echo "Running integration tests against $OLLAMA_URL"
+          python -m pytest -q tests/test_moe_integration.py
+        shell: bash

@@ -1,0 +1,5 @@
+Suggestions for mcp-ai/llm_health.py
+- line 19: missing_docstring - HealthHandler
+- line 43: missing_docstring - run_server
+- line 20: missing_docstring - do_GET
+- line 45: print_usage - consider using logging instead of print()

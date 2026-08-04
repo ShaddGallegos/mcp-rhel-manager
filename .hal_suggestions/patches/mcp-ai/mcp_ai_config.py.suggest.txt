@@ -1,0 +1,6 @@
+Suggestions for mcp-ai/mcp_ai_config.py
+- line 20: missing_docstring - get_repo_root
+- line 44: missing_docstring - _load_user_config
+- line 63: missing_docstring - get_config
+- line 77: missing_docstring - get_bridge_port
+- line 85: missing_docstring - get_ai_user

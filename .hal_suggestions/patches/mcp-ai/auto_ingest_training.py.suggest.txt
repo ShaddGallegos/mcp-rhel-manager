@@ -1,0 +1,57 @@
+Suggestions for mcp-ai/auto_ingest_training.py
+- line 83: missing_docstring - utc_ts
+- line 331: missing_docstring - main
+- line 57: missing_docstring - load_import_tracker
+- line 60: missing_docstring - save_import_tracker
+- line 63: missing_docstring - get_file_hash
+- line 66: missing_docstring - should_import_file
+- line 70: missing_docstring - ingest_business_intel
+- line 73: missing_docstring - ingest_documents
+- line 76: missing_docstring - utc_ts
+- line 225: print_usage - consider using logging instead of print()
+- line 226: print_usage - consider using logging instead of print()
+- line 227: print_usage - consider using logging instead of print()
+- line 319: print_usage - consider using logging instead of print()
+- line 320: print_usage - consider using logging instead of print()
+- line 321: print_usage - consider using logging instead of print()
+- line 322: print_usage - consider using logging instead of print()
+- line 323: print_usage - consider using logging instead of print()
+- line 324: print_usage - consider using logging instead of print()
+- line 325: print_usage - consider using logging instead of print()
+- line 326: print_usage - consider using logging instead of print()
+- line 234: print_usage - consider using logging instead of print()
+- line 270: print_usage - consider using logging instead of print()
+- line 375: print_usage - consider using logging instead of print()
+- line 383: print_usage - consider using logging instead of print()
+- line 391: print_usage - consider using logging instead of print()
+- line 400: missing_docstring - ChangeHandler
+- line 413: missing_docstring - run_watch
+- line 117: print_usage - consider using logging instead of print()
+- line 157: print_usage - consider using logging instead of print()
+- line 160: print_usage - consider using logging instead of print()
+- line 169: print_usage - consider using logging instead of print()
+- line 174: print_usage - consider using logging instead of print()
+- line 188: print_usage - consider using logging instead of print()
+- line 197: print_usage - consider using logging instead of print()
+- line 202: print_usage - consider using logging instead of print()
+- line 219: print_usage - consider using logging instead of print()
+- line 239: print_usage - consider using logging instead of print()
+- line 259: print_usage - consider using logging instead of print()
+- line 262: print_usage - consider using logging instead of print()
+- line 291: print_usage - consider using logging instead of print()
+- line 312: print_usage - consider using logging instead of print()
+- line 370: print_usage - consider using logging instead of print()
+- line 381: print_usage - consider using logging instead of print()
+- line 387: print_usage - consider using logging instead of print()
+- line 401: missing_docstring - __init__
+- line 405: missing_docstring - on_any_event
+- line 428: print_usage - consider using logging instead of print()
+- line 147: print_usage - consider using logging instead of print()
+- line 153: print_usage - consider using logging instead of print()
+- line 185: print_usage - consider using logging instead of print()
+- line 216: print_usage - consider using logging instead of print()
+- line 431: print_usage - consider using logging instead of print()
+- line 242: print_usage - consider using logging instead of print()
+- line 294: print_usage - consider using logging instead of print()
+- line 407: print_usage - consider using logging instead of print()
+- line 437: print_usage - consider using logging instead of print()

@@ -1,0 +1,16 @@
+Suggestions for mcp-ai/ingest_utils.py
+- line 24: missing_docstring - utc_ts
+- line 28: missing_docstring - get_file_hash
+- line 39: missing_docstring - load_import_tracker
+- line 49: missing_docstring - save_import_tracker
+- line 58: missing_docstring - should_import_file
+- line 92: missing_docstring - ingest_business_intel
+- line 112: missing_docstring - ingest_documents
+- line 84: print_usage - consider using logging instead of print()
+- line 99: print_usage - consider using logging instead of print()
+- line 119: print_usage - consider using logging instead of print()
+- line 74: print_usage - consider using logging instead of print()
+- line 80: print_usage - consider using logging instead of print()
+- line 88: print_usage - consider using logging instead of print()
+- line 103: print_usage - consider using logging instead of print()
+- line 123: print_usage - consider using logging instead of print()

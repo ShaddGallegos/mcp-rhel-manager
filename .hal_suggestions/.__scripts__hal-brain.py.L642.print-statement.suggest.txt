@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 642, "type": "print-statement"}
+
+### SNIPPET
+        print(f'\n📦 Install Python package: {resource}\n')
+
+        if not auto_confirm and resource not in ALLOWED_AUTO_INSTALL:
+            print(f'  ⚠  Package "{resource}" is not in the auto-install whitelist.')
+            confirm = input(f'  Install anyway? [y/N]: ').strip().lower()
+            if confirm != 'y':
+                print('  Cancelled.')
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logger.info(f'\n📦 Install Python package: {resource}\n')
+
+if not auto_confirm and resource not in ALLOWED_AUTO_INSTALL:
+    logger.warning(f'  ⚠  Package "{resource}" is not in the auto-install whitelist.')
+    confirm = input(f'  Install anyway? [y/N]: ').strip().lower()
+    if confirm != 'y':
+        logger.info('  Cancelled.')
+<END_SUGGESTION>
+
+Rationale: Replace `print` statements with `logger` methods for better control and flexibility in handling log levels.

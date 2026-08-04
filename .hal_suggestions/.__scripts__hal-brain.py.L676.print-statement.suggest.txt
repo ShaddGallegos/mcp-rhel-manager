@@ -1,0 +1,18 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 676, "type": "print-statement"}
+
+### SNIPPET
+    missing = {role: model for role, model in RECOMMENDED_MODELS.items() if model not in available}
+
+    if not missing:
+        print('\n✓ All recommended models are already installed.\n')
+        return []
+
+    print(f'\n🤖 Recommended models not yet installed ({len(missing)}):\n')
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logger.info(f'✓ All recommended models are already installed.' if not missing else f'\n🤖 Recommended models not yet installed ({len(missing)}):\n')
+<END_SUGGESTION>
+
+Replace `print` statements with a logger call to maintain separation of concerns and improve code readability.

@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 600, "type": "print-statement"}
+
+### SNIPPET
+    print('  Candidates for removal:')
+    for model, reason in to_remove:
+        print(f'  ✗ {model:<45} ({reason})')
+    print(f'\n  Keeping {len(keep)} active model(s).')
+
+    if dry_run:
+        print('\n  [Dry run — no models removed. Use --resource-cleanup with --confirm to remove.]\n')
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logger.info('  Candidates for removal:')
+for model, reason in to_remove:
+    logger.info(f'  ✗ {model:<45} ({reason})')
+logger.info(f'\n  Keeping {len(keep)} active model(s).')
+
+if dry_run:
+    logger.info('\n  [Dry run — no models removed. Use --resource-cleanup with --confirm to remove.]\n')
+<END_SUGGESTION>
+
+Rationale: Replace `print` statements with `logger.info` to adhere to the principle of separating concerns and making the code more testable and configurable in terms of logging levels.

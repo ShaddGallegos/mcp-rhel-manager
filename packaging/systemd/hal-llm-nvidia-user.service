@@ -1,0 +1,17 @@
+[Unit]
+Description=HAL LLM Container (user) - NVIDIA runtime example
+After=network-online.target
+
+[Service]
+Type=simple
+Environment=USE_CONTAINER=1
+Environment=USE_REDIS=1
+Environment=MCP_INFERENCE_PORT=8080
+ExecStart=/usr/bin/env bash -c "podman run --rm --network host --env USE_REDIS=1 --env MCP_INFERENCE_PORT=8080 \
+  --device /dev/nvidia0 --device /dev/nvidiactl --device /dev/nvidia-uvm \
+  -v $HOME/mcp-rhel-manager:/opt/mcp-rhel-manager mcp-inference-queue:latest"
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

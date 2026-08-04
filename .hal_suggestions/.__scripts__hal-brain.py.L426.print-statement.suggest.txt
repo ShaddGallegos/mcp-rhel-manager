@@ -1,0 +1,18 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 426, "type": "print-statement"}
+
+### SNIPPET
+    # Synthesize with a judge model (pick best available if not specified)
+    judge = judge_model or (judge_model := select_model('reasoning', available))
+
+    print(f'🧑‍⚖️ Synthesizing with judge: {judge}\n')
+
+    responses_block = '\n\n'.join(
+        f'--- Response from {m} ---\n{r}' for m, r in results.items()
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logger.info(f'🧑‍⚖️ Synthesizing with judge: {judge}\n')
+<END_SUGGESTION>
+
+Rationale: Replace `print` with `logging.info` to adhere to best practices for logging in scripts, which is more flexible and configurable compared to direct print statements.

@@ -1,0 +1,18 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 614, "type": "print-statement"}
+
+### SNIPPET
+            try:
+                result = subprocess.run(['ollama', 'rm', model], capture_output=True, text=True)
+                if result.returncode == 0:
+                    print(f'  ✓ Removed: {model}')
+                    removed.append(model)
+                    _log_resource_event('remove', model, reason)
+                else:
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+logger.info(f'  ✓ Removed: {model}')
+<END_SUGGESTION>
+
+The `print` statement has been replaced with a `logger.info` call to adhere to best practices for logging in Python scripts, which is more flexible and configurable compared to direct use of `print`.

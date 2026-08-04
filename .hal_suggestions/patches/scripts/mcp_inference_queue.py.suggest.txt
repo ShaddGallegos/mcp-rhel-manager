@@ -1,0 +1,7 @@
+Suggestions for scripts/mcp_inference_queue.py
+- line 45: missing_docstring - InferenceRequest
+- line 114: missing_docstring - startup_event
+- line 119: missing_docstring - infer
+- line 127: missing_docstring - get_result
+- line 42: print_usage - consider using logging instead of print()
+- line 136: print_usage - consider using logging instead of print()

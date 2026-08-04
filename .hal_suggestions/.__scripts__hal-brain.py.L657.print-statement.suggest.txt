@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 657, "type": "print-statement"}
+
+### SNIPPET
+        return result.returncode
+    else:
+        # Ollama model pull
+        print(f'\n⬇  Pull Ollama model: {resource}\n')
+        if not auto_confirm:
+            confirm = input(f'  Pull {resource}? This may download several GB. [y/N]: ').strip().lower()
+            if confirm != 'y':
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+        else:
+            # Ollama model pull
+            print(f'\n⬇  Pull Ollama model: {resource}\n')
+            if not auto_confirm:
+                confirm = input(f'  Pull {resource}? This may download several GB. [y/N]: ').strip().lower()
+                if confirm != 'y':
+                    return result.returncode
+<END_SUGGESTION>
+
+Rationale: Replace the existing `print` statement with a conditional check to ensure that it only executes when necessary, thus avoiding unnecessary print statements in cases where they are not required.

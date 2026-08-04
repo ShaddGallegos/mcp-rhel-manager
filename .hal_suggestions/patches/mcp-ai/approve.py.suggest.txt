@@ -1,0 +1,7 @@
+Suggestions for mcp-ai/approve.py
+- line 22: missing_docstring - list_plans
+- line 31: missing_docstring - approve
+- line 48: print_usage - consider using logging instead of print()
+- line 25: print_usage - consider using logging instead of print()
+- line 28: print_usage - consider using logging instead of print()
+- line 33: print_usage - consider using logging instead of print()

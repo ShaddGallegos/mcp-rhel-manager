@@ -1,0 +1,18 @@
+Suggestions for mcp-ai/runtime/runtime.py
+- line 29: missing_docstring - ensure_model_dir
+- line 41: missing_docstring - list_models
+- line 46: missing_docstring - model_info
+- line 65: missing_docstring - _sha256
+- line 161: missing_docstring - _cli
+- line 91: print_usage - consider using logging instead of print()
+- line 114: print_usage - consider using logging instead of print()
+- line 154: print_usage - consider using logging instead of print()
+- line 37: print_usage - consider using logging instead of print()
+- line 102: print_usage - consider using logging instead of print()
+- line 182: print_usage - consider using logging instead of print()
+- line 106: print_usage - consider using logging instead of print()
+- line 111: print_usage - consider using logging instead of print()
+- line 187: print_usage - consider using logging instead of print()
+- line 188: print_usage - consider using logging instead of print()
+- line 189: print_usage - consider using logging instead of print()
+- line 191: print_usage - consider using logging instead of print()

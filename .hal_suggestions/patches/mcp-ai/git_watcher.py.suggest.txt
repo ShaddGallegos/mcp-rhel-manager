@@ -1,0 +1,15 @@
+Suggestions for mcp-ai/git_watcher.py
+- line 24: missing_docstring - _scan_roots
+- line 50: missing_docstring - GitWatcher
+- line 126: missing_docstring - start_watch
+- line 51: missing_docstring - __init__
+- line 62: missing_docstring - start
+- line 69: missing_docstring - stop
+- line 74: missing_docstring - _emit
+- line 89: missing_docstring - _run
+- line 137: missing_docstring - _print_event
+- line 138: print_usage - consider using logging instead of print()
+- line 150: print_usage - consider using logging instead of print()
+- line 140: print_usage - consider using logging instead of print()
+- line 154: print_usage - consider using logging instead of print()
+- line 156: print_usage - consider using logging instead of print()

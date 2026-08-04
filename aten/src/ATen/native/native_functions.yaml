@@ -1,0 +1,4 @@
+# Placeholder: upstream PyTorch native_functions.yaml
+# This file is intentionally minimal. Replace with upstream
+# contents if performing PyTorch-native work.
+functions: []

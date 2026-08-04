@@ -1,0 +1,17 @@
+[
+    {
+        "name": "restart_service",
+        "pattern": "^systemctl\\s+restart\\s+[a-zA-Z0-9_.:-]+$",
+        "description": "Restart a systemd service by name (single service)."
+    },
+    {
+        "name": "apt_install",
+        "pattern": "^(apt|apt-get)\\s+install\\s+-y\\s+[a-zA-Z0-9_.:-]+$",
+        "description": "Install a package on Debian/Ubuntu using apt (single package)."
+    },
+    {
+        "name": "docker_prune",
+        "pattern": "^docker\\s+system\\s+prune\\s+-f$",
+        "description": "Prune unused docker objects (non-interactive)."
+    }
+]

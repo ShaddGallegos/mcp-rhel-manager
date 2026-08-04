@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 504, "type": "print-statement"}
+
+### SNIPPET
+    db = _load_perf_db()
+
+    # ── Ollama models
+    print('🤖 Ollama Models:\n')
+    try:
+        with urllib.request.urlopen(f'{OLLAMA_BASE}/api/tags', timeout=5) as r:
+            data = json.loads(r.read().decode())
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+    db = _load_perf_db()
+
+    # ── Ollama models
+    logger.info('🤖 Ollama Models:')
+    try:
+        with urllib.request.urlopen(f'{OLLAMA_BASE}/api/tags', timeout=5) as r:
+            data = json.loads(r.read().decode())
+<END_SUGGESTION>
+
+Rationale: Replace `print` statement with `logger.info` for better log management and to avoid potential issues in production environments.

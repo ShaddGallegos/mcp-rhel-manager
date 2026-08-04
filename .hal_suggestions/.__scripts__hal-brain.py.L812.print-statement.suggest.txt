@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 812, "type": "print-statement"}
+
+### SNIPPET
+    """Stop a running MCP server."""
+    registry = _load_mcp_registry()
+    if name not in registry:
+        print(f'MCP server not registered: {name}', file=sys.stderr)
+        return 1
+
+    srv = registry[name]
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+    """Stop a running MCP server."""
+    registry = _load_mcp_registry()
+    if name not in registry:
+        logging.error(f'MCP server not registered: {name}')
+        return 1
+
+    srv = registry[name]
+<END_SUGGESTION>
+
+Rationale: Replaced `print` with `logging.error` for better error handling and to follow Python's recommended logging practices.

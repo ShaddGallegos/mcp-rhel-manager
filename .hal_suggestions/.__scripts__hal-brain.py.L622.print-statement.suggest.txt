@@ -1,0 +1,24 @@
+### METADATA
+{"file": "./scripts/hal-brain.py", "line": 622, "type": "print-statement"}
+
+### SNIPPET
+            except FileNotFoundError:
+                print('  ollama command not found.')
+        else:
+            print(f'  Skipped: {model}')
+
+    print(f'\n  Removed {len(removed)} model(s).')
+    return removed
+
+### LLM_SUGGESTION
+<START_SUGGESTION>
+except FileNotFoundError:
+    logging.error('  ollama command not found.')
+else:
+    logging.info(f'  Skipped: {model}')
+
+logging.info(f'\n  Removed {len(removed)} model(s).')
+return removed
+<END_SUGGESTION>
+
+Rationale: Replace `print` statements with `logging` calls to improve code maintainability and flexibility.
